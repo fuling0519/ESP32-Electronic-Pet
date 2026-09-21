@@ -1,0 +1,30 @@
+# PlatformIO
+.pio/
+.piolibdeps/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# Local secrets
+include/secrets.h
+
+# Build and compiler output
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.map
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary and editor files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
