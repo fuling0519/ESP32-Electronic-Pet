@@ -1,14 +1,15 @@
 # Architecture Notes
 
-The current firmware intentionally contains only the boot sequence. Future code should be split by responsibility as each feature becomes defined:
+Phase 1A defines hardware boundaries only. `HardwareConfig.h` is the sole
+location for pin assignments and hardware tuning. The `hardware` modules own
+the OLED I2C setup, joystick event conversion, and passive-buzzer timing.
+`storage/Save` is a placeholder for the future Preferences/NVS boundary; it
+does not define game data or a persistence format.
 
-- Pet System: state, actions, and growth rules
-- Display System: OLED rendering
-- Input System: buttons and joystick
-- Sound System: buzzer output
-- Save System: persistent state storage
-- Game System: mini-game rules
+The loop remains non-blocking: `Input::update()` returns one abstract input
+event, and `Sound::update()` advances any active tone sequence. Future game/UI
+code should consume these interfaces rather than read GPIO, use LEDC, or call
+an OLED library directly.
 
-Environmental sensors belong to Phase 1B and should not be added until their requirements are confirmed.
-
-Prefer a non-blocking update loop. Each subsystem should expose a small update or service interface and receive time from the main loop rather than owning long delays.
+The OLED is an SH1106, but its I2C address and orientation must be confirmed
+with the physical hardware before a display driver is selected or added.
