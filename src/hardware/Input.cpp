@@ -82,4 +82,6 @@ InputEvent Input::updateSwitch(uint32_t now) {
 }
 int Input::centerX() const { return centerX_; }
 int Input::centerY() const { return centerY_; }
+int Input::rawX() const { return analogRead(HardwareConfig::Pins::JoystickX); }
+int Input::rawY() const { return analogRead(HardwareConfig::Pins::JoystickY); }
 }  // namespace Hardware

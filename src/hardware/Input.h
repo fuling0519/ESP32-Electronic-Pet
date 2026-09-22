@@ -11,6 +11,8 @@ public:
     InputEvent update();
     int centerX() const;
     int centerY() const;
+    int rawX() const;
+    int rawY() const;
 private:
     InputEvent readDirection() const;
     InputEvent updateSwitch(uint32_t now);
