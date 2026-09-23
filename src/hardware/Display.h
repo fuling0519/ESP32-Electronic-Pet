@@ -3,15 +3,21 @@
 #include <stdint.h>
 
 namespace Hardware {
-// SH1106 drawing is added after its address and orientation are confirmed.
 class Display {
 public:
-    void init();
+    uint8_t scanI2c();
+    bool init();
     void clear();
     void update();
     void drawText(int16_t x, int16_t y, const char* text);
+    void drawFrame(int16_t x, int16_t y, int16_t width, int16_t height);
+    void drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2);
     bool isInitialized() const;
+    uint8_t i2cAddress() const;
+    uint8_t detectedDeviceCount() const;
 private:
     bool initialized_ = false;
+    uint8_t i2cAddress_ = 0;
+    uint8_t detectedDeviceCount_ = 0;
 };
 }  // namespace Hardware

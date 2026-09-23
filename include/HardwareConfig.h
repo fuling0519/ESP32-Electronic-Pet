@@ -15,6 +15,13 @@ constexpr int JoystickSwitch = 26;
 constexpr int Buzzer = 27;
 }  // namespace Pins
 
+namespace Oled {
+constexpr uint8_t Width = 128;
+constexpr uint8_t Height = 64;
+// Confirmed by the Phase 1A OLED smoke-test I2C scanner.
+constexpr uint8_t I2cAddress = 0x3C;
+}  // namespace Oled
+
 namespace Joystick {
 constexpr uint8_t AdcResolutionBits = 12;
 constexpr int DeadZone = 250;

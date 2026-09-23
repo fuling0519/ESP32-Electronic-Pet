@@ -11,5 +11,7 @@ event, and `Sound::update()` advances any active tone sequence. Future game/UI
 code should consume these interfaces rather than read GPIO, use LEDC, or call
 an OLED library directly.
 
-The OLED is an SH1106, but its I2C address and orientation must be confirmed
-with the physical hardware before a display driver is selected or added.
+The Display module uses U8g2's SH1106 full-buffer driver. It owns I2C scanning,
+initialization, buffered text, frames, lines, and screen updates. The OLED
+address is retained centrally in `HardwareConfig::Oled` once confirmed on the
+assembled hardware; display-library types never leave `Display.cpp`.
