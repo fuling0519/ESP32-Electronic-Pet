@@ -17,6 +17,29 @@ uint8_t PetData::level() const { return level_; }
 uint16_t PetData::exp() const { return exp_; }
 bool PetData::isSick() const { return isSick_; }
 
+HungerState PetData::hungerState() const {
+    if (satiety_ >= 76) return HungerState::Satisfied;
+    if (satiety_ >= 51) return HungerState::SlightlyHungry;
+    if (satiety_ >= 26) return HungerState::Hungry;
+    if (satiety_ >= 11) return HungerState::VeryHungry;
+    return HungerState::Starving;
+}
+
+MoodState PetData::moodState() const {
+    if (mood_ >= 81) return MoodState::VeryHappy;
+    if (mood_ >= 61) return MoodState::Happy;
+    if (mood_ >= 41) return MoodState::Neutral;
+    if (mood_ >= 21) return MoodState::Sad;
+    return MoodState::VerySad;
+}
+
+CleanlinessState PetData::cleanlinessState() const {
+    if (cleanliness_ >= 76) return CleanlinessState::Clean;
+    if (cleanliness_ >= 51) return CleanlinessState::SlightlyDirty;
+    if (cleanliness_ >= 26) return CleanlinessState::Dirty;
+    return CleanlinessState::Filthy;
+}
+
 void PetData::setSatiety(int value) { satiety_ = clampNeedValue(value); }
 void PetData::setMood(int value) { mood_ = clampNeedValue(value); }
 void PetData::setCleanliness(int value) { cleanliness_ = clampNeedValue(value); }

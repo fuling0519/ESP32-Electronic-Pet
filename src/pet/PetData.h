@@ -4,6 +4,29 @@
 
 namespace Pet {
 
+enum class HungerState : uint8_t {
+    Satisfied,
+    SlightlyHungry,
+    Hungry,
+    VeryHungry,
+    Starving,
+};
+
+enum class MoodState : uint8_t {
+    VeryHappy,
+    Happy,
+    Neutral,
+    Sad,
+    VerySad,
+};
+
+enum class CleanlinessState : uint8_t {
+    Clean,
+    SlightlyDirty,
+    Dirty,
+    Filthy,
+};
+
 // Core pet state only. Gameplay systems update the bounded needs through the
 // change/set methods instead of modifying their values directly.
 class PetData {
@@ -19,6 +42,9 @@ public:
     uint8_t level() const;
     uint16_t exp() const;
     bool isSick() const;
+    HungerState hungerState() const;
+    MoodState moodState() const;
+    CleanlinessState cleanlinessState() const;
 
     void setSatiety(int value);
     void setMood(int value);
