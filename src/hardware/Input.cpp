@@ -24,24 +24,38 @@ void Input::init() {
     lastRawSwitchPressed_ = digitalRead(HardwareConfig::Pins::JoystickSwitch) == LOW;
     switchPressed_ = lastRawSwitchPressed_;
     lastSwitchChangeAt_ = millis();
+    directionLocked_ = false;
+    lockedDirection_ = InputEvent::None;
 }
 
 InputEvent Input::update() {
     const uint32_t now = millis();
-    const InputEvent direction = readDirection();
     InputEvent event = InputEvent::None;
-    if (direction != activeDirection_) {
-        activeDirection_ = direction;
-        directionStartedAt_ = now;
+
+    // The first direction is emitted immediately. The gesture then stays
+    // locked to that direction: only it may repeat, and only after the hold
+    // delay. No other axis can emit until both axes return to neutral.
+    if (directionLocked_) {
+        if (isNeutral()) {
+            directionLocked_ = false;
+            lockedDirection_ = InputEvent::None;
+            holdStartedAt_ = 0;
+            lastRepeatAt_ = 0;
+        } else if (isDirectionHeld(lockedDirection_) &&
+                   now - holdStartedAt_ >= HardwareConfig::Joystick::InitialRepeatDelayMs &&
+                   now - lastRepeatAt_ >= HardwareConfig::Joystick::RepeatIntervalMs) {
+            event = lockedDirection_;
+            lastRepeatAt_ = now;
+        }
+    } else {
+        const InputEvent direction = readDirection();
         if (direction != InputEvent::None) {
-            lastDirectionEventAt_ = now;
+            directionLocked_ = true;
+            lockedDirection_ = direction;
+            holdStartedAt_ = now;
+            lastRepeatAt_ = now;
             event = direction;
         }
-    } else if (direction != InputEvent::None &&
-               now - directionStartedAt_ >= HardwareConfig::Joystick::DirectionRepeatDelayMs &&
-               now - lastDirectionEventAt_ >= HardwareConfig::Joystick::DirectionRepeatIntervalMs) {
-        lastDirectionEventAt_ = now;
-        event = direction;
     }
     const InputEvent switchEvent = updateSwitch(now);
     return switchEvent != InputEvent::None ? switchEvent : event;
@@ -59,6 +73,31 @@ InputEvent Input::readDirection() const {
     if (absX >= absY && absX >= HardwareConfig::Joystick::DirectionThreshold) return x < 0 ? InputEvent::Left : InputEvent::Right;
     if (absY > absX && absY >= HardwareConfig::Joystick::DirectionThreshold) return y < 0 ? InputEvent::Up : InputEvent::Down;
     return InputEvent::None;
+}
+
+bool Input::isNeutral() const {
+    int x = analogRead(HardwareConfig::Pins::JoystickX) - centerX_;
+    int y = analogRead(HardwareConfig::Pins::JoystickY) - centerY_;
+    if (HardwareConfig::Joystick::InvertX) x = -x;
+    if (HardwareConfig::Joystick::InvertY) y = -y;
+
+    return abs(x) <= HardwareConfig::Joystick::DeadZone &&
+           abs(y) <= HardwareConfig::Joystick::DeadZone;
+}
+
+bool Input::isDirectionHeld(InputEvent direction) const {
+    int x = analogRead(HardwareConfig::Pins::JoystickX) - centerX_;
+    int y = analogRead(HardwareConfig::Pins::JoystickY) - centerY_;
+    if (HardwareConfig::Joystick::InvertX) x = -x;
+    if (HardwareConfig::Joystick::InvertY) y = -y;
+
+    switch (direction) {
+        case InputEvent::Up: return y <= -HardwareConfig::Joystick::DirectionThreshold;
+        case InputEvent::Down: return y >= HardwareConfig::Joystick::DirectionThreshold;
+        case InputEvent::Left: return x <= -HardwareConfig::Joystick::DirectionThreshold;
+        case InputEvent::Right: return x >= HardwareConfig::Joystick::DirectionThreshold;
+        default: return false;
+    }
 }
 
 InputEvent Input::updateSwitch(uint32_t now) {

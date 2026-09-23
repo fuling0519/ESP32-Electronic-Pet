@@ -15,12 +15,15 @@ public:
     int rawY() const;
 private:
     InputEvent readDirection() const;
+    bool isNeutral() const;
+    bool isDirectionHeld(InputEvent direction) const;
     InputEvent updateSwitch(uint32_t now);
     int centerX_ = 0;
     int centerY_ = 0;
-    InputEvent activeDirection_ = InputEvent::None;
-    uint32_t directionStartedAt_ = 0;
-    uint32_t lastDirectionEventAt_ = 0;
+    bool directionLocked_ = false;
+    InputEvent lockedDirection_ = InputEvent::None;
+    uint32_t holdStartedAt_ = 0;
+    uint32_t lastRepeatAt_ = 0;
     bool lastRawSwitchPressed_ = false;
     bool switchPressed_ = false;
     bool longPressSent_ = false;

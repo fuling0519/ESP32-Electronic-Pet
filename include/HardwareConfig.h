@@ -24,13 +24,15 @@ constexpr uint8_t I2cAddress = 0x3C;
 
 namespace Joystick {
 constexpr uint8_t AdcResolutionBits = 12;
+// Returning inside this zone re-arms a discrete direction gesture.
 constexpr int DeadZone = 250;
+// A gesture begins only after exceeding this larger threshold.
 constexpr int DirectionThreshold = 900;
 // Confirm these directions with the assembled HW-504.
 constexpr bool InvertX = false;
 constexpr bool InvertY = false;
-constexpr uint32_t DirectionRepeatDelayMs = 450;
-constexpr uint32_t DirectionRepeatIntervalMs = 180;
+constexpr uint32_t InitialRepeatDelayMs = 400;
+constexpr uint32_t RepeatIntervalMs = 150;
 constexpr uint32_t SwitchDebounceMs = 35;
 constexpr uint32_t LongPressMs = 700;
 }  // namespace Joystick

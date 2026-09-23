@@ -15,3 +15,8 @@ The Display module uses U8g2's SH1106 full-buffer driver. It owns I2C scanning,
 initialization, buffered text, frames, lines, and screen updates. The OLED
 address is retained centrally in `HardwareConfig::Oled` once confirmed on the
 assembled hardware; display-library types never leave `Display.cpp`.
+
+`ui/UiController` owns UI screen state, menu selection, transitions, and dirty
+rendering. `main` forwards `InputEvent` values to it and services `Sound`; the
+UI neither reads hardware pins nor depends on U8g2. It draws only through the
+Display abstraction and redraws static screens only after a state change.
