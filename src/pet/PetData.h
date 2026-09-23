@@ -42,6 +42,7 @@ public:
     uint8_t level() const;
     uint16_t exp() const;
     bool isSick() const;
+    bool isDead() const;
     HungerState hungerState() const;
     MoodState moodState() const;
     CleanlinessState cleanlinessState() const;
@@ -56,6 +57,7 @@ public:
     void setLevel(uint8_t value);
     void setExp(uint16_t value);
     void setSick(bool value);
+    void setDead(bool value);
 
 private:
     static uint8_t clampNeedValue(int value);
@@ -66,6 +68,7 @@ private:
     uint8_t level_;
     uint16_t exp_;
     bool isSick_;
+    bool isDead_;
 };
 
 }  // namespace Pet

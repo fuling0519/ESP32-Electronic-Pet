@@ -8,7 +8,8 @@ PetData::PetData()
       cleanliness_(100),
       level_(1),
       exp_(0),
-      isSick_(false) {}
+      isSick_(false),
+      isDead_(false) {}
 
 uint8_t PetData::satiety() const { return satiety_; }
 uint8_t PetData::mood() const { return mood_; }
@@ -16,6 +17,7 @@ uint8_t PetData::cleanliness() const { return cleanliness_; }
 uint8_t PetData::level() const { return level_; }
 uint16_t PetData::exp() const { return exp_; }
 bool PetData::isSick() const { return isSick_; }
+bool PetData::isDead() const { return isDead_; }
 
 HungerState PetData::hungerState() const {
     if (satiety_ >= 76) return HungerState::Satisfied;
@@ -53,6 +55,7 @@ void PetData::changeCleanliness(int amount) {
 void PetData::setLevel(uint8_t value) { level_ = value; }
 void PetData::setExp(uint16_t value) { exp_ = value; }
 void PetData::setSick(bool value) { isSick_ = value; }
+void PetData::setDead(bool value) { isDead_ = value; }
 
 uint8_t PetData::clampNeedValue(int value) {
     if (value < kMinNeedValue) return kMinNeedValue;
