@@ -25,6 +25,13 @@ enum class ScreenId {
     StatusPlaceholder,
 };
 
+// Home currently has one selectable shortcut. Keep this separate from screen
+// state so future shortcuts can extend the enum without a navigation framework.
+enum class HomeFocus {
+    None,
+    Status,
+};
+
 class UiController {
 public:
     UiController(Hardware::Display& display, Hardware::Sound& sound,
@@ -51,6 +58,7 @@ private:
     Hardware::Sound& sound_;
     const Pet::PetData& pet_;
     ScreenId screen_ = ScreenId::Boot;
+    HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;
     uint32_t bootStartedAt_ = 0;
     bool dirty_ = true;

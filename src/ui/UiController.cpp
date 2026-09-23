@@ -36,6 +36,7 @@ UiController::UiController(Hardware::Display& display, Hardware::Sound& sound,
 
 void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
+    homeFocus_ = HomeFocus::None;
     menuIndex_ = 0;
     bootStartedAt_ = now;
     dirty_ = true;
@@ -43,6 +44,7 @@ void UiController::init(uint32_t now) {
 
 bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     const ScreenId previousScreen = screen_;
+    const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
 
     if (kDebugUiEvents && event != Hardware::InputEvent::None) {
@@ -59,7 +61,16 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 
     switch (screen_) {
         case ScreenId::Home:
-            if (event == Hardware::InputEvent::Press) {
+            if (event == Hardware::InputEvent::Right &&
+                homeFocus_ == HomeFocus::None) {
+                homeFocus_ = HomeFocus::Status;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Left &&
+                       homeFocus_ == HomeFocus::Status) {
+                homeFocus_ = HomeFocus::None;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Press &&
+                       homeFocus_ == HomeFocus::None) {
                 sound_.playConfirm();
                 setScreen(ScreenId::MainMenu);
             }
@@ -98,7 +109,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     if (kDebugUiEvents && menuIndex_ != previousMenuIndex) {
         Serial.printf("Menu index: %u -> %u\n", previousMenuIndex, menuIndex_);
     }
-    return screen_ != previousScreen || menuIndex_ != previousMenuIndex;
+    return screen_ != previousScreen || homeFocus_ != previousHomeFocus ||
+           menuIndex_ != previousMenuIndex;
 }
 
 void UiController::render() {
@@ -138,6 +150,7 @@ const char* UiController::selectedMenuItem() const { return kMenuItems[menuIndex
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
     screen_ = screen;
+    if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
     dirty_ = true;
 }
 
@@ -158,6 +171,11 @@ void UiController::renderHome() {
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());
     PetIcons::drawStatusCard(display_, 113, 40);
+    if (homeFocus_ == HomeFocus::Status) {
+        // One-pixel breathing room keeps the selection frame distinct from
+        // the card's own outline without changing the HUD layout.
+        display_.drawFrame(111, 38, 16, 16);
+    }
 
     // Reserve y=55 as whitespace. This baseline is not EXP progress.
     char levelText[6];  // "Lv255" plus terminator covers the uint8_t level.
