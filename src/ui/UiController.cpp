@@ -73,6 +73,10 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                        homeFocus_ == HomeFocus::None) {
                 sound_.playConfirm();
                 setScreen(ScreenId::MainMenu);
+            } else if (event == Hardware::InputEvent::Press &&
+                       homeFocus_ == HomeFocus::Status) {
+                sound_.playConfirm();
+                setScreen(ScreenId::DetailedStatus);
             }
             break;
 
@@ -102,6 +106,13 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
             break;
 
+        case ScreenId::DetailedStatus:
+            if (event == Hardware::InputEvent::Press) {
+                sound_.playConfirm();
+                setScreen(ScreenId::Home);
+            }
+            break;
+
         case ScreenId::Boot:
             break;
     }
@@ -124,6 +135,7 @@ void UiController::render() {
         case ScreenId::PlayPlaceholder: renderPlaceholder("PLAY"); break;
         case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
         case ScreenId::StatusPlaceholder: renderPlaceholder("STATUS"); break;
+        case ScreenId::DetailedStatus: renderDetailedStatus(); break;
     }
     display_.update();
     dirty_ = false;
@@ -140,6 +152,7 @@ const char* UiController::screenName() const {
         case ScreenId::PlayPlaceholder: return "PLAY_PLACEHOLDER";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
         case ScreenId::StatusPlaceholder: return "STATUS_PLACEHOLDER";
+        case ScreenId::DetailedStatus: return "DETAILED_STATUS";
     }
     return "UNKNOWN";
 }
@@ -195,6 +208,32 @@ void UiController::renderMainMenu() {
         if (i == menuIndex_) display_.drawText(8, baseline, ">");
         display_.drawText(24, baseline, kMenuItems[i]);
     }
+}
+
+void UiController::renderDetailedStatus() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    display_.drawText(43, 11, "STATUS");
+    display_.drawLine(6, 15, 121, 15);
+
+    char valueText[4];  // "100" plus terminator covers bounded need values.
+    display_.drawText(10, 27, "Hunger");
+    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.satiety()));
+    display_.drawText(101, 27, valueText);
+
+    display_.drawText(10, 39, "Mood");
+    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.mood()));
+    display_.drawText(101, 39, valueText);
+
+    display_.drawText(10, 51, "Clean");
+    snprintf(valueText, sizeof(valueText), "%u",
+             static_cast<unsigned>(pet_.cleanliness()));
+    display_.drawText(101, 51, valueText);
+
+    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.level()));
+    display_.drawText(10, 62, "Lv.");
+    display_.drawText(31, 62, valueText);
+    display_.drawText(88, 62, pet_.isSick() ? "SICK" : "OK");
 }
 
 void UiController::renderPlaceholder(const char* title) {

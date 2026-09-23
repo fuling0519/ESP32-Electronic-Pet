@@ -23,6 +23,7 @@ enum class ScreenId {
     PlayPlaceholder,
     RestPlaceholder,
     StatusPlaceholder,
+    DetailedStatus,
 };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
@@ -52,6 +53,7 @@ private:
     void renderBoot();
     void renderHome();
     void renderMainMenu();
+    void renderDetailedStatus();
     void renderPlaceholder(const char* title);
 
     Hardware::Display& display_;
