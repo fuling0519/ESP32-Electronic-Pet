@@ -56,6 +56,13 @@ void Display::drawText(int16_t x, int16_t y, const char* text) {
     if (initialized_ && text != nullptr) sh1106.drawStr(x, y, text);
 }
 
+void Display::drawSmallText(int16_t x, int16_t y, const char* text) {
+    if (!initialized_ || text == nullptr) return;
+    sh1106.setFont(u8g2_font_5x7_tf);
+    sh1106.drawStr(x, y, text);
+    sh1106.setFont(u8g2_font_6x10_tf);
+}
+
 void Display::drawFrame(int16_t x, int16_t y, int16_t width, int16_t height) {
     if (initialized_) sh1106.drawFrame(x, y, width, height);
 }

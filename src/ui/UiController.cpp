@@ -1,9 +1,13 @@
 #include "ui/UiController.h"
 
 #include <Arduino.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "hardware/Display.h"
 #include "hardware/Sound.h"
+#include "pet/PetData.h"
+#include "ui/PetIcons.h"
 
 namespace Ui {
 namespace {
@@ -26,8 +30,9 @@ const char* inputEventName(Hardware::InputEvent event) {
 }
 }  // namespace
 
-UiController::UiController(Hardware::Display& display, Hardware::Sound& sound)
-    : display_(display), sound_(sound) {}
+UiController::UiController(Hardware::Display& display, Hardware::Sound& sound,
+                           const Pet::PetData& pet)
+    : display_(display), sound_(sound), pet_(pet) {}
 
 void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
@@ -145,11 +150,21 @@ void UiController::renderBoot() {
 
 void UiController::renderHome() {
     display_.clear();
-    display_.drawFrame(0, 0, 128, 64);
-    display_.drawText(20, 14, "ELECTRONIC PET");
-    display_.drawLine(6, 19, 121, 19);
-    display_.drawText(31, 39, "[ PET HOME ]");
-    display_.drawText(29, 58, "Press: Menu");
+    PetIcons::drawMood(display_, 3, 3, pet_.moodState());
+    PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
+
+    // 44 x 32 slime within the 20..108 / 0..54 stage.
+    PetIcons::drawPetPlaceholder(display_, 43, 12);
+    if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
+    PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());
+    PetIcons::drawStatusCard(display_, 113, 40);
+
+    // Reserve y=55 as whitespace. This baseline is not EXP progress.
+    char levelText[6];  // "Lv255" plus terminator covers the uint8_t level.
+    snprintf(levelText, sizeof(levelText), "Lv%u", static_cast<unsigned>(pet_.level()));
+    const int16_t levelX = 128 - static_cast<int16_t>(strlen(levelText) * 5);
+    display_.drawLine(3, 60, levelX - 6, 60);
+    display_.drawSmallText(levelX, 63, levelText);
 }
 
 void UiController::renderMainMenu() {

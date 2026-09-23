@@ -20,3 +20,16 @@ assembled hardware; display-library types never leave `Display.cpp`.
 rendering. `main` forwards `InputEvent` values to it and services `Sound`; the
 UI neither reads hardware pins nor depends on U8g2. It draws only through the
 Display abstraction and redraws static screens only after a state change.
+
+The application object in `main.cpp` owns one private `PetData` instance and
+passes a const reference to `UiController`. Home reads derived need states,
+sickness and level from that same pet on entry; it does not cache or copy pet
+data. Live data-change invalidation is deferred until gameplay changes values.
+`ui/PetIcons` contains bounded, monochrome primitive drawings, including the
+replaceable 44 x 32 slime placeholder. Mood and stomach fullness stay on the
+left; Dirty / Filthy show a broom in the second right alert slot. Starving
+and Filthy add the same small critical exclamation mark. Clean and
+SlightlyDirty leave the cleaning slot empty. Home layout stays in `UiController`;
+`Display::drawSmallText` encapsulates the 5 x 7 font and restores the normal
+font afterwards. The bottom line is decorative, not EXP progress. The status
+card is visual only; Home Press still opens the unchanged main menu.

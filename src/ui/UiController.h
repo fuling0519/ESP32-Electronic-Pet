@@ -9,6 +9,10 @@ class Display;
 class Sound;
 }
 
+namespace Pet {
+class PetData;
+}
+
 namespace Ui {
 
 enum class ScreenId {
@@ -23,7 +27,8 @@ enum class ScreenId {
 
 class UiController {
 public:
-    UiController(Hardware::Display& display, Hardware::Sound& sound);
+    UiController(Hardware::Display& display, Hardware::Sound& sound,
+                 const Pet::PetData& pet);
 
     void init(uint32_t now);
     // Returns true when visible UI state has changed.
@@ -44,6 +49,7 @@ private:
 
     Hardware::Display& display_;
     Hardware::Sound& sound_;
+    const Pet::PetData& pet_;
     ScreenId screen_ = ScreenId::Boot;
     uint8_t menuIndex_ = 0;
     uint32_t bootStartedAt_ = 0;

@@ -3,18 +3,30 @@
 #include "hardware/Display.h"
 #include "hardware/Input.h"
 #include "hardware/Sound.h"
+#include "pet/PetData.h"
 #include "storage/Save.h"
 #include "ui/UiController.h"
 
-Hardware::Display display;
-Hardware::Input input;
-Hardware::Sound sound;
-Storage::Save save;
-Ui::UiController ui(display, sound);
-
 namespace {
 constexpr bool kDebugUi = true;
-bool appReady = false;
+
+// Application owns the current pet. UI borrows it read-only, without a copy.
+class Application {
+public:
+    void setup();
+    void loop();
+
+private:
+    void printUiState(Hardware::InputEvent event);
+
+    Hardware::Display display;
+    Hardware::Input input;
+    Hardware::Sound sound;
+    Storage::Save save;
+    Pet::PetData pet;
+    Ui::UiController ui{display, sound, pet};
+    bool appReady = false;
+};
 
 const char* inputEventName(Hardware::InputEvent event) {
     switch (event) {
@@ -29,7 +41,7 @@ const char* inputEventName(Hardware::InputEvent event) {
     return "UNKNOWN";
 }
 
-void printUiState(Hardware::InputEvent event) {
+void Application::printUiState(Hardware::InputEvent event) {
     if (!kDebugUi) return;
     (void)event;
     Serial.print("Screen: ");
@@ -38,9 +50,8 @@ void printUiState(Hardware::InputEvent event) {
         Serial.printf("Menu index: %u\nSelected: %s\n", ui.menuIndex(), ui.selectedMenuItem());
     }
 }
-}  // namespace
 
-void setup() {
+void Application::setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Phase 1A UI Navigation Test ===");
@@ -57,7 +68,7 @@ void setup() {
     ui.render();
 }
 
-void loop() {
+void Application::loop() {
     if (!appReady) return;
 
     const Hardware::InputEvent event = input.update();
@@ -70,3 +81,9 @@ void loop() {
     sound.update();
     ui.render();
 }
+
+Application application;
+}  // namespace
+
+void setup() { application.setup(); }
+void loop() { application.loop(); }
