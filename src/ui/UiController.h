@@ -19,11 +19,15 @@ enum class ScreenId {
     Boot,
     Home,
     MainMenu,
-    FeedPlaceholder,
+    FeedCare,
+    CleanCare,
+    TreatCare,
     PlayPlaceholder,
     RestPlaceholder,
     DetailedStatus,
 };
+
+enum class UiAction : uint8_t { None, Feed, Clean, Treat };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
 // state so future shortcuts can extend the enum without a navigation framework.
@@ -46,6 +50,7 @@ public:
     const char* screenName() const;
     uint8_t menuIndex() const;
     const char* selectedMenuItem() const;
+    UiAction takeAction();
 
 private:
     void setScreen(ScreenId screen);
@@ -56,6 +61,7 @@ private:
     void renderDetailedStatusPage1();
     void renderDetailedStatusPage2();
     void renderPlaceholder(const char* title);
+    void renderCare(const char* title, const char* stat, unsigned value);
 
     Hardware::Display& display_;
     Hardware::Sound& sound_;
@@ -66,6 +72,8 @@ private:
     uint8_t statusPage_ = 0;
     uint32_t bootStartedAt_ = 0;
     bool dirty_ = true;
+    uint32_t lastRenderedPetRevision_ = 0;
+    UiAction pendingAction_ = UiAction::None;
 };
 
 }  // namespace Ui

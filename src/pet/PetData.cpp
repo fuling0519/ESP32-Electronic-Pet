@@ -1,5 +1,7 @@
 #include "pet/PetData.h"
 
+#include <limits.h>
+
 namespace Pet {
 
 PetData::PetData()
@@ -9,7 +11,14 @@ PetData::PetData()
       level_(1),
       exp_(0),
       isSick_(false),
-      isDead_(false) {}
+      isDead_(false),
+      ageSeconds_(0),
+      satietyRemainderSeconds_(0),
+      cleanlinessRemainderSeconds_(0),
+      moodRemainderSeconds_(0),
+      dangerSeconds_(0),
+      sickAwakeSeconds_(0),
+      displayRevision_(0) {}
 
 uint8_t PetData::satiety() const { return satiety_; }
 uint8_t PetData::mood() const { return mood_; }
@@ -18,6 +27,10 @@ uint8_t PetData::level() const { return level_; }
 uint16_t PetData::exp() const { return exp_; }
 bool PetData::isSick() const { return isSick_; }
 bool PetData::isDead() const { return isDead_; }
+uint64_t PetData::ageSeconds() const { return ageSeconds_; }
+uint32_t PetData::displayRevision() const { return displayRevision_; }
+uint32_t PetData::dangerSeconds() const { return dangerSeconds_; }
+uint32_t PetData::sickAwakeSeconds() const { return sickAwakeSeconds_; }
 
 HungerState PetData::hungerState() const {
     if (satiety_ >= 76) return HungerState::Satisfied;
@@ -42,22 +55,100 @@ CleanlinessState PetData::cleanlinessState() const {
     return CleanlinessState::Filthy;
 }
 
-void PetData::setSatiety(int value) { satiety_ = clampNeedValue(value); }
-void PetData::setMood(int value) { mood_ = clampNeedValue(value); }
-void PetData::setCleanliness(int value) { cleanliness_ = clampNeedValue(value); }
-
-void PetData::changeSatiety(int amount) { setSatiety(static_cast<int>(satiety_) + amount); }
-void PetData::changeMood(int amount) { setMood(static_cast<int>(mood_) + amount); }
-void PetData::changeCleanliness(int amount) {
-    setCleanliness(static_cast<int>(cleanliness_) + amount);
+void PetData::setSatiety(int value) {
+    const uint8_t bounded = clampNeedValue(value);
+    if (satiety_ != bounded) { satiety_ = bounded; ++displayRevision_; }
+    if (satiety_ > 0 && cleanliness_ > 0 && !isSick_) dangerSeconds_ = 0;
+}
+void PetData::setMood(int value) {
+    const uint8_t bounded = clampNeedValue(value);
+    if (mood_ != bounded) { mood_ = bounded; ++displayRevision_; }
+}
+void PetData::setCleanliness(int value) {
+    const uint8_t bounded = clampNeedValue(value);
+    if (cleanliness_ != bounded) { cleanliness_ = bounded; ++displayRevision_; }
+    if (satiety_ > 0 && cleanliness_ > 0 && !isSick_) dangerSeconds_ = 0;
 }
 
-void PetData::setLevel(uint8_t value) { level_ = value; }
-void PetData::setExp(uint16_t value) { exp_ = value; }
-void PetData::setSick(bool value) { isSick_ = value; }
-void PetData::setDead(bool value) { isDead_ = value; }
+void PetData::changeSatiety(int amount) {
+    setSatiety(clampNeedValue(static_cast<int64_t>(satiety_) + amount));
+}
+void PetData::changeMood(int amount) {
+    setMood(clampNeedValue(static_cast<int64_t>(mood_) + amount));
+}
+void PetData::changeCleanliness(int amount) {
+    setCleanliness(clampNeedValue(static_cast<int64_t>(cleanliness_) + amount));
+}
 
-uint8_t PetData::clampNeedValue(int value) {
+void PetData::setLevel(uint8_t value) {
+    if (value == 0) value = 1;
+    if (level_ != value) { level_ = value; ++displayRevision_; }
+}
+void PetData::setExp(uint16_t value) { exp_ = value; }
+void PetData::setSick(bool value) {
+    if (isSick_ != value) { isSick_ = value; ++displayRevision_; }
+    if (!value) { dangerSeconds_ = 0; sickAwakeSeconds_ = 0; }
+}
+void PetData::setDead(bool value) {
+    if (isDead_ != value) { isDead_ = value; ++displayRevision_; }
+}
+
+void PetData::advanceSeconds(uint32_t seconds) {
+    if (isDead_ || seconds == 0) return;
+    const uint64_t satietyZeroAt = satiety_ == 0 ? 0 :
+        static_cast<uint64_t>(satiety_) * kSatietyDecaySeconds - satietyRemainderSeconds_;
+    const uint64_t cleanlinessZeroAt = cleanliness_ == 0 ? 0 :
+        static_cast<uint64_t>(cleanliness_) * kCleanlinessDecaySeconds - cleanlinessRemainderSeconds_;
+    const uint64_t dangerStartsAt = satietyZeroAt < cleanlinessZeroAt ?
+        satietyZeroAt : cleanlinessZeroAt;
+    const uint64_t exposedSeconds = seconds > dangerStartsAt ? seconds - dangerStartsAt : 0;
+    if (isSick_) {
+        const uint64_t total = static_cast<uint64_t>(sickAwakeSeconds_) + seconds;
+        sickAwakeSeconds_ = total > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(total);
+    } else if (exposedSeconds > 0) {
+        const uint32_t remaining = kSicknessExposureSeconds - dangerSeconds_;
+        if (exposedSeconds >= remaining) {
+            setSick(true);
+            dangerSeconds_ = kSicknessExposureSeconds;
+            sickAwakeSeconds_ = exposedSeconds - remaining > UINT32_MAX ? UINT32_MAX :
+                static_cast<uint32_t>(exposedSeconds - remaining);
+        } else {
+            dangerSeconds_ += static_cast<uint32_t>(exposedSeconds);
+        }
+    }
+    if (UINT64_MAX - ageSeconds_ < seconds) ageSeconds_ = UINT64_MAX;
+    else ageSeconds_ += seconds;
+
+    const uint64_t satietyTotal = static_cast<uint64_t>(satietyRemainderSeconds_) + seconds;
+    const uint64_t cleanlinessTotal = static_cast<uint64_t>(cleanlinessRemainderSeconds_) + seconds;
+    const uint64_t moodTotal = static_cast<uint64_t>(moodRemainderSeconds_) + seconds;
+    satietyRemainderSeconds_ = satietyTotal % kSatietyDecaySeconds;
+    cleanlinessRemainderSeconds_ = cleanlinessTotal % kCleanlinessDecaySeconds;
+    moodRemainderSeconds_ = moodTotal % kMoodDecaySeconds;
+    changeSatiety(-static_cast<int>(satietyTotal / kSatietyDecaySeconds));
+    changeCleanliness(-static_cast<int>(cleanlinessTotal / kCleanlinessDecaySeconds));
+    changeMood(-static_cast<int>(moodTotal / kMoodDecaySeconds));
+}
+
+bool PetData::feed() {
+    if (isDead_) return false;
+    changeSatiety(kFeedAmount);
+    return true;
+}
+
+bool PetData::clean() {
+    if (isDead_) return false;
+    changeCleanliness(kCleanAmount);
+    return true;
+}
+
+bool PetData::treat() {
+    if (isDead_ || !isSick_) return false;
+    setSick(false);
+    return true;
+}
+
+uint8_t PetData::clampNeedValue(int64_t value) {
     if (value < kMinNeedValue) return kMinNeedValue;
     if (value > kMaxNeedValue) return kMaxNeedValue;
     return static_cast<uint8_t>(value);

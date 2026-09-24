@@ -4,6 +4,7 @@
 #include "hardware/Input.h"
 #include "hardware/Sound.h"
 #include "pet/PetData.h"
+#include "pet/PetClock.h"
 #include "storage/Save.h"
 #include "ui/UiController.h"
 
@@ -24,6 +25,7 @@ private:
     Hardware::Sound sound;
     Storage::Save save;
     Pet::PetData pet;
+    Pet::PetClock petClock;
     Ui::UiController ui{display, sound, pet};
     bool appReady = false;
 };
@@ -62,7 +64,9 @@ void Application::setup() {
     input.init();
     sound.init();
     save.init();
-    ui.init(millis());
+    const uint32_t now = millis();
+    petClock.reset(now);
+    ui.init(now);
     appReady = true;
     printUiState(Hardware::InputEvent::None);
     ui.render();
@@ -71,12 +75,23 @@ void Application::setup() {
 void Application::loop() {
     if (!appReady) return;
 
+    const uint32_t now = millis();
+    pet.advanceSeconds(petClock.consumeElapsedSeconds(now));
     const Hardware::InputEvent event = input.update();
     if (kDebugUi && event != Hardware::InputEvent::None) {
         Serial.print("Physical/Input event: ");
         Serial.println(inputEventName(event));
     }
-    const bool changed = ui.update(event, millis());
+    const bool changed = ui.update(event, now);
+    switch (ui.takeAction()) {
+        case Ui::UiAction::Feed: pet.feed(); sound.playSuccess(); break;
+        case Ui::UiAction::Clean: pet.clean(); sound.playSuccess(); break;
+        case Ui::UiAction::Treat:
+            if (pet.treat()) sound.playSuccess();
+            else sound.playFailure();
+            break;
+        case Ui::UiAction::None: break;
+    }
     if (changed) printUiState(event);
     sound.update();
     ui.render();

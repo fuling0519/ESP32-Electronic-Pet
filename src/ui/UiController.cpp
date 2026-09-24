@@ -12,9 +12,11 @@
 namespace Ui {
 namespace {
 constexpr uint32_t kBootDurationMs = 1500;
-constexpr uint8_t kMenuItemCount = 4;
+constexpr uint8_t kMenuItemCount = 6;
 constexpr bool kDebugUiEvents = true;
-const char* const kMenuItems[kMenuItemCount] = {"Feed", "Play", "Rest", "Status"};
+const char* const kMenuItems[kMenuItemCount] = {
+    "Feed", "Clean", "Treat", "Play", "Rest", "Status"
+};
 constexpr int16_t kStatusLabelX = 9;
 constexpr int16_t kStatusValueRight = 118;
 
@@ -57,6 +59,8 @@ void UiController::init(uint32_t now) {
     statusPage_ = 0;
     bootStartedAt_ = now;
     dirty_ = true;
+    pendingAction_ = UiAction::None;
+    lastRenderedPetRevision_ = pet_.displayRevision();
 }
 
 bool UiController::update(Hardware::InputEvent event, uint32_t now) {
@@ -107,11 +111,13 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
                 sound_.playConfirm();
-                if (menuIndex_ == kMenuItemCount - 1) {
-                    setScreen(ScreenId::DetailedStatus);
-                } else {
-                    setScreen(static_cast<ScreenId>(
-                        static_cast<uint8_t>(ScreenId::FeedPlaceholder) + menuIndex_));
+                switch (menuIndex_) {
+                    case 0: setScreen(ScreenId::FeedCare); break;
+                    case 1: setScreen(ScreenId::CleanCare); break;
+                    case 2: setScreen(ScreenId::TreatCare); break;
+                    case 3: setScreen(ScreenId::PlayPlaceholder); break;
+                    case 4: setScreen(ScreenId::RestPlaceholder); break;
+                    default: setScreen(ScreenId::DetailedStatus); break;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
@@ -119,7 +125,18 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
             break;
 
-        case ScreenId::FeedPlaceholder:
+        case ScreenId::FeedCare:
+        case ScreenId::CleanCare:
+        case ScreenId::TreatCare:
+            if (event == Hardware::InputEvent::Press) {
+                pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
+                    screen_ == ScreenId::CleanCare ? UiAction::Clean : UiAction::Treat;
+            } else if (event == Hardware::InputEvent::LongPress) {
+                sound_.playCancel();
+                setScreen(ScreenId::MainMenu);
+            }
+            break;
+
         case ScreenId::PlayPlaceholder:
         case ScreenId::RestPlaceholder:
             if (event == Hardware::InputEvent::LongPress) {
@@ -155,18 +172,26 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 }
 
 void UiController::render() {
+    if ((screen_ == ScreenId::Home || screen_ == ScreenId::DetailedStatus ||
+         screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
+         screen_ == ScreenId::TreatCare) &&
+        pet_.displayRevision() != lastRenderedPetRevision_) dirty_ = true;
     if (!dirty_ || !display_.isInitialized()) return;
 
     switch (screen_) {
         case ScreenId::Boot: renderBoot(); break;
         case ScreenId::Home: renderHome(); break;
         case ScreenId::MainMenu: renderMainMenu(); break;
-        case ScreenId::FeedPlaceholder: renderPlaceholder("FEED"); break;
+        case ScreenId::FeedCare: renderCare("FEED", "Satiety", pet_.satiety()); break;
+        case ScreenId::CleanCare: renderCare("CLEAN", "Clean", pet_.cleanliness()); break;
+        case ScreenId::TreatCare:
+            renderCare("TREAT", "Sick", pet_.isSick() ? 1 : 0); break;
         case ScreenId::PlayPlaceholder: renderPlaceholder("PLAY"); break;
         case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
     }
     display_.update();
+    lastRenderedPetRevision_ = pet_.displayRevision();
     dirty_ = false;
 }
 
@@ -177,7 +202,9 @@ const char* UiController::screenName() const {
         case ScreenId::Boot: return "BOOT";
         case ScreenId::Home: return "HOME";
         case ScreenId::MainMenu: return "MAIN_MENU";
-        case ScreenId::FeedPlaceholder: return "FEED_PLACEHOLDER";
+        case ScreenId::FeedCare: return "FEED_CARE";
+        case ScreenId::CleanCare: return "CLEAN_CARE";
+        case ScreenId::TreatCare: return "TREAT_CARE";
         case ScreenId::PlayPlaceholder: return "PLAY_PLACEHOLDER";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
@@ -187,6 +214,11 @@ const char* UiController::screenName() const {
 
 uint8_t UiController::menuIndex() const { return menuIndex_; }
 const char* UiController::selectedMenuItem() const { return kMenuItems[menuIndex_]; }
+UiAction UiController::takeAction() {
+    const UiAction action = pendingAction_;
+    pendingAction_ = UiAction::None;
+    return action;
+}
 
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
@@ -233,9 +265,9 @@ void UiController::renderMainMenu() {
     display_.drawText(52, 12, "MENU");
     display_.drawLine(6, 16, 121, 16);
     for (uint8_t i = 0; i < kMenuItemCount; ++i) {
-        const int16_t baseline = 29 + (i * 11);
-        if (i == menuIndex_) display_.drawText(8, baseline, ">");
-        display_.drawText(24, baseline, kMenuItems[i]);
+        const int16_t baseline = 23 + (i * 8);
+        if (i == menuIndex_) display_.drawSmallText(8, baseline, ">");
+        display_.drawSmallText(20, baseline, kMenuItems[i]);
     }
 }
 
@@ -278,6 +310,23 @@ void UiController::renderPlaceholder(const char* title) {
     display_.drawLine(6, 20, 121, 20);
     display_.drawText(17, 40, "Not implemented");
     display_.drawText(31, 58, "Hold: Back");
+}
+
+void UiController::renderCare(const char* title, const char* stat, unsigned value) {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    display_.drawText(40, 14, title);
+    display_.drawLine(6, 19, 121, 19);
+    char line[24];
+    if (screen_ == ScreenId::TreatCare) {
+        snprintf(line, sizeof(line), "Health: %s", pet_.isSick() ? "Sick" : "Good");
+    } else {
+        snprintf(line, sizeof(line), "%s: %u", stat, value);
+    }
+    display_.drawText(12, 35, line);
+    display_.drawText(12, 49, screen_ == ScreenId::FeedCare ? "Press: +20" :
+                      screen_ == ScreenId::CleanCare ? "Press: +30" : "Press: Treat");
+    display_.drawSmallText(12, 60, "Hold: Back");
 }
 
 }  // namespace Ui
