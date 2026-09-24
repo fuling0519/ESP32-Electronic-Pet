@@ -1,4 +1,4 @@
-# ESP32 Electronic Pet／神秘蛋電子寵物
+# ESP32 Electronic Pet／神秘蛋電子寵物 2026/09/24
 
 這是以 ESP32 NodeMCU-32S 製作的離線電子寵物。完整需求、已完成項目與驗收條件見 [專題企劃與進度追蹤](docs/project-plan.md)。此 README 是新開發者與 Agent 的接手入口；目前進度是 **A3 寵物核心進行中**，不是已完成的遊戲。
 
