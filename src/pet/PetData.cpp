@@ -86,10 +86,13 @@ void PetData::setLevel(uint8_t value) {
 }
 void PetData::setExp(uint16_t value) { exp_ = value; }
 void PetData::setSick(bool value) {
+    if (isDead_ && !value) return;
     if (isSick_ != value) { isSick_ = value; ++displayRevision_; }
     if (!value) { dangerSeconds_ = 0; sickAwakeSeconds_ = 0; }
 }
 void PetData::setDead(bool value) {
+    if (isDead_ && !value) return;
+    if (value) setSick(true);
     if (isDead_ != value) { isDead_ = value; ++displayRevision_; }
 }
 
@@ -102,32 +105,52 @@ void PetData::advanceSeconds(uint32_t seconds) {
     const uint64_t dangerStartsAt = satietyZeroAt < cleanlinessZeroAt ?
         satietyZeroAt : cleanlinessZeroAt;
     const uint64_t exposedSeconds = seconds > dangerStartsAt ? seconds - dangerStartsAt : 0;
+    uint32_t elapsedSeconds = seconds;
+    bool diesThisAdvance = false;
     if (isSick_) {
-        const uint64_t total = static_cast<uint64_t>(sickAwakeSeconds_) + seconds;
-        sickAwakeSeconds_ = total > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(total);
-    } else if (exposedSeconds > 0) {
-        const uint32_t remaining = kSicknessExposureSeconds - dangerSeconds_;
-        if (exposedSeconds >= remaining) {
-            setSick(true);
-            dangerSeconds_ = kSicknessExposureSeconds;
-            sickAwakeSeconds_ = exposedSeconds - remaining > UINT32_MAX ? UINT32_MAX :
-                static_cast<uint32_t>(exposedSeconds - remaining);
-        } else {
-            dangerSeconds_ += static_cast<uint32_t>(exposedSeconds);
+        const uint32_t remaining = kDeathAfterSickAwakeSeconds - sickAwakeSeconds_;
+        if (seconds >= remaining) {
+            elapsedSeconds = remaining;
+            diesThisAdvance = true;
+        }
+    } else if (exposedSeconds >= kSicknessExposureSeconds - dangerSeconds_) {
+        const uint64_t deathAt = dangerStartsAt +
+            (kSicknessExposureSeconds - dangerSeconds_) +
+            kDeathAfterSickAwakeSeconds;
+        if (seconds >= deathAt) {
+            elapsedSeconds = static_cast<uint32_t>(deathAt);
+            diesThisAdvance = true;
         }
     }
-    if (UINT64_MAX - ageSeconds_ < seconds) ageSeconds_ = UINT64_MAX;
-    else ageSeconds_ += seconds;
+    const uint64_t effectiveExposedSeconds = elapsedSeconds > dangerStartsAt ?
+        elapsedSeconds - dangerStartsAt : 0;
+    if (isSick_) {
+        const uint64_t total = static_cast<uint64_t>(sickAwakeSeconds_) + elapsedSeconds;
+        sickAwakeSeconds_ = total > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(total);
+    } else if (effectiveExposedSeconds > 0) {
+        const uint32_t remaining = kSicknessExposureSeconds - dangerSeconds_;
+        if (effectiveExposedSeconds >= remaining) {
+            setSick(true);
+            dangerSeconds_ = kSicknessExposureSeconds;
+            sickAwakeSeconds_ = effectiveExposedSeconds - remaining > UINT32_MAX ? UINT32_MAX :
+                static_cast<uint32_t>(effectiveExposedSeconds - remaining);
+        } else {
+            dangerSeconds_ += static_cast<uint32_t>(effectiveExposedSeconds);
+        }
+    }
+    if (UINT64_MAX - ageSeconds_ < elapsedSeconds) ageSeconds_ = UINT64_MAX;
+    else ageSeconds_ += elapsedSeconds;
 
-    const uint64_t satietyTotal = static_cast<uint64_t>(satietyRemainderSeconds_) + seconds;
-    const uint64_t cleanlinessTotal = static_cast<uint64_t>(cleanlinessRemainderSeconds_) + seconds;
-    const uint64_t moodTotal = static_cast<uint64_t>(moodRemainderSeconds_) + seconds;
+    const uint64_t satietyTotal = static_cast<uint64_t>(satietyRemainderSeconds_) + elapsedSeconds;
+    const uint64_t cleanlinessTotal = static_cast<uint64_t>(cleanlinessRemainderSeconds_) + elapsedSeconds;
+    const uint64_t moodTotal = static_cast<uint64_t>(moodRemainderSeconds_) + elapsedSeconds;
     satietyRemainderSeconds_ = satietyTotal % kSatietyDecaySeconds;
     cleanlinessRemainderSeconds_ = cleanlinessTotal % kCleanlinessDecaySeconds;
     moodRemainderSeconds_ = moodTotal % kMoodDecaySeconds;
     changeSatiety(-static_cast<int>(satietyTotal / kSatietyDecaySeconds));
     changeCleanliness(-static_cast<int>(cleanlinessTotal / kCleanlinessDecaySeconds));
     changeMood(-static_cast<int>(moodTotal / kMoodDecaySeconds));
+    if (diesThisAdvance) setDead(true);
 }
 
 bool PetData::feed() {

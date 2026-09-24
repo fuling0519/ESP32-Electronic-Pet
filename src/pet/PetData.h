@@ -37,6 +37,7 @@ public:
     static constexpr uint32_t kCleanlinessDecaySeconds = 900;
     static constexpr uint32_t kMoodDecaySeconds = 1200;
     static constexpr uint32_t kSicknessExposureSeconds = 6UL * 60 * 60;
+    static constexpr uint32_t kDeathAfterSickAwakeSeconds = 24UL * 60 * 60;
     static constexpr uint8_t kFeedAmount = 20;
     static constexpr uint8_t kCleanAmount = 30;
 

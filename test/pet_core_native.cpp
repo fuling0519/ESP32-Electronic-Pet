@@ -84,6 +84,33 @@ int main() {
     assert(batchedSickness.isSick() && batchedSickness.sickAwakeSeconds() == 90);
     assert(batchedSickness.ageSeconds() == exact.ageSeconds() + 90);
 
+    Pet::PetData dying;
+    dying.setSick(true);
+    dying.advanceSeconds(Pet::PetData::kDeathAfterSickAwakeSeconds - 1);
+    assert(dying.isSick() && !dying.isDead());
+    const uint64_t ageBeforeFatalSecond = dying.ageSeconds();
+    dying.advanceSeconds(1);
+    assert(dying.isDead());
+    assert(dying.sickAwakeSeconds() == Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(dying.ageSeconds() == ageBeforeFatalSecond + 1);
+    dying.setDead(false);
+    dying.setSick(false);
+    assert(dying.isDead() && dying.isSick());
+
+    Pet::PetData fatalBatch;
+    fatalBatch.setSatiety(0);
+    const uint32_t fatalElapsed = Pet::PetData::kSicknessExposureSeconds +
+                                  Pet::PetData::kDeathAfterSickAwakeSeconds;
+    fatalBatch.advanceSeconds(fatalElapsed + 3600);
+    assert(fatalBatch.isDead());
+    assert(fatalBatch.sickAwakeSeconds() == Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(fatalBatch.ageSeconds() == fatalElapsed);
+
+    Pet::PetData manualDeath;
+    manualDeath.setDead(true);
+    assert(manualDeath.isDead() && manualDeath.isSick());
+    assert(!manualDeath.treat());
+
     Pet::PetClock clock;
     assert(clock.consumeElapsedSeconds(UINT32_MAX - 500) == 0);
     assert(clock.consumeElapsedSeconds(498) == 0);
