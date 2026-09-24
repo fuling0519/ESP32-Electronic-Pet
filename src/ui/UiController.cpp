@@ -15,6 +15,22 @@ constexpr uint32_t kBootDurationMs = 1500;
 constexpr uint8_t kMenuItemCount = 4;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {"Feed", "Play", "Rest", "Status"};
+constexpr int16_t kStatusLabelX = 9;
+constexpr int16_t kStatusValueRight = 118;
+
+void drawStatusNumber(Hardware::Display& display, int16_t baseline,
+                      unsigned value) {
+    char text[4];  // uint8_t values fit in three decimal digits.
+    snprintf(text, sizeof(text), "%u", value);
+    display.drawText(kStatusValueRight - static_cast<int16_t>(strlen(text) * 6),
+                     baseline, text);
+}
+
+void drawStatusTextValue(Hardware::Display& display, int16_t baseline,
+                         const char* text) {
+    display.drawStatusText(kStatusValueRight - display.statusTextWidth(text),
+                           baseline, text);
+}
 
 const char* inputEventName(Hardware::InputEvent event) {
     switch (event) {
@@ -38,6 +54,7 @@ void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
     homeFocus_ = HomeFocus::None;
     menuIndex_ = 0;
+    statusPage_ = 0;
     bootStartedAt_ = now;
     dirty_ = true;
 }
@@ -46,6 +63,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     const ScreenId previousScreen = screen_;
     const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
+    const uint8_t previousStatusPage = statusPage_;
 
     if (kDebugUiEvents && event != Hardware::InputEvent::None) {
         Serial.print("UI received: ");
@@ -89,7 +107,12 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
                 sound_.playConfirm();
-                setScreen(static_cast<ScreenId>(static_cast<uint8_t>(ScreenId::FeedPlaceholder) + menuIndex_));
+                if (menuIndex_ == kMenuItemCount - 1) {
+                    setScreen(ScreenId::DetailedStatus);
+                } else {
+                    setScreen(static_cast<ScreenId>(
+                        static_cast<uint8_t>(ScreenId::FeedPlaceholder) + menuIndex_));
+                }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::Home);
@@ -99,7 +122,6 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         case ScreenId::FeedPlaceholder:
         case ScreenId::PlayPlaceholder:
         case ScreenId::RestPlaceholder:
-        case ScreenId::StatusPlaceholder:
             if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::MainMenu);
@@ -107,9 +129,17 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             break;
 
         case ScreenId::DetailedStatus:
-            if (event == Hardware::InputEvent::Press) {
-                sound_.playConfirm();
+            if (event == Hardware::InputEvent::LongPress) {
+                sound_.playCancel();
                 setScreen(ScreenId::Home);
+            } else if ((event == Hardware::InputEvent::Right ||
+                        event == Hardware::InputEvent::Down) && statusPage_ == 0) {
+                statusPage_ = 1;
+                dirty_ = true;
+            } else if ((event == Hardware::InputEvent::Left ||
+                        event == Hardware::InputEvent::Up) && statusPage_ == 1) {
+                statusPage_ = 0;
+                dirty_ = true;
             }
             break;
 
@@ -121,7 +151,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         Serial.printf("Menu index: %u -> %u\n", previousMenuIndex, menuIndex_);
     }
     return screen_ != previousScreen || homeFocus_ != previousHomeFocus ||
-           menuIndex_ != previousMenuIndex;
+           menuIndex_ != previousMenuIndex || statusPage_ != previousStatusPage;
 }
 
 void UiController::render() {
@@ -134,7 +164,6 @@ void UiController::render() {
         case ScreenId::FeedPlaceholder: renderPlaceholder("FEED"); break;
         case ScreenId::PlayPlaceholder: renderPlaceholder("PLAY"); break;
         case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
-        case ScreenId::StatusPlaceholder: renderPlaceholder("STATUS"); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
     }
     display_.update();
@@ -151,7 +180,6 @@ const char* UiController::screenName() const {
         case ScreenId::FeedPlaceholder: return "FEED_PLACEHOLDER";
         case ScreenId::PlayPlaceholder: return "PLAY_PLACEHOLDER";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
-        case ScreenId::StatusPlaceholder: return "STATUS_PLACEHOLDER";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
     }
     return "UNKNOWN";
@@ -164,6 +192,7 @@ void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
     screen_ = screen;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
+    if (screen_ == ScreenId::DetailedStatus) statusPage_ = 0;
     dirty_ = true;
 }
 
@@ -213,27 +242,33 @@ void UiController::renderMainMenu() {
 void UiController::renderDetailedStatus() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawText(43, 11, "STATUS");
-    display_.drawLine(6, 15, 121, 15);
+    display_.drawStatusText(64 - display_.statusTextWidth("狀態") / 2, 14, "狀態");
+    display_.drawText(99, 14, statusPage_ == 0 ? "1/2" : "2/2");
+    display_.drawLine(6, 18, 121, 18);
+    if (statusPage_ == 0) {
+        renderDetailedStatusPage1();
+    } else {
+        renderDetailedStatusPage2();
+    }
+}
 
-    char valueText[4];  // "100" plus terminator covers bounded need values.
-    display_.drawText(10, 27, "Hunger");
-    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.satiety()));
-    display_.drawText(101, 27, valueText);
+void UiController::renderDetailedStatusPage1() {
+    display_.drawStatusText(kStatusLabelX, 30, "飽食");
+    drawStatusNumber(display_, 30, static_cast<unsigned>(pet_.satiety()));
 
-    display_.drawText(10, 39, "Mood");
-    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.mood()));
-    display_.drawText(101, 39, valueText);
+    display_.drawStatusText(kStatusLabelX, 45, "心情");
+    drawStatusNumber(display_, 45, static_cast<unsigned>(pet_.mood()));
 
-    display_.drawText(10, 51, "Clean");
-    snprintf(valueText, sizeof(valueText), "%u",
-             static_cast<unsigned>(pet_.cleanliness()));
-    display_.drawText(101, 51, valueText);
+    display_.drawStatusText(kStatusLabelX, 60, "清潔");
+    drawStatusNumber(display_, 60, static_cast<unsigned>(pet_.cleanliness()));
+}
 
-    snprintf(valueText, sizeof(valueText), "%u", static_cast<unsigned>(pet_.level()));
-    display_.drawText(10, 62, "Lv.");
-    display_.drawText(31, 62, valueText);
-    display_.drawText(88, 62, pet_.isSick() ? "SICK" : "OK");
+void UiController::renderDetailedStatusPage2() {
+    display_.drawStatusText(kStatusLabelX, 35, "等級");
+    drawStatusNumber(display_, 35, static_cast<unsigned>(pet_.level()));
+
+    display_.drawStatusText(kStatusLabelX, 53, "健康");
+    drawStatusTextValue(display_, 53, pet_.isSick() ? "生病" : "正常");
 }
 
 void UiController::renderPlaceholder(const char* title) {

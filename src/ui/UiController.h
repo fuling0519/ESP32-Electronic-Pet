@@ -22,7 +22,6 @@ enum class ScreenId {
     FeedPlaceholder,
     PlayPlaceholder,
     RestPlaceholder,
-    StatusPlaceholder,
     DetailedStatus,
 };
 
@@ -54,6 +53,8 @@ private:
     void renderHome();
     void renderMainMenu();
     void renderDetailedStatus();
+    void renderDetailedStatusPage1();
+    void renderDetailedStatusPage2();
     void renderPlaceholder(const char* title);
 
     Hardware::Display& display_;
@@ -62,6 +63,7 @@ private:
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;
+    uint8_t statusPage_ = 0;
     uint32_t bootStartedAt_ = 0;
     bool dirty_ = true;
 };
