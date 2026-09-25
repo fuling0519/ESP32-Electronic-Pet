@@ -12,6 +12,8 @@
 namespace Ui {
 namespace {
 constexpr uint32_t kBootDurationMs = 1500;
+constexpr uint32_t kDeathAnimationDurationMs = 3600;
+constexpr uint32_t kDeathAnimationFrameMs = 100;
 constexpr uint8_t kMenuItemCount = 6;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -58,6 +60,9 @@ void UiController::init(uint32_t now) {
     menuIndex_ = 0;
     statusPage_ = 0;
     bootStartedAt_ = now;
+    deathStartedAt_ = 0;
+    deathAnimationElapsedMs_ = 0;
+    deathAnimationFrame_ = 0;
     dirty_ = true;
     pendingAction_ = UiAction::None;
     lastRenderedPetRevision_ = pet_.displayRevision();
@@ -77,9 +82,35 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     }
 
     if (screen_ == ScreenId::Boot) {
-        if (now - bootStartedAt_ >= kBootDurationMs) setScreen(ScreenId::Home);
+        if (now - bootStartedAt_ >= kBootDurationMs) {
+            if (pet_.isDead()) beginDeathAnimation(now);
+            else setScreen(ScreenId::Home);
+        }
         return screen_ != previousScreen;
     }
+
+    if (pet_.isDead() && screen_ != ScreenId::DeathAnimation &&
+        screen_ != ScreenId::DeathMemorial) {
+        beginDeathAnimation(now);
+        return true;
+    }
+
+    if (screen_ == ScreenId::DeathAnimation) {
+        deathAnimationElapsedMs_ = now - deathStartedAt_;
+        if (deathAnimationElapsedMs_ >= kDeathAnimationDurationMs) {
+            setScreen(ScreenId::DeathMemorial);
+        } else {
+            const uint8_t frame = static_cast<uint8_t>(
+                deathAnimationElapsedMs_ / kDeathAnimationFrameMs);
+            if (frame != deathAnimationFrame_) {
+                deathAnimationFrame_ = frame;
+                dirty_ = true;
+            }
+        }
+        return screen_ != previousScreen || dirty_;
+    }
+
+    if (screen_ == ScreenId::DeathMemorial) return false;
 
     switch (screen_) {
         case ScreenId::Home:
@@ -161,6 +192,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             break;
 
         case ScreenId::Boot:
+        case ScreenId::DeathAnimation:
+        case ScreenId::DeathMemorial:
             break;
     }
 
@@ -189,6 +222,8 @@ void UiController::render() {
         case ScreenId::PlayPlaceholder: renderPlaceholder("PLAY"); break;
         case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
+        case ScreenId::DeathAnimation: renderDeathAnimation(); break;
+        case ScreenId::DeathMemorial: renderDeathMemorial(); break;
     }
     display_.update();
     lastRenderedPetRevision_ = pet_.displayRevision();
@@ -208,6 +243,8 @@ const char* UiController::screenName() const {
         case ScreenId::PlayPlaceholder: return "PLAY_PLACEHOLDER";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
+        case ScreenId::DeathAnimation: return "DEATH_ANIMATION";
+        case ScreenId::DeathMemorial: return "DEATH_MEMORIAL";
     }
     return "UNKNOWN";
 }
@@ -218,6 +255,14 @@ UiAction UiController::takeAction() {
     const UiAction action = pendingAction_;
     pendingAction_ = UiAction::None;
     return action;
+}
+
+void UiController::beginDeathAnimation(uint32_t now) {
+    pendingAction_ = UiAction::None;
+    deathStartedAt_ = now;
+    deathAnimationElapsedMs_ = 0;
+    deathAnimationFrame_ = 0;
+    setScreen(ScreenId::DeathAnimation);
 }
 
 void UiController::setScreen(ScreenId screen) {
@@ -327,6 +372,63 @@ void UiController::renderCare(const char* title, const char* stat, unsigned valu
     display_.drawText(12, 49, screen_ == ScreenId::FeedCare ? "Press: +20" :
                       screen_ == ScreenId::CleanCare ? "Press: +30" : "Press: Treat");
     display_.drawSmallText(12, 60, "Hold: Back");
+}
+
+void UiController::renderDeathAnimation() {
+    display_.clear();
+
+    uint8_t dissolveStage = 0;
+    if (deathAnimationElapsedMs_ >= 700) dissolveStage = 1;
+    if (deathAnimationElapsedMs_ >= 1400) dissolveStage = 2;
+    if (deathAnimationElapsedMs_ >= 2100) dissolveStage = 3;
+    PetIcons::drawPetPlaceholderDissolve(display_, 42, 27, dissolveStage);
+
+    if (deathAnimationElapsedMs_ >= 300) {
+        const uint32_t soulElapsed = deathAnimationElapsedMs_ - 300;
+        const uint32_t capped = soulElapsed > 2900 ? 2900 : soulElapsed;
+        const int16_t soulY = 23 - static_cast<int16_t>((capped * 22) / 2900);
+        const uint8_t ghostFrame = static_cast<uint8_t>((soulElapsed / 300) % 2);
+        PetIcons::drawGhost(display_, 64, soulY, ghostFrame);
+    }
+
+    if (deathAnimationElapsedMs_ >= 2200) {
+        display_.drawLine(35, 12, 35, 16);
+        display_.drawLine(33, 14, 37, 14);
+        display_.drawLine(107, 21, 107, 23);
+        display_.drawLine(106, 22, 108, 22);
+    }
+    display_.drawLine(26, 59, 101, 59);
+}
+
+void UiController::renderDeathMemorial() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    PetIcons::drawTombstone(display_, 43, 7);
+    display_.drawText(55, 30, "RIP");
+
+    char ageText[14];
+    const uint64_t age = pet_.ageSeconds();
+    if (age >= 86400) {
+        snprintf(ageText, sizeof(ageText), "AGE %llud",
+                 static_cast<unsigned long long>(age / 86400));
+    } else if (age >= 3600) {
+        snprintf(ageText, sizeof(ageText), "AGE %lluh",
+                 static_cast<unsigned long long>(age / 3600));
+    } else if (age >= 60) {
+        snprintf(ageText, sizeof(ageText), "AGE %llum",
+                 static_cast<unsigned long long>(age / 60));
+    } else {
+        snprintf(ageText, sizeof(ageText), "AGE %llus",
+                 static_cast<unsigned long long>(age));
+    }
+    const int16_t ageX = 64 - static_cast<int16_t>(strlen(ageText) * 5) / 2;
+    display_.drawSmallText(ageX, 43, ageText);
+
+    display_.drawLine(34, 56, 94, 56);
+    display_.drawLine(37, 56, 34, 52);
+    display_.drawLine(48, 56, 46, 53);
+    display_.drawLine(80, 56, 82, 52);
+    display_.drawLine(91, 56, 94, 53);
 }
 
 }  // namespace Ui

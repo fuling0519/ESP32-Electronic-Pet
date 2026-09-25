@@ -66,6 +66,10 @@ void Application::setup() {
     save.init();
     const uint32_t now = millis();
     petClock.reset(now);
+#if defined(PET_DEATH_TEST_MODE)
+    pet.setSick(true);
+    Serial.println("Death test mode: pet starts sick and dies after 30 seconds.");
+#endif
     ui.init(now);
     appReady = true;
     printUiState(Hardware::InputEvent::None);

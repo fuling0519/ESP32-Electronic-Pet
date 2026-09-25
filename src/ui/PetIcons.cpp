@@ -1,5 +1,7 @@
 #include "ui/PetIcons.h"
 
+#include <Arduino.h>
+
 #include "hardware/Display.h"
 
 namespace Ui {
@@ -122,7 +124,8 @@ void drawStatusCard(Hardware::Display& d, int16_t x, int16_t y) {
     }
 }
 
-void drawPetPlaceholder(Hardware::Display& d, int16_t x, int16_t y) {
+void drawPetPlaceholderDissolve(Hardware::Display& d, int16_t x, int16_t y,
+                                uint8_t stage) {
     // Rounded 44 x 32 slime: soft dome and scalloped base, no limbs or ears.
     const uint8_t outline[][2] = {
         {16, 0}, {27, 0}, {33, 2}, {37, 6}, {40, 12}, {42, 19},
@@ -131,19 +134,128 @@ void drawPetPlaceholder(Hardware::Display& d, int16_t x, int16_t y) {
         {2, 29}, {0, 25}, {1, 19}, {3, 12}, {6, 6}, {10, 2}, {16, 0}
     };
     for (unsigned i = 1; i < sizeof(outline) / sizeof(outline[0]); ++i) {
+        if (stage == 1 && i % 3 == 1) continue;
+        if (stage == 2 && i % 3 != 0) continue;
+        if (stage >= 3) continue;
         d.drawLine(x + outline[i - 1][0], y + outline[i - 1][1],
                    x + outline[i][0], y + outline[i][1]);
     }
-    // Solid bean eyes, small smile and short cheek marks.
-    d.drawLine(x + 13, y + 16, x + 13, y + 19);
-    d.drawLine(x + 14, y + 16, x + 14, y + 19);
-    d.drawLine(x + 29, y + 16, x + 29, y + 19);
-    d.drawLine(x + 30, y + 16, x + 30, y + 19);
-    d.drawLine(x + 19, y + 21, x + 20, y + 23);
-    d.drawLine(x + 20, y + 23, x + 23, y + 23);
-    d.drawLine(x + 23, y + 23, x + 24, y + 21);
-    d.drawLine(x + 9, y + 22, x + 11, y + 22);
-    d.drawLine(x + 32, y + 22, x + 34, y + 22);
+    if (stage == 0) {
+        // Solid bean eyes, small smile and short cheek marks.
+        d.drawLine(x + 13, y + 16, x + 13, y + 19);
+        d.drawLine(x + 14, y + 16, x + 14, y + 19);
+        d.drawLine(x + 29, y + 16, x + 29, y + 19);
+        d.drawLine(x + 30, y + 16, x + 30, y + 19);
+        d.drawLine(x + 19, y + 21, x + 20, y + 23);
+        d.drawLine(x + 20, y + 23, x + 23, y + 23);
+        d.drawLine(x + 23, y + 23, x + 24, y + 21);
+        d.drawLine(x + 9, y + 22, x + 11, y + 22);
+        d.drawLine(x + 32, y + 22, x + 34, y + 22);
+    } else if (stage == 1) {
+        // The test slime closes its eyes as its outline starts dissolving.
+        d.drawLine(x + 12, y + 18, x + 15, y + 18);
+        d.drawLine(x + 28, y + 18, x + 31, y + 18);
+    } else if (stage == 2) {
+        const uint8_t specks[][2] = {
+            {8, 12}, {16, 5}, {27, 7}, {36, 14}, {5, 24},
+            {17, 27}, {29, 24}, {39, 25},
+        };
+        for (unsigned i = 0; i < sizeof(specks) / sizeof(specks[0]); ++i) {
+            d.drawLine(x + specks[i][0], y + specks[i][1],
+                       x + specks[i][0], y + specks[i][1]);
+        }
+    }
+}
+
+void drawPetPlaceholder(Hardware::Display& d, int16_t x, int16_t y) {
+    drawPetPlaceholderDissolve(d, x, y, 0);
+}
+
+namespace {
+// Exact two 30 x 28 frames from assets/ghost/GHOST2.png, top to bottom.
+// drawGlyph uses zero bits for white pixels; one bits stay transparent.
+const uint8_t kGhostBitmaps[2][112] PROGMEM = {
+    {
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xBF, 0xF7, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xE0, 0x1F, 0xFF,
+        0xFF, 0x80, 0x07, 0xFF,
+        0xFF, 0x00, 0x03, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFC, 0x00, 0x00, 0xFF,
+        0xF8, 0x44, 0x44, 0x7F,
+        0xF8, 0x28, 0x28, 0x7F,
+        0x98, 0x10, 0x10, 0x67,
+        0x08, 0x28, 0x28, 0x43,
+        0xE8, 0x44, 0x44, 0x5F,
+        0xF8, 0x00, 0x00, 0x7F,
+        0xF8, 0x00, 0x00, 0x7F,
+        0xFC, 0x03, 0x80, 0xFF,
+        0xFE, 0x04, 0x40, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFF, 0x00, 0x03, 0xFF,
+        0xFF, 0x80, 0x07, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xC0, 0x3F, 0xFF,
+        0xFF, 0x87, 0xFF, 0xFF,
+        0xFF, 0x7F, 0xFF, 0xFF,
+    },
+    {
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xBF, 0xF7, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xE0, 0x1F, 0xFF,
+        0xFF, 0x80, 0x07, 0xFF,
+        0xFF, 0x00, 0x03, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFC, 0x00, 0x00, 0xFF,
+        0xF8, 0x44, 0x44, 0x7F,
+        0xF8, 0x28, 0x28, 0x7F,
+        0xF8, 0x10, 0x10, 0x7F,
+        0xE8, 0x28, 0x28, 0x5F,
+        0x08, 0x44, 0x44, 0x43,
+        0x98, 0x00, 0x00, 0x67,
+        0xF8, 0x00, 0x00, 0x7F,
+        0xFC, 0x03, 0x80, 0xFF,
+        0xFE, 0x04, 0x40, 0xFF,
+        0xFE, 0x00, 0x01, 0xFF,
+        0xFF, 0x00, 0x03, 0xFF,
+        0xFF, 0x80, 0x07, 0xFF,
+        0xFF, 0xC0, 0x0F, 0xFF,
+        0xFF, 0xC0, 0x3F, 0xFF,
+        0xFF, 0x87, 0xFF, 0xFF,
+        0xFF, 0x7F, 0xFF, 0xFF,
+    },
+};
+}  // namespace
+
+void drawGhost(Hardware::Display& d, int16_t x, int16_t y, uint8_t frame) {
+    d.drawGlyph(x, y, kGhostBitmaps[frame % 2],
+                kGhostFrameWidth, kGhostFrameHeight);
+}
+
+void drawTombstone(Hardware::Display& d, int16_t x, int16_t y) {
+    // 42 x 47: rounded top, straight sides and a slightly wider base.
+    d.drawLine(x + 11, y, x + 30, y);
+    d.drawLine(x + 6, y + 3, x + 11, y);
+    d.drawLine(x + 30, y, x + 35, y + 3);
+    d.drawLine(x + 3, y + 7, x + 6, y + 3);
+    d.drawLine(x + 35, y + 3, x + 38, y + 7);
+    d.drawLine(x + 3, y + 7, x + 3, y + 42);
+    d.drawLine(x + 38, y + 7, x + 38, y + 42);
+    d.drawLine(x + 3, y + 42, x + 38, y + 42);
+    d.drawLine(x, y + 46, x + 41, y + 46);
+    d.drawLine(x + 3, y + 42, x, y + 46);
+    d.drawLine(x + 38, y + 42, x + 41, y + 46);
 }
 
 }  // namespace PetIcons

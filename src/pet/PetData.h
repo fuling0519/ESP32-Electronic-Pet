@@ -36,8 +36,13 @@ public:
     static constexpr uint32_t kSatietyDecaySeconds = 600;
     static constexpr uint32_t kCleanlinessDecaySeconds = 900;
     static constexpr uint32_t kMoodDecaySeconds = 1200;
+#if defined(PET_DEATH_TEST_MODE)
+    static constexpr uint32_t kSicknessExposureSeconds = 10;
+    static constexpr uint32_t kDeathAfterSickAwakeSeconds = 30;
+#else
     static constexpr uint32_t kSicknessExposureSeconds = 6UL * 60 * 60;
     static constexpr uint32_t kDeathAfterSickAwakeSeconds = 24UL * 60 * 60;
+#endif
     static constexpr uint8_t kFeedAmount = 20;
     static constexpr uint8_t kCleanAmount = 30;
 
