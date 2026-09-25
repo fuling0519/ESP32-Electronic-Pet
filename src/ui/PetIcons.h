@@ -25,11 +25,11 @@ void drawCleaningAlert(Hardware::Display& display, int16_t x, int16_t y,
                        Pet::CleanlinessState state);
 void drawSick(Hardware::Display& display, int16_t x, int16_t y);
 void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
-// Temporary slime, 44 x 32. Replace this drawing for a future sprite.
-void drawPetPlaceholder(Hardware::Display& display, int16_t x, int16_t y);
-// Dissolve stages 0..3 progressively remove the temporary slime.
-void drawPetPlaceholderDissolve(Hardware::Display& display, int16_t x, int16_t y,
-                                uint8_t stage);
+// User-drawn tit: two exact 64 x 44 frames from assets/BIRD/BIRD-normal.png.
+void drawBird(Hardware::Display& display, int16_t x, int16_t y, uint8_t frame);
+// Dissolve stages 0..3 progressively remove the bird during the farewell.
+void drawBirdDissolve(Hardware::Display& display, int16_t x, int16_t y,
+                      uint8_t stage);
 // Shared user-drawn ghost. Frames 0 and 1 alternate the wing positions.
 void drawGhost(Hardware::Display& display, int16_t x, int16_t y,
                uint8_t frame);

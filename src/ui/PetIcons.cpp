@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "hardware/Display.h"
+#include "ui/BirdSprite.h"
 
 namespace Ui {
 namespace PetIcons {
@@ -124,51 +125,27 @@ void drawStatusCard(Hardware::Display& d, int16_t x, int16_t y) {
     }
 }
 
-void drawPetPlaceholderDissolve(Hardware::Display& d, int16_t x, int16_t y,
-                                uint8_t stage) {
-    // Rounded 44 x 32 slime: soft dome and scalloped base, no limbs or ears.
-    const uint8_t outline[][2] = {
-        {16, 0}, {27, 0}, {33, 2}, {37, 6}, {40, 12}, {42, 19},
-        {43, 25}, {41, 29}, {37, 31}, {30, 31}, {26, 29},
-        {23, 31}, {19, 31}, {16, 29}, {12, 31}, {6, 31},
-        {2, 29}, {0, 25}, {1, 19}, {3, 12}, {6, 6}, {10, 2}, {16, 0}
-    };
-    for (unsigned i = 1; i < sizeof(outline) / sizeof(outline[0]); ++i) {
-        if (stage == 1 && i % 3 == 1) continue;
-        if (stage == 2 && i % 3 != 0) continue;
-        if (stage >= 3) continue;
-        d.drawLine(x + outline[i - 1][0], y + outline[i - 1][1],
-                   x + outline[i][0], y + outline[i][1]);
-    }
-    if (stage == 0) {
-        // Solid bean eyes, small smile and short cheek marks.
-        d.drawLine(x + 13, y + 16, x + 13, y + 19);
-        d.drawLine(x + 14, y + 16, x + 14, y + 19);
-        d.drawLine(x + 29, y + 16, x + 29, y + 19);
-        d.drawLine(x + 30, y + 16, x + 30, y + 19);
-        d.drawLine(x + 19, y + 21, x + 20, y + 23);
-        d.drawLine(x + 20, y + 23, x + 23, y + 23);
-        d.drawLine(x + 23, y + 23, x + 24, y + 21);
-        d.drawLine(x + 9, y + 22, x + 11, y + 22);
-        d.drawLine(x + 32, y + 22, x + 34, y + 22);
-    } else if (stage == 1) {
-        // The test slime closes its eyes as its outline starts dissolving.
-        d.drawLine(x + 12, y + 18, x + 15, y + 18);
-        d.drawLine(x + 28, y + 18, x + 31, y + 18);
-    } else if (stage == 2) {
-        const uint8_t specks[][2] = {
-            {8, 12}, {16, 5}, {27, 7}, {36, 14}, {5, 24},
-            {17, 27}, {29, 24}, {39, 25},
-        };
-        for (unsigned i = 0; i < sizeof(specks) / sizeof(specks[0]); ++i) {
-            d.drawLine(x + specks[i][0], y + specks[i][1],
-                       x + specks[i][0], y + specks[i][1]);
-        }
-    }
+void drawBird(Hardware::Display& d, int16_t x, int16_t y, uint8_t frame) {
+    d.drawGlyph(x, y, kBirdFrames[frame % 2], kBirdFrameWidth, kBirdFrameHeight);
 }
 
-void drawPetPlaceholder(Hardware::Display& d, int16_t x, int16_t y) {
-    drawPetPlaceholderDissolve(d, x, y, 0);
+void drawBirdDissolve(Hardware::Display& d, int16_t x, int16_t y,
+                      uint8_t stage) {
+    if (stage == 0) {
+        drawBird(d, x, y, 0);
+        return;
+    }
+    if (stage >= 3) return;
+
+    // Keep a stable subset of the original pixels at each fade stage.
+    for (uint8_t row = 0; row < kBirdFrameHeight; ++row) {
+        for (uint8_t col = 0; col < kBirdFrameWidth; ++col) {
+            const uint8_t bits = pgm_read_byte(&kBirdFrames[0][row * 8 + col / 8]);
+            if ((bits & (0x80 >> (col % 8))) != 0) continue;
+            if ((row * 11 + col * 7) % 3 < stage) continue;
+            d.drawLine(x + col, y + row, x + col, y + row);
+        }
+    }
 }
 
 namespace {

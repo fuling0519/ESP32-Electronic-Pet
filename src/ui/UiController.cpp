@@ -14,6 +14,8 @@ namespace {
 constexpr uint32_t kBootDurationMs = 1500;
 constexpr uint32_t kDeathAnimationDurationMs = 3600;
 constexpr uint32_t kDeathAnimationFrameMs = 100;
+constexpr uint32_t kBirdIdleCycleMs = 1100;
+constexpr uint32_t kBirdIdleSecondFrameAtMs = 700;
 constexpr uint8_t kMenuItemCount = 6;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -63,6 +65,7 @@ void UiController::init(uint32_t now) {
     deathStartedAt_ = 0;
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
+    homeAnimationFrame_ = 0;
     dirty_ = true;
     pendingAction_ = UiAction::None;
     lastRenderedPetRevision_ = pet_.displayRevision();
@@ -114,6 +117,14 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 
     switch (screen_) {
         case ScreenId::Home:
+            {
+                const uint8_t frame = (now % kBirdIdleCycleMs) >=
+                    kBirdIdleSecondFrameAtMs ? 1 : 0;
+                if (frame != homeAnimationFrame_) {
+                    homeAnimationFrame_ = frame;
+                    dirty_ = true;
+                }
+            }
             if (event == Hardware::InputEvent::Right &&
                 homeFocus_ == HomeFocus::None) {
                 homeFocus_ = HomeFocus::Status;
@@ -286,8 +297,8 @@ void UiController::renderHome() {
     PetIcons::drawMood(display_, 3, 3, pet_.moodState());
     PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
 
-    // 44 x 32 slime within the 20..108 / 0..54 stage.
-    PetIcons::drawPetPlaceholder(display_, 43, 12);
+    // The user's 64 x 44 bird sheet fills the reserved home canvas.
+    PetIcons::drawBird(display_, 32, 6, homeAnimationFrame_);
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());
     PetIcons::drawStatusCard(display_, 113, 40);
@@ -382,7 +393,7 @@ void UiController::renderDeathAnimation() {
     if (deathAnimationElapsedMs_ >= 700) dissolveStage = 1;
     if (deathAnimationElapsedMs_ >= 1400) dissolveStage = 2;
     if (deathAnimationElapsedMs_ >= 2100) dissolveStage = 3;
-    PetIcons::drawPetPlaceholderDissolve(display_, 42, 27, dissolveStage);
+    PetIcons::drawBirdDissolve(display_, 32, 14, dissolveStage);
 
     if (deathAnimationElapsedMs_ >= 300) {
         const uint32_t soulElapsed = deathAnimationElapsedMs_ - 300;

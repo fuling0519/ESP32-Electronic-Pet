@@ -79,6 +79,7 @@ private:
     uint32_t deathStartedAt_ = 0;
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
+    uint8_t homeAnimationFrame_ = 0;
     bool dirty_ = true;
     uint32_t lastRenderedPetRevision_ = 0;
     UiAction pendingAction_ = UiAction::None;
