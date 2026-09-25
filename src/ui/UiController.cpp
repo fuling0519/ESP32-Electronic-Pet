@@ -262,6 +262,7 @@ void UiController::beginDeathAnimation(uint32_t now) {
     deathStartedAt_ = now;
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
+    sound_.playDeath();
     setScreen(ScreenId::DeathAnimation);
 }
 
