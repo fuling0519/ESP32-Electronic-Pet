@@ -10,6 +10,8 @@ namespace Storage {
 // each field explicitly rather than dumping this C++ structure as raw bytes.
 constexpr uint32_t kPetSaveMagic = 0x50455431UL;
 constexpr uint16_t kPetSaveSchemaVersion = 1;
+constexpr uint16_t kPetSavePayloadSize = 92;
+constexpr uint16_t kPetSaveRecordSize = 108;
 
 struct SaveEnvelopeV1 {
     uint32_t magic;

@@ -63,7 +63,29 @@ void Application::setup() {
     }
     input.init();
     sound.init();
-    save.init();
+    if (!save.init()) {
+        Serial.println("NVS init failed; this session will not be saved.");
+    } else {
+#if defined(PET_DEATH_TEST_MODE)
+        Serial.println("Death test mode: stored test state is ignored on startup.");
+#else
+        switch (save.load(pet)) {
+            case Storage::LoadStatus::Loaded:
+                Serial.println("Pet save loaded.");
+                break;
+            case Storage::LoadStatus::Empty:
+                if (save.save(pet)) Serial.println("Created initial pet save.");
+                else Serial.println("Initial pet save failed.");
+                break;
+            case Storage::LoadStatus::Invalid:
+                Serial.println("Pet saves are invalid; writes blocked to preserve recovery data.");
+                break;
+            case Storage::LoadStatus::Unavailable:
+                Serial.println("Pet save unavailable.");
+                break;
+        }
+#endif
+    }
     const uint32_t now = millis();
     petClock.reset(now);
 #if defined(PET_DEATH_TEST_MODE)
@@ -80,13 +102,19 @@ void Application::loop() {
     if (!appReady) return;
 
     const uint32_t now = millis();
+    const Pet::HealthState healthBeforeAdvance = pet.healthState();
     pet.advanceSeconds(petClock.consumeElapsedSeconds(now));
+    if (!pet.isDead() && pet.healthState() != healthBeforeAdvance) save.markDirty(now);
+    if (pet.isDead() && healthBeforeAdvance != Pet::HealthState::Dead) {
+        if (!save.save(pet)) Serial.println("Failed to save pet death state.");
+    }
     const Hardware::InputEvent event = input.update();
     if (kDebugUi && event != Hardware::InputEvent::None) {
         Serial.print("Physical/Input event: ");
         Serial.println(inputEventName(event));
     }
     const bool changed = ui.update(event, now);
+    const uint32_t revisionBeforeAction = pet.displayRevision();
     switch (ui.takeAction()) {
         case Ui::UiAction::Feed: pet.feed(); sound.playSuccess(); break;
         case Ui::UiAction::Clean: pet.clean(); sound.playSuccess(); break;
@@ -96,6 +124,8 @@ void Application::loop() {
             break;
         case Ui::UiAction::None: break;
     }
+    if (pet.displayRevision() != revisionBeforeAction) save.markDirty(now);
+    save.update(pet, now);
     if (changed) printUiState(event);
     sound.update();
     ui.render();
