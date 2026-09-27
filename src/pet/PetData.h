@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "pet/PetSnapshot.h"
+
 namespace Pet {
 
 enum class HungerState : uint8_t {
@@ -48,6 +50,11 @@ public:
 
     PetData();
 
+    uint64_t petId() const;
+    const char* name() const;
+    SpeciesId speciesId() const;
+    LifeStage lifeStage() const;
+    HealthState healthState() const;
     uint8_t satiety() const;
     uint8_t mood() const;
     uint8_t cleanliness() const;
@@ -59,6 +66,10 @@ public:
     uint32_t displayRevision() const;
     uint32_t dangerSeconds() const;
     uint32_t sickAwakeSeconds() const;
+    PetSnapshotV1 snapshot() const;
+    // Restores only validated snapshots and leaves the current pet untouched
+    // on failure. Runtime-only display revision is never loaded from storage.
+    bool restore(const PetSnapshotV1& snapshot);
     HungerState hungerState() const;
     MoodState moodState() const;
     CleanlinessState cleanlinessState() const;
@@ -84,19 +95,28 @@ public:
 private:
     static uint8_t clampNeedValue(int64_t value);
 
+    uint64_t petId_;
+    char name_[kPetNameMaxLength + 1];
+    SpeciesId speciesId_;
+    LifeStage lifeStage_;
     uint8_t satiety_;
     uint8_t mood_;
     uint8_t cleanliness_;
     uint8_t level_;
     uint16_t exp_;
-    bool isSick_;
-    bool isDead_;
+    HealthState healthState_;
     uint64_t ageSeconds_;
     uint32_t satietyRemainderSeconds_;
     uint32_t cleanlinessRemainderSeconds_;
     uint32_t moodRemainderSeconds_;
     uint32_t dangerSeconds_;
     uint32_t sickAwakeSeconds_;
+    SavedTimestamp bornAt_;
+    SavedTimestamp diedAt_;
+    DeathCause deathCause_;
+    SleepMode sleepMode_;
+    SavedTimestamp sleepStartedAt_;
+    SavedTimestamp lastSleepSettledAt_;
     uint32_t displayRevision_;
 };
 

@@ -111,6 +111,41 @@ int main() {
     assert(manualDeath.isDead() && manualDeath.isSick());
     assert(!manualDeath.treat());
 
+    // A snapshot preserves partial decay and disease timers, while invalid
+    // input is rejected without partially replacing the current pet.
+    Pet::PetData beforeSave;
+    beforeSave.advanceSeconds(599);
+    beforeSave.setCleanliness(0);
+    beforeSave.advanceSeconds(321);
+    const Pet::PetSnapshotV1 saved = beforeSave.snapshot();
+    assert(Pet::isValidPetSnapshot(saved));
+    assert(saved.petId == 1 && saved.speciesId == Pet::SpeciesId::Bird);
+    assert(saved.satietyRemainderSeconds == 320);
+    assert(saved.dangerSeconds == 321);
+
+    Pet::PetData restored;
+    assert(restored.restore(saved));
+    assert(restored.ageSeconds() == beforeSave.ageSeconds());
+    assert(restored.dangerSeconds() == beforeSave.dangerSeconds());
+    beforeSave.advanceSeconds(280);
+    restored.advanceSeconds(280);
+    assert(restored.satiety() == beforeSave.satiety());
+    assert(restored.snapshot().satietyRemainderSeconds ==
+           beforeSave.snapshot().satietyRemainderSeconds);
+
+    Pet::PetSnapshotV1 invalid = saved;
+    invalid.satiety = 101;
+    const uint64_t ageBeforeInvalidRestore = restored.ageSeconds();
+    assert(!restored.restore(invalid));
+    assert(restored.ageSeconds() == ageBeforeInvalidRestore);
+
+    Pet::PetData deadRoundTrip;
+    deadRoundTrip.setDead(true);
+    const Pet::PetSnapshotV1 deadSaved = deadRoundTrip.snapshot();
+    assert(Pet::isValidPetSnapshot(deadSaved));
+    assert(deadSaved.healthState == Pet::HealthState::Dead);
+    assert(deadSaved.deathCause == Pet::DeathCause::UntreatedSickness);
+
     Pet::PetClock clock;
     assert(clock.consumeElapsedSeconds(UINT32_MAX - 500) == 0);
     assert(clock.consumeElapsedSeconds(498) == 0);

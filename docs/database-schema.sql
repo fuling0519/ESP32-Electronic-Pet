@@ -27,16 +27,19 @@ CREATE TABLE pet (
     cleanliness                INTEGER NOT NULL DEFAULT 100,
     level                      INTEGER NOT NULL DEFAULT 1,
     exp                        INTEGER NOT NULL DEFAULT 0,
-    is_sick                    INTEGER NOT NULL DEFAULT 0,
-    is_dead                    INTEGER NOT NULL DEFAULT 0,
+    health_state               TEXT NOT NULL DEFAULT 'healthy',
     age_seconds                INTEGER NOT NULL DEFAULT 0,
+    satiety_remainder_seconds  INTEGER NOT NULL DEFAULT 0,
+    cleanliness_remainder_seconds INTEGER NOT NULL DEFAULT 0,
+    mood_remainder_seconds     INTEGER NOT NULL DEFAULT 0,
     born_at                    TEXT,
-    starvation_awake_seconds   INTEGER NOT NULL DEFAULT 0,
-    dirty_awake_seconds        INTEGER NOT NULL DEFAULT 0,
+    died_at                    TEXT,
+    death_cause                TEXT NOT NULL DEFAULT 'none',
+    danger_awake_seconds       INTEGER NOT NULL DEFAULT 0,
     sick_awake_seconds         INTEGER NOT NULL DEFAULT 0,
     sleep_mode                 TEXT NOT NULL DEFAULT 'awake',
     sleep_started_at           TEXT,
-    last_updated_at            TEXT,
+    last_sleep_settled_at      TEXT,
     time_base_id               TEXT,
     time_valid                 INTEGER NOT NULL DEFAULT 0,
 
@@ -58,16 +61,21 @@ CREATE TABLE pet (
     CHECK (cleanliness BETWEEN 0 AND 100),
     CHECK (level >= 1),
     CHECK (exp >= 0),
-    CHECK (is_sick IN (0, 1)),
-    CHECK (is_dead IN (0, 1)),
-    CHECK (is_dead = 0 OR is_sick = 1),
+    CHECK (health_state IN ('healthy', 'sick', 'dead')),
     CHECK (age_seconds >= 0),
-    CHECK (starvation_awake_seconds >= 0),
-    CHECK (dirty_awake_seconds >= 0),
+    CHECK (satiety_remainder_seconds BETWEEN 0 AND 599),
+    CHECK (cleanliness_remainder_seconds BETWEEN 0 AND 899),
+    CHECK (mood_remainder_seconds BETWEEN 0 AND 1199),
+    CHECK (death_cause IN ('none', 'untreated_sickness')),
+    CHECK (
+        (health_state = 'dead' AND death_cause != 'none')
+        OR (health_state != 'dead' AND death_cause = 'none' AND died_at IS NULL)
+    ),
+    CHECK (danger_awake_seconds >= 0),
     CHECK (sick_awake_seconds >= 0),
     CHECK (sleep_mode IN ('awake', 'normal_sleep', 'deep_sleep')),
     CHECK (
-        (sleep_mode = 'awake' AND sleep_started_at IS NULL)
+        (sleep_mode = 'awake' AND sleep_started_at IS NULL AND last_sleep_settled_at IS NULL)
         OR (sleep_mode IN ('normal_sleep', 'deep_sleep'))
     ),
     CHECK (time_valid IN (0, 1)),
@@ -180,7 +188,7 @@ WHEN NOT EXISTS (
     SELECT 1
     FROM pet
     WHERE pet.pet_id = NEW.pet_id
-      AND pet.is_dead = 1
+      AND pet.health_state = 'dead'
 )
 BEGIN
     SELECT RAISE(ABORT, 'memorial requires a dead pet');

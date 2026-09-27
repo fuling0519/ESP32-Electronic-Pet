@@ -31,16 +31,19 @@ erDiagram
         int cleanliness "清潔度 0 至 100"
         int level "等級"
         int exp "經驗值"
-        bool isSick "是否生病"
-        bool isDead "是否死亡"
+        enum healthState "健康、生病或死亡"
         int ageSeconds "有效累計年齡秒數"
+        int satietyRemainderSeconds "飽食度下次衰減前已累計秒數"
+        int cleanlinessRemainderSeconds "清潔度下次衰減前已累計秒數"
+        int moodRemainderSeconds "心情下次衰減前已累計秒數"
         datetime bornAt "可信出生時間，可空"
-        int starvationAwakeSeconds "持續空腹的清醒秒數"
-        int dirtyAwakeSeconds "持續零清潔的清醒秒數"
+        datetime diedAt "可信死亡時間，可空"
+        enum deathCause "死亡原因，存活時為無"
+        int dangerSeconds "飽食或清潔為零的連續清醒秒數"
         int sickAwakeSeconds "生病後未治療的清醒秒數"
         enum sleepMode "清醒、一般睡眠、省電睡眠"
         datetime sleepStartedAt "可信入睡時間，可空"
-        timestamp lastUpdatedAt "同一時間基準的結算游標，可空"
+        timestamp lastSleepSettledAt "同一時間基準的睡眠結算游標，可空"
         string timeBaseId "有效計時基準識別，可空"
         bool timeValid "目前日曆時間是否可信"
     }
@@ -97,9 +100,9 @@ erDiagram
 1. **邏輯關聯與 NVS 分開看**：本圖將 Pet 視為寵物生命週期的邏輯身分。在未來關聯式資料庫中，Memorial.petId 可作 FK，需保留對應 Pet 身分列；死亡後可移除／封存可變狀態。ESP32 首版不需要永久保存所有舊 Pet 完整快照，墓碑採獨立快照保存 petId、名字與種類顯示名，不能依賴已被新蛋取代的當前寵物物件。NVS 不執行 SQL 外鍵約束。
 2. **墓碑保存**：死亡流程以 petId 去重，成功保存後才能領養新蛋；新蛋使用新 ID。墓碑內容唯讀，但允許玩家明確刪除。首版最多 32 筆，滿額不得自動覆寫，開始下一隻前須選擇刪除並二次確認。
 3. **未知時間**：每個日曆時間欄位各自允許空值，空值顯示「時間未知」。例如出生未知但死亡時間可信時，仍保留死亡時間；不能只用一個布林旗標否定全部日期，也不能事後回填無證據的日期。
-4. **疾病與睡眠**：空腹、零清潔分別保存連續清醒秒數，避免交替觸發被錯算成持續暴露。一般睡眠與 Deep Sleep 暫停疾病倒數；真正斷電且無有效時間基準時，不猜測離線時間。
-5. **只結算一次**：lastUpdatedAt 必須搭配有效 timeBaseId 解讀，不能跨開機直接相減 millis()。Timer 量光仍屬同次睡眠，不應每次都結束 SleepSession。SleepSession 若保留，是歷史紀錄；目前狀態以 Pet 為準，結束時一致寫入。
+4. **疾病與睡眠**：依目前規則，只要飽食或清潔至少一項維持為零，就以同一個 `dangerSeconds` 累計連續危險時間；兩項都離開零且尚未生病時才清除。一般睡眠與 Deep Sleep 暫停疾病倒數；真正斷電且無有效時間基準時，不猜測離線時間。
+5. **只結算一次**：lastSleepSettledAt 必須搭配有效 timeBaseId 解讀，不能跨開機直接相減 millis()。Timer 量光仍屬同次睡眠，不應每次都結束 SleepSession。SleepSession 若保留，是歷史紀錄；目前狀態以 Pet 為準，結束時一致寫入。
 6. **遊戲獎勵**：若實作可恢復的逐局結算，需以 sessionId 搭配獎勵套用狀態或原子快照，確保重啟不重複領取；本圖的結果欄位本身不保證交易一致性。
 7. **存檔封套**：magic、schemaVersion、payloadLength、sequence、checksum 屬儲存格式，包住當前寵物與墓碑等完整快照，不是新的遊戲實體。依企劃使用 A／B 槽及有效性驗證；此圖不定義具體二進位格式。
 
-本次僅新增 ERD 文件；沒有修改韌體或宣稱已完成資料保存。
+本圖已與 `PetSnapshotV1` 的單一危險計時及互斥健康狀態對齊；ESP32 的 NVS 寫入仍未實作。
