@@ -52,7 +52,7 @@ public:
     static constexpr uint32_t kBabySatietyDecaySeconds = 60;
     static constexpr uint32_t kBabyCleanlinessDecaySeconds = 90;
     static constexpr uint32_t kBabyMoodDecaySeconds = 120;
-#if defined(PET_DEATH_TEST_MODE)
+#if defined(PET_DEATH_TEST_MODE) || defined(PET_MEMORIAL_TEST_MODE)
     static constexpr uint32_t kSicknessExposureSeconds = 10;
     static constexpr uint32_t kDeathAfterSickAwakeSeconds = 30;
 #else
@@ -100,9 +100,12 @@ public:
     void setExp(uint16_t value);
     void setSick(bool value);
     void setDead(bool value);
-    // Resets the current logical pet to the egg stage. The current identity
-    // is retained so a future adoption flow can assign it before this call.
+    // Resets the current logical pet to the egg stage while retaining its
+    // identity. Used by the dedicated growth test only.
     void startNewEgg();
+    // Starts a distinct logical pet. Identity is validated before any state is
+    // changed so a failed adoption cannot partially overwrite a dead pet.
+    bool startNewEgg(uint64_t petId, const char* name);
     // Advances awake time in whole seconds. Keep the remainders with the pet
     // so future recovery can resume without losing partial intervals.
     void advanceSeconds(uint32_t seconds);

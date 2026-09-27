@@ -1,11 +1,15 @@
 #include <Arduino.h>
+#include <esp_system.h>
+#include <limits.h>
 
 #include "hardware/Display.h"
 #include "hardware/Input.h"
 #include "hardware/Sound.h"
 #include "pet/PetData.h"
+#include "pet/PetName.h"
 #include "pet/PetClock.h"
 #include "storage/Save.h"
+#include "storage/Memorials.h"
 #include "ui/UiController.h"
 
 namespace {
@@ -19,6 +23,10 @@ public:
 
 private:
     void printUiState(Hardware::InputEvent event);
+    bool prepareNewEgg(Pet::PetData& target, uint64_t petId);
+    bool ensureCurrentMemorialSaved();
+    bool adoptNewEgg(uint32_t now);
+    bool deleteSelectedMemorial();
 
     Hardware::Display display;
     Hardware::Input input;
@@ -26,8 +34,10 @@ private:
     Storage::Save save;
     Pet::PetData pet;
     Pet::PetClock petClock;
-    Ui::UiController ui{display, sound, pet};
+    Storage::Memorials memorials;
+    Ui::UiController ui{display, sound, pet, memorials};
     uint64_t lastEggCheckpointMinute = 0;
+    bool memorialReady = false;
     bool appReady = false;
 };
 
@@ -54,10 +64,56 @@ void Application::printUiState(Hardware::InputEvent event) {
     }
 }
 
+bool Application::prepareNewEgg(Pet::PetData& target, uint64_t petId) {
+    char name[Pet::kPetNameMaxLength + 1]{};
+    for (uint8_t attempt = 0; attempt < 8; ++attempt) {
+        Pet::generateAbbName(esp_random(), name);
+        if (!memorials.containsName(name)) break;
+    }
+    return target.startNewEgg(petId, name);
+}
+
+bool Application::ensureCurrentMemorialSaved() {
+    if (!pet.isDead()) return false;
+    if (memorials.containsPet(pet.petId())) return true;
+    Storage::Memorials updated = memorials;
+    if (!updated.append(pet) || !save.saveMemorials(updated)) return false;
+    memorials = updated;
+    return true;
+}
+
+bool Application::adoptNewEgg(uint32_t now) {
+    if (!pet.isDead() || !memorialReady ||
+        memorials.count() > Storage::kMemorialLimit) return false;
+    uint64_t highestId = memorials.highestPetId();
+    if (pet.petId() > highestId) highestId = pet.petId();
+    if (highestId == UINT64_MAX) return false;
+    Pet::PetData candidate;
+    if (!prepareNewEgg(candidate, highestId + 1) || !save.save(candidate) ||
+        !pet.restore(candidate.snapshot())) return false;
+    memorialReady = false;
+    ui.setMemorialReady(false);
+    petClock.reset(now);
+    lastEggCheckpointMinute = 0;
+    ui.onAdoptionSucceeded(now);
+    return true;
+}
+
+bool Application::deleteSelectedMemorial() {
+    const uint8_t index = ui.selectedMemorialIndex();
+    const Storage::MemorialRecord* selected = memorials.at(index);
+    if (selected == nullptr ||
+        (pet.isDead() && selected->petId == pet.petId())) return false;
+    Storage::Memorials updated = memorials;
+    if (!updated.remove(index) || !save.saveMemorials(updated)) return false;
+    memorials = updated;
+    return true;
+}
+
 void Application::setup() {
     Serial.begin(115200);
     Serial.println();
-    Serial.println("=== Phase 1A UI Navigation Test ===");
+    Serial.println("=== Electronic Pet Boot ===");
     if (!display.init()) {
         Serial.println("Display init failed.");
         return;
@@ -67,6 +123,20 @@ void Application::setup() {
     if (!save.init()) {
         Serial.println("NVS init failed; this session will not be saved.");
     } else {
+        switch (save.loadMemorials(memorials)) {
+            case Storage::LoadStatus::Loaded:
+                Serial.printf("Loaded %u memorial(s).\n", memorials.count());
+                break;
+            case Storage::LoadStatus::Empty:
+                Serial.println("No memorial archive yet.");
+                break;
+            case Storage::LoadStatus::Invalid:
+                Serial.println("Memorial archive is invalid; archive writes blocked.");
+                break;
+            case Storage::LoadStatus::Unavailable:
+                Serial.println("Memorial archive unavailable.");
+                break;
+        }
 #if defined(PET_DEATH_TEST_MODE)
         Serial.println("Death test mode: stored test state is ignored on startup.");
 #else
@@ -75,8 +145,9 @@ void Application::setup() {
                 Serial.println("Pet save loaded.");
                 break;
             case Storage::LoadStatus::Empty:
-                pet.startNewEgg();
-                if (save.save(pet)) Serial.println("Created initial pet save.");
+                if (!prepareNewEgg(pet, memorials.highestPetId() + 1)) {
+                    Serial.println("Failed to create initial pet identity.");
+                } else if (save.save(pet)) Serial.println("Created initial pet save.");
                 else Serial.println("Initial pet save failed.");
                 break;
             case Storage::LoadStatus::Invalid:
@@ -94,6 +165,8 @@ void Application::setup() {
 #endif
 #endif
     }
+    if (pet.isDead()) memorialReady = ensureCurrentMemorialSaved();
+    ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
     petClock.reset(now);
 #if defined(PET_DEATH_TEST_MODE)
@@ -116,6 +189,12 @@ void Application::loop() {
     const Pet::LifeStage stageBeforeAdvance = pet.lifeStage();
     const uint64_t ageBeforeAdvanceMs = pet.ageSeconds() * 1000ULL;
     pet.advanceSeconds(petClock.consumeElapsedSeconds(now));
+#if defined(PET_MEMORIAL_TEST_MODE)
+    if (pet.lifeStage() != Pet::LifeStage::Egg &&
+        pet.healthState() == Pet::HealthState::Healthy) {
+        pet.setSick(true);
+    }
+#endif
     const uint64_t ageAfterAdvanceMs = pet.ageSeconds() * 1000ULL;
     const bool crossedEggCrackMilestone =
         stageBeforeAdvance == Pet::LifeStage::Egg &&
@@ -130,7 +209,11 @@ void Application::loop() {
         pet.lifeStage() == Pet::LifeStage::Egg &&
         eggAgeMinute > lastEggCheckpointMinute;
     if (pet.isDead() && healthBeforeAdvance != Pet::HealthState::Dead) {
-        if (!save.save(pet)) Serial.println("Failed to save pet death state.");
+        const bool deathSaved = save.save(pet);
+        if (!deathSaved) Serial.println("Failed to save pet death state.");
+        memorialReady = deathSaved && ensureCurrentMemorialSaved();
+        ui.setMemorialReady(memorialReady);
+        if (!memorialReady) Serial.println("Failed to save current memorial.");
     } else if (pet.lifeStage() != stageBeforeAdvance) {
         if (!save.save(pet)) Serial.println("Failed to save pet growth stage.");
     } else if (crossedEggCrackMilestone) {
@@ -163,6 +246,13 @@ void Application::loop() {
         case Ui::UiAction::Treat:
             if (pet.treat()) sound.playSuccess();
             else sound.playFailure();
+            break;
+        case Ui::UiAction::AdoptNewEgg:
+            if (adoptNewEgg(now)) sound.playSuccess();
+            else sound.playFailure();
+            break;
+        case Ui::UiAction::DeleteMemorial:
+            ui.onMemorialDeleteResult(deleteSelectedMemorial());
             break;
         case Ui::UiAction::None: break;
     }

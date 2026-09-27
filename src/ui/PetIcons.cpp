@@ -237,19 +237,30 @@ void drawGhost(Hardware::Display& d, int16_t x, int16_t y, uint8_t frame) {
                 kGhostFrameWidth, kGhostFrameHeight);
 }
 
-void drawTombstone(Hardware::Display& d, int16_t x, int16_t y) {
-    // 42 x 47: rounded top, straight sides and a slightly wider base.
-    d.drawLine(x + 11, y, x + 30, y);
-    d.drawLine(x + 6, y + 3, x + 11, y);
-    d.drawLine(x + 30, y, x + 35, y + 3);
-    d.drawLine(x + 3, y + 7, x + 6, y + 3);
-    d.drawLine(x + 35, y + 3, x + 38, y + 7);
-    d.drawLine(x + 3, y + 7, x + 3, y + 42);
-    d.drawLine(x + 38, y + 7, x + 38, y + 42);
-    d.drawLine(x + 3, y + 42, x + 38, y + 42);
-    d.drawLine(x, y + 46, x + 41, y + 46);
-    d.drawLine(x + 3, y + 42, x, y + 46);
-    d.drawLine(x + 38, y + 42, x + 41, y + 46);
+void drawTombstone(Hardware::Display& d, int16_t x, int16_t y,
+                   uint8_t width, uint8_t height) {
+    // The base spans the full requested width; the upright is inset by three
+    // pixels so the same outline works for both the memorial and list views.
+    const int16_t right = x + width - 1;
+    const int16_t bottom = y + height - 1;
+    const int16_t bodyLeft = x + 3;
+    const int16_t bodyRight = right - 3;
+    const int16_t shoulderY = y + 7;
+    const int16_t bodyBottom = bottom - 4;
+    const int16_t capLeft = x + 11;
+    const int16_t capRight = right - 11;
+
+    d.drawLine(capLeft, y, capRight, y);
+    d.drawLine(x + 6, y + 3, capLeft, y);
+    d.drawLine(capRight, y, right - 6, y + 3);
+    d.drawLine(bodyLeft, shoulderY, x + 6, y + 3);
+    d.drawLine(right - 6, y + 3, bodyRight, shoulderY);
+    d.drawLine(bodyLeft, shoulderY, bodyLeft, bodyBottom);
+    d.drawLine(bodyRight, shoulderY, bodyRight, bodyBottom);
+    d.drawLine(bodyLeft, bodyBottom, bodyRight, bodyBottom);
+    d.drawLine(x, bottom, right, bottom);
+    d.drawLine(bodyLeft, bodyBottom, x, bottom);
+    d.drawLine(bodyRight, bodyBottom, right, bottom);
 }
 
 }  // namespace PetIcons

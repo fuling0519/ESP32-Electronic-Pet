@@ -34,6 +34,8 @@ void drawPetDissolve(Hardware::Display& display, int16_t x, int16_t y,
 // Shared user-drawn ghost. Frames 0 and 1 alternate the wing positions.
 void drawGhost(Hardware::Display& display, int16_t x, int16_t y,
                uint8_t frame);
-void drawTombstone(Hardware::Display& display, int16_t x, int16_t y);
+// Draws a scalable tombstone outline. width/height include the wider base.
+void drawTombstone(Hardware::Display& display, int16_t x, int16_t y,
+                   uint8_t width = 42, uint8_t height = 47);
 }  // namespace PetIcons
 }  // namespace Ui

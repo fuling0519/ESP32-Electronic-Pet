@@ -1,9 +1,12 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "pet/PetClock.h"
 #include "pet/PetData.h"
+#include "pet/PetName.h"
+#include "storage/Memorials.h"
 
 int main() {
     Pet::PetData pet;
@@ -145,6 +148,47 @@ int main() {
     assert(Pet::isValidPetSnapshot(deadSaved));
     assert(deadSaved.healthState == Pet::HealthState::Dead);
     assert(deadSaved.deathCause == Pet::DeathCause::UntreatedSickness);
+
+    char generatedName[Pet::kPetNameMaxLength + 1]{};
+    Pet::generateAbbName(0, generatedName);
+    assert(strlen(generatedName) == 6);
+    assert(generatedName[0] >= 'A' && generatedName[0] <= 'Z');
+    assert(generatedName[2] == generatedName[4]);
+    assert(generatedName[3] == generatedName[5]);
+    assert(!(generatedName[0] + ('a' - 'A') == generatedName[2] &&
+             generatedName[1] == generatedName[3]));
+
+    Pet::PetData namedEgg;
+    assert(namedEgg.startNewEgg(42, generatedName));
+    assert(namedEgg.petId() == 42 && strcmp(namedEgg.name(), generatedName) == 0);
+    assert(namedEgg.lifeStage() == Pet::LifeStage::Egg);
+    assert(!namedEgg.startNewEgg(0, generatedName));
+    assert(namedEgg.petId() == 42);
+
+    Pet::PetData rememberedPet;
+    assert(rememberedPet.startNewEgg(7, "Tamama"));
+    rememberedPet.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+    rememberedPet.setDead(true);
+    Storage::Memorials memorials;
+    assert(memorials.append(rememberedPet));
+    assert(memorials.count() == 1 && memorials.containsPet(7));
+    assert(memorials.containsName("Tamama"));
+    assert(memorials.append(rememberedPet) && memorials.count() == 1);
+    assert(memorials.highestPetId() == 7);
+    assert(memorials.at(0)->ageSeconds == rememberedPet.ageSeconds());
+    assert(memorials.remove(0) && memorials.count() == 0);
+    for (uint8_t i = 0; i < Storage::kMemorialCapacity; ++i) {
+        Storage::MemorialRecord item{};
+        item.petId = static_cast<uint64_t>(i) + 1;
+        memcpy(item.name, "Tamama", 7);
+        item.speciesId = Pet::SpeciesId::Bird;
+        item.ageSeconds = i;
+        assert(memorials.append(item));
+    }
+    Storage::MemorialRecord overflow = *memorials.at(0);
+    overflow.petId = 100;
+    assert(!memorials.append(overflow));
+    assert(memorials.count() == Storage::kMemorialCapacity);
 
     Pet::PetClock clock;
     assert(clock.consumeElapsedSeconds(UINT32_MAX - 500) == 0);

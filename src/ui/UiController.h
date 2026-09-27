@@ -14,6 +14,8 @@ class PetData;
 enum class LifeStage : uint8_t;
 }
 
+namespace Storage { class Memorials; }
+
 namespace Ui {
 
 enum class ScreenId {
@@ -30,9 +32,21 @@ enum class ScreenId {
     GrowTransition,
     DeathAnimation,
     DeathMemorial,
+    DeathOptions,
+    Graveyard,
+    DeleteMemorialConfirm,
+    AdoptionBlocked,
 };
 
-enum class UiAction : uint8_t { None, Feed, Clean, Treat, Play };
+enum class UiAction : uint8_t {
+    None,
+    Feed,
+    Clean,
+    Treat,
+    Play,
+    AdoptNewEgg,
+    DeleteMemorial,
+};
 
 // Home currently has one selectable shortcut. Keep this separate from screen
 // state so future shortcuts can extend the enum without a navigation framework.
@@ -44,7 +58,8 @@ enum class HomeFocus {
 class UiController {
 public:
     UiController(Hardware::Display& display, Hardware::Sound& sound,
-                 const Pet::PetData& pet);
+                 const Pet::PetData& pet,
+                 const Storage::Memorials& memorials);
 
     void init(uint32_t now);
     // Returns true when visible UI state has changed.
@@ -56,6 +71,10 @@ public:
     uint8_t menuIndex() const;
     const char* selectedMenuItem() const;
     UiAction takeAction();
+    uint8_t selectedMemorialIndex() const;
+    void setMemorialReady(bool ready);
+    void onAdoptionSucceeded(uint32_t now);
+    void onMemorialDeleteResult(bool success);
 
 private:
     void setScreen(ScreenId screen);
@@ -73,15 +92,23 @@ private:
     void beginDeathAnimation(uint32_t now);
     void renderDeathAnimation();
     void renderDeathMemorial();
+    void renderDeathOptions();
+    void renderGraveyard();
+    void renderDeleteMemorialConfirm();
+    void renderAdoptionBlocked();
     uint8_t eggCrackStage(uint32_t now) const;
 
     Hardware::Display& display_;
     Hardware::Sound& sound_;
     const Pet::PetData& pet_;
+    const Storage::Memorials& memorials_;
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;
     uint8_t statusPage_ = 0;
+    uint8_t deathOptionIndex_ = 0;
+    uint8_t memorialIndex_ = 0;
+    uint8_t deleteConfirmIndex_ = 0;
     uint32_t bootStartedAt_ = 0;
     uint32_t growthTransitionStartedAt_ = 0;
     uint32_t growthTransitionElapsedMs_ = 0;
@@ -97,6 +124,7 @@ private:
     bool dirty_ = true;
     uint32_t lastRenderedPetRevision_ = 0;
     UiAction pendingAction_ = UiAction::None;
+    bool memorialReady_ = false;
 };
 
 }  // namespace Ui

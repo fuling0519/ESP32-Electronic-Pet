@@ -6,7 +6,9 @@ the OLED I2C setup, joystick event conversion, and passive-buzzer timing.
 `storage/Save` owns the Preferences/NVS boundary. It serializes the current
 `PetSnapshotV1` field by field into a versioned record, validates CRC32 and
 pet invariants on load, and alternates between A/B slots so an interrupted
-write does not destroy the last valid snapshot.
+write does not destroy the last valid snapshot. The memorial archive uses its
+own fixed-format, CRC32-protected A/B slots. `storage/Memorials` owns the
+bounded in-memory collection and de-duplicates deaths by `petId`.
 
 The loop remains non-blocking: `Input::update()` returns one abstract input
 event, and `Sound::update()` advances any active tone sequence. Future game/UI
@@ -18,10 +20,12 @@ initialization, buffered text, frames, lines, and screen updates. The OLED
 address is retained centrally in `HardwareConfig::Oled` once confirmed on the
 assembled hardware; display-library types never leave `Display.cpp`.
 
-`ui/UiController` owns UI screen state, menu selection, transitions, and dirty
-rendering. `main` forwards `InputEvent` values to it and services `Sound`; the
-UI neither reads hardware pins nor depends on U8g2. It draws only through the
-Display abstraction and redraws static screens only after a state change.
+`ui/UiController` owns UI screen state, menu selection, transitions, graveyard
+browsing, deletion confirmation, and dirty rendering. `main` forwards
+`InputEvent` values to it, applies adoption or deletion actions, and services
+`Sound`; the UI neither reads hardware pins nor depends on U8g2. It draws only
+through the Display abstraction and redraws static screens only after a state
+change.
 
 The application object in `main.cpp` owns one private `PetData` instance and
 passes a const reference to `UiController`. Home reads derived need states,

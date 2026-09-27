@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "pet/PetData.h"
+#include "storage/Memorials.h"
 
 namespace Storage {
 
@@ -20,6 +21,8 @@ public:
     bool isInitialized() const;
     LoadStatus load(Pet::PetData& pet);
     bool save(const Pet::PetData& pet);
+    LoadStatus loadMemorials(Memorials& memorials);
+    bool saveMemorials(const Memorials& memorials);
     void markDirty(uint32_t nowMs);
     void update(const Pet::PetData& pet, uint32_t nowMs);
 
@@ -37,6 +40,10 @@ private:
     uint32_t sequence_ = 0;
     uint32_t dirtySinceMs_ = 0;
     uint32_t lastSaveAtMs_ = 0;
+    bool memorialWritesBlocked_ = false;
+    bool hasActiveMemorialSlot_ = false;
+    bool activeMemorialSlotA_ = false;
+    uint32_t memorialSequence_ = 0;
 };
 
 }  // namespace Storage
