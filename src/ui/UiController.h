@@ -11,6 +11,7 @@ class Sound;
 
 namespace Pet {
 class PetData;
+enum class LifeStage : uint8_t;
 }
 
 namespace Ui {
@@ -25,6 +26,8 @@ enum class ScreenId {
     PlayCare,
     RestPlaceholder,
     DetailedStatus,
+    HatchTransition,
+    GrowTransition,
     DeathAnimation,
     DeathMemorial,
 };
@@ -64,6 +67,9 @@ private:
     void renderDetailedStatusPage2();
     void renderPlaceholder(const char* title);
     void renderCare(const char* title, const char* stat, unsigned value);
+    void beginGrowthTransition(ScreenId screen, uint32_t now);
+    void renderHatchTransition();
+    void renderGrowTransition();
     void beginDeathAnimation(uint32_t now);
     void renderDeathAnimation();
     void renderDeathMemorial();
@@ -77,6 +83,9 @@ private:
     uint8_t menuIndex_ = 0;
     uint8_t statusPage_ = 0;
     uint32_t bootStartedAt_ = 0;
+    uint32_t growthTransitionStartedAt_ = 0;
+    uint32_t growthTransitionElapsedMs_ = 0;
+    uint8_t growthTransitionFrame_ = 0;
     uint32_t deathStartedAt_ = 0;
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
@@ -84,6 +93,7 @@ private:
     uint8_t eggCrackStage_ = 0;
     uint64_t eggAgeAtInitMilliseconds_ = 0;
     uint32_t eggAgeInitAtMs_ = 0;
+    Pet::LifeStage observedLifeStage_;
     bool dirty_ = true;
     uint32_t lastRenderedPetRevision_ = 0;
     UiAction pendingAction_ = UiAction::None;

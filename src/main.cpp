@@ -27,6 +27,7 @@ private:
     Pet::PetData pet;
     Pet::PetClock petClock;
     Ui::UiController ui{display, sound, pet};
+    uint64_t lastEggCheckpointMinute = 0;
     bool appReady = false;
 };
 
@@ -100,6 +101,8 @@ void Application::setup() {
     Serial.println("Death test mode: pet starts sick and dies after 30 seconds.");
 #endif
     ui.init(now);
+    lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
+        pet.ageSeconds() / 60 : 0;
     appReady = true;
     printUiState(Hardware::InputEvent::None);
     ui.render();
@@ -121,15 +124,23 @@ void Application::loop() {
           ageAfterAdvanceMs >= Pet::PetData::kEggSmallCrackAgeMilliseconds) ||
          (ageBeforeAdvanceMs < Pet::PetData::kEggLargeCrackAgeMilliseconds &&
           ageAfterAdvanceMs >= Pet::PetData::kEggLargeCrackAgeMilliseconds));
+    const uint64_t eggAgeMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
+        pet.ageSeconds() / 60 : 0;
+    const bool eggCheckpointDue =
+        pet.lifeStage() == Pet::LifeStage::Egg &&
+        eggAgeMinute > lastEggCheckpointMinute;
     if (pet.isDead() && healthBeforeAdvance != Pet::HealthState::Dead) {
         if (!save.save(pet)) Serial.println("Failed to save pet death state.");
     } else if (pet.lifeStage() != stageBeforeAdvance) {
         if (!save.save(pet)) Serial.println("Failed to save pet growth stage.");
     } else if (crossedEggCrackMilestone) {
         if (!save.save(pet)) Serial.println("Failed to save egg crack progress.");
+    } else if (eggCheckpointDue) {
+        if (!save.save(pet)) Serial.println("Failed to save egg age checkpoint.");
     } else if (pet.healthState() != healthBeforeAdvance) {
         save.markDirty(now);
     }
+    if (eggCheckpointDue) lastEggCheckpointMinute = eggAgeMinute;
     const Hardware::InputEvent event = input.update();
     if (kDebugUi && event != Hardware::InputEvent::None) {
         Serial.print("Physical/Input event: ");

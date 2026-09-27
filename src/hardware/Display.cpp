@@ -6,12 +6,38 @@
 
 #include "HardwareConfig.h"
 #include "ui/StatusFont12.h"
+#include "ui/UiFont12.h"
 
 namespace Hardware {
 namespace {
 U8G2_SH1106_128X64_NONAME_F_HW_I2C sh1106(
     U8G2_R0, U8X8_PIN_NONE, HardwareConfig::Pins::OledScl,
     HardwareConfig::Pins::OledSda);
+
+uint16_t decodeUtf8(const char*& text) {
+    const uint8_t first = static_cast<uint8_t>(*text++);
+    if (first < 0x80) return first;
+    if ((first & 0xE0) == 0xC0 && *text != '\0') {
+        const uint8_t second = static_cast<uint8_t>(*text++);
+        return static_cast<uint16_t>(((first & 0x1F) << 6) | (second & 0x3F));
+    }
+    if ((first & 0xF0) == 0xE0 && text[0] != '\0' && text[1] != '\0') {
+        const uint8_t second = static_cast<uint8_t>(*text++);
+        const uint8_t third = static_cast<uint8_t>(*text++);
+        return static_cast<uint16_t>(((first & 0x0F) << 12) |
+                                     ((second & 0x3F) << 6) | (third & 0x3F));
+    }
+    return '?';
+}
+
+const uint8_t* findUiGlyph(uint16_t codepoint) {
+    for (uint16_t i = 0; i < UiFont12::kGlyphCount; ++i) {
+        if (UiFont12::kGlyphs[i].codepoint == codepoint) {
+            return UiFont12::kGlyphs[i].bitmap;
+        }
+    }
+    return nullptr;
+}
 }  // namespace
 
 uint8_t Display::scanI2c() {
@@ -65,6 +91,39 @@ void Display::drawSmallText(int16_t x, int16_t y, const char* text) {
     sh1106.setFont(u8g2_font_6x10_tf);
 }
 
+void Display::drawUiText(int16_t x, int16_t y, const char* utf8) {
+    if (!initialized_ || utf8 == nullptr) return;
+    const char* cursor = utf8;
+    while (*cursor != '\0') {
+        const uint16_t codepoint = decodeUtf8(cursor);
+        if (codepoint < 0x80) {
+            char character[2] = {static_cast<char>(codepoint), '\0'};
+            sh1106.drawStr(x, y, character);
+            x += 6;
+        } else {
+            const uint8_t* bitmap = findUiGlyph(codepoint);
+            if (bitmap != nullptr) {
+                drawGlyph(x, y - 11, bitmap, UiFont12::kWidth, UiFont12::kHeight);
+                x += UiFont12::kWidth;
+            } else {
+                sh1106.drawStr(x, y, "?");
+                x += 6;
+            }
+        }
+    }
+}
+
+uint16_t Display::uiTextWidth(const char* utf8) const {
+    if (utf8 == nullptr) return 0;
+    uint16_t width = 0;
+    const char* cursor = utf8;
+    while (*cursor != '\0') {
+        const uint16_t codepoint = decodeUtf8(cursor);
+        width += codepoint < 0x80 ? 6 : UiFont12::kWidth;
+    }
+    return width;
+}
+
 void Display::drawStatusText(int16_t x, int16_t y, const char* utf8) {
     if (!initialized_ || utf8 == nullptr) return;
     sh1106.setFont(u8g2_font_pet_status_12);
@@ -72,7 +131,7 @@ void Display::drawStatusText(int16_t x, int16_t y, const char* utf8) {
     sh1106.setFont(u8g2_font_6x10_tf);
 }
 
-uint16_t Display::statusTextWidth(const char* utf8) {
+uint16_t Display::statusTextWidth(const char* utf8) const {
     if (!initialized_ || utf8 == nullptr) return 0;
     sh1106.setFont(u8g2_font_pet_status_12);
     const uint16_t width = sh1106.getUTF8Width(utf8);

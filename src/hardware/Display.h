@@ -12,8 +12,11 @@ public:
     void drawText(int16_t x, int16_t y, const char* text);
     // 5-pixel advance, 7-pixel font height; y is the text baseline.
     void drawSmallText(int16_t x, int16_t y, const char* text);
+    // Mixed ASCII and project-specific 12x12 Traditional Chinese text.
+    void drawUiText(int16_t x, int16_t y, const char* utf8);
+    uint16_t uiTextWidth(const char* utf8) const;
     void drawStatusText(int16_t x, int16_t y, const char* utf8);
-    uint16_t statusTextWidth(const char* utf8);
+    uint16_t statusTextWidth(const char* utf8) const;
     // cht2bitmap row-major, MSB-first bitmap; zero bits are visible strokes.
     void drawGlyph(int16_t x, int16_t y, const uint8_t* bitmap,
                    uint8_t width, uint8_t height);

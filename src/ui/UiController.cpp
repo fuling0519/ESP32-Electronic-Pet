@@ -12,6 +12,8 @@
 namespace Ui {
 namespace {
 constexpr uint32_t kBootDurationMs = 1500;
+constexpr uint32_t kGrowthTransitionDurationMs = 2400;
+constexpr uint32_t kGrowthTransitionFrameMs = 200;
 constexpr uint32_t kDeathAnimationDurationMs = 3600;
 constexpr uint32_t kDeathAnimationFrameMs = 100;
 constexpr uint32_t kBirdIdleCycleMs = 1100;
@@ -20,6 +22,9 @@ constexpr uint8_t kMenuItemCount = 6;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
     "Feed", "Clean", "Treat", "Play", "Rest", "Status"
+};
+const char* const kMenuLabels[kMenuItemCount] = {
+    "餵食", "清潔", "治療", "陪玩", "休息", "狀態"
 };
 constexpr int16_t kStatusLabelX = 9;
 constexpr int16_t kStatusValueRight = 118;
@@ -36,6 +41,12 @@ void drawStatusTextValue(Hardware::Display& display, int16_t baseline,
                          const char* text) {
     display.drawStatusText(kStatusValueRight - display.statusTextWidth(text),
                            baseline, text);
+}
+
+void drawCenteredUiText(Hardware::Display& display, int16_t baseline,
+                        const char* text) {
+    display.drawUiText(64 - static_cast<int16_t>(display.uiTextWidth(text) / 2),
+                       baseline, text);
 }
 
 const char* inputEventName(Hardware::InputEvent event) {
@@ -62,6 +73,9 @@ void UiController::init(uint32_t now) {
     menuIndex_ = 0;
     statusPage_ = 0;
     bootStartedAt_ = now;
+    growthTransitionStartedAt_ = 0;
+    growthTransitionElapsedMs_ = 0;
+    growthTransitionFrame_ = 0;
     deathStartedAt_ = 0;
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
@@ -70,6 +84,7 @@ void UiController::init(uint32_t now) {
         pet_.ageSeconds() * 1000ULL : 0;
     eggAgeInitAtMs_ = now;
     eggCrackStage_ = eggCrackStage(now);
+    observedLifeStage_ = pet_.lifeStage();
     dirty_ = true;
     pendingAction_ = UiAction::None;
     lastRenderedPetRevision_ = pet_.displayRevision();
@@ -110,6 +125,21 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         return screen_ != previousScreen;
     }
 
+    if (pet_.lifeStage() != observedLifeStage_) {
+        const Pet::LifeStage previousStage = observedLifeStage_;
+        observedLifeStage_ = pet_.lifeStage();
+        if (previousStage == Pet::LifeStage::Egg &&
+            observedLifeStage_ == Pet::LifeStage::Baby) {
+            beginGrowthTransition(ScreenId::HatchTransition, now);
+            return true;
+        }
+        if (previousStage == Pet::LifeStage::Baby &&
+            observedLifeStage_ == Pet::LifeStage::Adult) {
+            beginGrowthTransition(ScreenId::GrowTransition, now);
+            return true;
+        }
+    }
+
     if (pet_.isDead() && screen_ != ScreenId::DeathAnimation &&
         screen_ != ScreenId::DeathMemorial) {
         beginDeathAnimation(now);
@@ -132,6 +162,22 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     }
 
     if (screen_ == ScreenId::DeathMemorial) return false;
+
+    if (screen_ == ScreenId::HatchTransition ||
+        screen_ == ScreenId::GrowTransition) {
+        growthTransitionElapsedMs_ = now - growthTransitionStartedAt_;
+        if (growthTransitionElapsedMs_ >= kGrowthTransitionDurationMs) {
+            setScreen(ScreenId::Home);
+        } else {
+            const uint8_t frame = static_cast<uint8_t>(
+                growthTransitionElapsedMs_ / kGrowthTransitionFrameMs);
+            if (frame != growthTransitionFrame_) {
+                growthTransitionFrame_ = frame;
+                dirty_ = true;
+            }
+        }
+        return screen_ != previousScreen || dirty_;
+    }
 
     switch (screen_) {
         case ScreenId::Home:
@@ -169,6 +215,12 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             } else if (event == Hardware::InputEvent::Down) {
                 menuIndex_ = (menuIndex_ + 1) % kMenuItemCount;
                 dirty_ = true;
+            } else if (event == Hardware::InputEvent::Right && menuIndex_ < 3) {
+                menuIndex_ += 3;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Left && menuIndex_ >= 3) {
+                menuIndex_ -= 3;
+                dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
                 sound_.playConfirm();
                 switch (menuIndex_) {
@@ -190,9 +242,13 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         case ScreenId::TreatCare:
         case ScreenId::PlayCare:
             if (event == Hardware::InputEvent::Press) {
-                pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
-                    screen_ == ScreenId::CleanCare ? UiAction::Clean :
-                    screen_ == ScreenId::TreatCare ? UiAction::Treat : UiAction::Play;
+                if (pet_.lifeStage() == Pet::LifeStage::Egg) {
+                    sound_.playFailure();
+                } else {
+                    pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
+                        screen_ == ScreenId::CleanCare ? UiAction::Clean :
+                        screen_ == ScreenId::TreatCare ? UiAction::Treat : UiAction::Play;
+                }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::MainMenu);
@@ -222,6 +278,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             break;
 
         case ScreenId::Boot:
+        case ScreenId::HatchTransition:
+        case ScreenId::GrowTransition:
         case ScreenId::DeathAnimation:
         case ScreenId::DeathMemorial:
             break;
@@ -245,13 +303,15 @@ void UiController::render() {
         case ScreenId::Boot: renderBoot(); break;
         case ScreenId::Home: renderHome(); break;
         case ScreenId::MainMenu: renderMainMenu(); break;
-        case ScreenId::FeedCare: renderCare("FEED", "Satiety", pet_.satiety()); break;
-        case ScreenId::CleanCare: renderCare("CLEAN", "Clean", pet_.cleanliness()); break;
+        case ScreenId::FeedCare: renderCare("餵食", "飽食", pet_.satiety()); break;
+        case ScreenId::CleanCare: renderCare("清潔", "清潔", pet_.cleanliness()); break;
         case ScreenId::TreatCare:
-            renderCare("TREAT", "Sick", pet_.isSick() ? 1 : 0); break;
-        case ScreenId::PlayCare: renderCare("PLAY", "Mood", pet_.mood()); break;
-        case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
+            renderCare("治療", "健康", pet_.isSick() ? 1 : 0); break;
+        case ScreenId::PlayCare: renderCare("陪玩", "心情", pet_.mood()); break;
+        case ScreenId::RestPlaceholder: renderPlaceholder("休息"); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
+        case ScreenId::HatchTransition: renderHatchTransition(); break;
+        case ScreenId::GrowTransition: renderGrowTransition(); break;
         case ScreenId::DeathAnimation: renderDeathAnimation(); break;
         case ScreenId::DeathMemorial: renderDeathMemorial(); break;
     }
@@ -273,6 +333,8 @@ const char* UiController::screenName() const {
         case ScreenId::PlayCare: return "PLAY_CARE";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
+        case ScreenId::HatchTransition: return "HATCH_TRANSITION";
+        case ScreenId::GrowTransition: return "GROW_TRANSITION";
         case ScreenId::DeathAnimation: return "DEATH_ANIMATION";
         case ScreenId::DeathMemorial: return "DEATH_MEMORIAL";
     }
@@ -285,6 +347,16 @@ UiAction UiController::takeAction() {
     const UiAction action = pendingAction_;
     pendingAction_ = UiAction::None;
     return action;
+}
+
+void UiController::beginGrowthTransition(ScreenId screen, uint32_t now) {
+    pendingAction_ = UiAction::None;
+    growthTransitionStartedAt_ = now;
+    growthTransitionElapsedMs_ = 0;
+    growthTransitionFrame_ = 0;
+    if (screen == ScreenId::HatchTransition) sound_.playHatch();
+    else sound_.playSuccess();
+    setScreen(screen);
 }
 
 void UiController::beginDeathAnimation(uint32_t now) {
@@ -344,12 +416,15 @@ void UiController::renderHome() {
 void UiController::renderMainMenu() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawText(52, 12, "MENU");
-    display_.drawLine(6, 16, 121, 16);
-    for (uint8_t i = 0; i < kMenuItemCount; ++i) {
-        const int16_t baseline = 23 + (i * 8);
+    display_.drawUiText(9, 14, "選單");
+    display_.drawText(99, 14, menuIndex_ < 3 ? "1/2" : "2/2");
+    display_.drawLine(6, 18, 121, 18);
+    const uint8_t pageStart = menuIndex_ < 3 ? 0 : 3;
+    for (uint8_t row = 0; row < 3; ++row) {
+        const uint8_t i = pageStart + row;
+        const int16_t baseline = 31 + (row * 15);
         if (i == menuIndex_) display_.drawSmallText(8, baseline, ">");
-        display_.drawSmallText(20, baseline, kMenuItems[i]);
+        display_.drawUiText(22, baseline, kMenuLabels[i]);
     }
 }
 
@@ -378,38 +453,82 @@ void UiController::renderDetailedStatusPage1() {
 }
 
 void UiController::renderDetailedStatusPage2() {
-    display_.drawStatusText(kStatusLabelX, 35, "等級");
-    drawStatusNumber(display_, 35, static_cast<unsigned>(pet_.level()));
+    display_.drawStatusText(kStatusLabelX, 30, "等級");
+    drawStatusNumber(display_, 30, static_cast<unsigned>(pet_.level()));
 
-    display_.drawStatusText(kStatusLabelX, 53, "健康");
-    drawStatusTextValue(display_, 53, pet_.isSick() ? "生病" : "正常");
+    display_.drawStatusText(kStatusLabelX, 45, "健康");
+    drawStatusTextValue(display_, 45, pet_.isSick() ? "生病" : "正常");
+
+    display_.drawUiText(kStatusLabelX, 60, "階段");
+    const char* stage = pet_.lifeStage() == Pet::LifeStage::Egg ? "蛋" :
+        pet_.lifeStage() == Pet::LifeStage::Baby ? "幼鳥" : "成鳥";
+    display_.drawUiText(kStatusValueRight - display_.uiTextWidth(stage), 60, stage);
 }
 
 void UiController::renderPlaceholder(const char* title) {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawText(43, 15, title);
+    drawCenteredUiText(display_, 15, title);
     display_.drawLine(6, 20, 121, 20);
-    display_.drawText(17, 40, "Not implemented");
-    display_.drawText(31, 58, "Hold: Back");
+    drawCenteredUiText(display_, 41, "尚未完成");
+    drawCenteredUiText(display_, 59, "長按返回");
 }
 
 void UiController::renderCare(const char* title, const char* stat, unsigned value) {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawText(40, 14, title);
+    drawCenteredUiText(display_, 14, title);
     display_.drawLine(6, 19, 121, 19);
-    char line[24];
-    if (screen_ == ScreenId::TreatCare) {
-        snprintf(line, sizeof(line), "Health: %s", pet_.isSick() ? "Sick" : "Good");
-    } else {
-        snprintf(line, sizeof(line), "%s: %u", stat, value);
+    if (pet_.lifeStage() == Pet::LifeStage::Egg) {
+        drawCenteredUiText(display_, 38, "等待孵化");
+        drawCenteredUiText(display_, 53, "無法使用");
+        return;
     }
-    display_.drawText(12, 35, line);
-    display_.drawText(12, 49, screen_ == ScreenId::FeedCare ? "Press: +20" :
-                      screen_ == ScreenId::CleanCare ? "Press: +30" :
-                      screen_ == ScreenId::PlayCare ? "Press: +15" : "Press: Treat");
-    display_.drawSmallText(12, 60, "Hold: Back");
+
+    display_.drawUiText(kStatusLabelX, 35, stat);
+    if (screen_ == ScreenId::TreatCare) {
+        drawStatusTextValue(display_, 35, pet_.isSick() ? "生病" : "正常");
+    } else {
+        drawStatusNumber(display_, 35, value);
+    }
+    const char* action = screen_ == ScreenId::FeedCare ? "按下執行 +20" :
+        screen_ == ScreenId::CleanCare ? "按下執行 +30" :
+        screen_ == ScreenId::PlayCare ? "按下執行 +15" : "按下執行";
+    drawCenteredUiText(display_, 50, action);
+    drawCenteredUiText(display_, 62, "長按返回");
+}
+
+void UiController::renderHatchTransition() {
+    display_.clear();
+    if (growthTransitionElapsedMs_ < 700) {
+        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Egg, 2, 0);
+    } else if (growthTransitionElapsedMs_ >= 1000) {
+        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Baby, 0,
+                          growthTransitionFrame_ % 2);
+        drawCenteredUiText(display_, 62, "孵化了!");
+    } else {
+        display_.drawLine(29, 22, 35, 22);
+        display_.drawLine(32, 19, 32, 25);
+        display_.drawLine(93, 14, 99, 14);
+        display_.drawLine(96, 11, 96, 17);
+    }
+}
+
+void UiController::renderGrowTransition() {
+    display_.clear();
+    if (growthTransitionElapsedMs_ < 700) {
+        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Baby, 0,
+                          growthTransitionFrame_ % 2);
+    } else if (growthTransitionElapsedMs_ >= 1000) {
+        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Adult, 0,
+                          growthTransitionFrame_ % 2);
+        drawCenteredUiText(display_, 62, "長大了!");
+    } else {
+        display_.drawLine(29, 22, 35, 22);
+        display_.drawLine(32, 19, 32, 25);
+        display_.drawLine(93, 14, 99, 14);
+        display_.drawLine(96, 11, 96, 17);
+    }
 }
 
 void UiController::renderDeathAnimation() {
