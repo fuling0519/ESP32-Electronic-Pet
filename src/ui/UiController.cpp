@@ -66,9 +66,22 @@ void UiController::init(uint32_t now) {
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
     homeAnimationFrame_ = 0;
+    eggAgeAtInitMilliseconds_ = pet_.lifeStage() == Pet::LifeStage::Egg ?
+        pet_.ageSeconds() * 1000ULL : 0;
+    eggAgeInitAtMs_ = now;
+    eggCrackStage_ = eggCrackStage(now);
     dirty_ = true;
     pendingAction_ = UiAction::None;
     lastRenderedPetRevision_ = pet_.displayRevision();
+}
+
+uint8_t UiController::eggCrackStage(uint32_t now) const {
+    if (pet_.lifeStage() != Pet::LifeStage::Egg) return 0;
+    const uint64_t ageMilliseconds = eggAgeAtInitMilliseconds_ +
+        static_cast<uint32_t>(now - eggAgeInitAtMs_);
+    if (ageMilliseconds >= Pet::PetData::kEggLargeCrackAgeMilliseconds) return 2;
+    if (ageMilliseconds >= Pet::PetData::kEggSmallCrackAgeMilliseconds) return 1;
+    return 0;
 }
 
 bool UiController::update(Hardware::InputEvent event, uint32_t now) {
@@ -76,6 +89,11 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
     const uint8_t previousStatusPage = statusPage_;
+    const uint8_t currentEggCrackStage = eggCrackStage(now);
+    if (currentEggCrackStage != eggCrackStage_) {
+        eggCrackStage_ = currentEggCrackStage;
+        dirty_ = true;
+    }
 
     if (kDebugUiEvents && event != Hardware::InputEvent::None) {
         Serial.print("UI received: ");
@@ -157,7 +175,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                     case 0: setScreen(ScreenId::FeedCare); break;
                     case 1: setScreen(ScreenId::CleanCare); break;
                     case 2: setScreen(ScreenId::TreatCare); break;
-                    case 3: setScreen(ScreenId::PlayPlaceholder); break;
+                    case 3: setScreen(ScreenId::PlayCare); break;
                     case 4: setScreen(ScreenId::RestPlaceholder); break;
                     default: setScreen(ScreenId::DetailedStatus); break;
                 }
@@ -170,16 +188,17 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         case ScreenId::FeedCare:
         case ScreenId::CleanCare:
         case ScreenId::TreatCare:
+        case ScreenId::PlayCare:
             if (event == Hardware::InputEvent::Press) {
                 pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
-                    screen_ == ScreenId::CleanCare ? UiAction::Clean : UiAction::Treat;
+                    screen_ == ScreenId::CleanCare ? UiAction::Clean :
+                    screen_ == ScreenId::TreatCare ? UiAction::Treat : UiAction::Play;
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::MainMenu);
             }
             break;
 
-        case ScreenId::PlayPlaceholder:
         case ScreenId::RestPlaceholder:
             if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
@@ -218,7 +237,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 void UiController::render() {
     if ((screen_ == ScreenId::Home || screen_ == ScreenId::DetailedStatus ||
          screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
-         screen_ == ScreenId::TreatCare) &&
+         screen_ == ScreenId::TreatCare || screen_ == ScreenId::PlayCare) &&
         pet_.displayRevision() != lastRenderedPetRevision_) dirty_ = true;
     if (!dirty_ || !display_.isInitialized()) return;
 
@@ -230,7 +249,7 @@ void UiController::render() {
         case ScreenId::CleanCare: renderCare("CLEAN", "Clean", pet_.cleanliness()); break;
         case ScreenId::TreatCare:
             renderCare("TREAT", "Sick", pet_.isSick() ? 1 : 0); break;
-        case ScreenId::PlayPlaceholder: renderPlaceholder("PLAY"); break;
+        case ScreenId::PlayCare: renderCare("PLAY", "Mood", pet_.mood()); break;
         case ScreenId::RestPlaceholder: renderPlaceholder("REST"); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
         case ScreenId::DeathAnimation: renderDeathAnimation(); break;
@@ -251,7 +270,7 @@ const char* UiController::screenName() const {
         case ScreenId::FeedCare: return "FEED_CARE";
         case ScreenId::CleanCare: return "CLEAN_CARE";
         case ScreenId::TreatCare: return "TREAT_CARE";
-        case ScreenId::PlayPlaceholder: return "PLAY_PLACEHOLDER";
+        case ScreenId::PlayCare: return "PLAY_CARE";
         case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
         case ScreenId::DeathAnimation: return "DEATH_ANIMATION";
@@ -294,13 +313,17 @@ void UiController::renderBoot() {
 
 void UiController::renderHome() {
     display_.clear();
-    PetIcons::drawMood(display_, 3, 3, pet_.moodState());
-    PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
+    if (pet_.lifeStage() != Pet::LifeStage::Egg) {
+        PetIcons::drawMood(display_, 3, 3, pet_.moodState());
+        PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
+    }
 
-    // The user's 64 x 44 bird sheet fills the reserved home canvas.
-    PetIcons::drawBird(display_, 32, 6, homeAnimationFrame_);
+    PetIcons::drawPet(display_, 32, 6, pet_.lifeStage(),
+                      eggCrackStage_, homeAnimationFrame_);
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
-    PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());
+    if (pet_.lifeStage() != Pet::LifeStage::Egg) {
+        PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());
+    }
     PetIcons::drawStatusCard(display_, 113, 40);
     if (homeFocus_ == HomeFocus::Status) {
         // One-pixel breathing room keeps the selection frame distinct from
@@ -310,7 +333,9 @@ void UiController::renderHome() {
 
     // Reserve y=55 as whitespace. This baseline is not EXP progress.
     char levelText[6];  // "Lv255" plus terminator covers the uint8_t level.
-    snprintf(levelText, sizeof(levelText), "Lv%u", static_cast<unsigned>(pet_.level()));
+    if (pet_.lifeStage() == Pet::LifeStage::Egg) strcpy(levelText, "EGG");
+    else if (pet_.lifeStage() == Pet::LifeStage::Baby) strcpy(levelText, "BABY");
+    else snprintf(levelText, sizeof(levelText), "Lv%u", static_cast<unsigned>(pet_.level()));
     const int16_t levelX = 128 - static_cast<int16_t>(strlen(levelText) * 5);
     display_.drawLine(3, 60, levelX - 6, 60);
     display_.drawSmallText(levelX, 63, levelText);
@@ -382,7 +407,8 @@ void UiController::renderCare(const char* title, const char* stat, unsigned valu
     }
     display_.drawText(12, 35, line);
     display_.drawText(12, 49, screen_ == ScreenId::FeedCare ? "Press: +20" :
-                      screen_ == ScreenId::CleanCare ? "Press: +30" : "Press: Treat");
+                      screen_ == ScreenId::CleanCare ? "Press: +30" :
+                      screen_ == ScreenId::PlayCare ? "Press: +15" : "Press: Treat");
     display_.drawSmallText(12, 60, "Hold: Back");
 }
 
@@ -393,7 +419,7 @@ void UiController::renderDeathAnimation() {
     if (deathAnimationElapsedMs_ >= 700) dissolveStage = 1;
     if (deathAnimationElapsedMs_ >= 1400) dissolveStage = 2;
     if (deathAnimationElapsedMs_ >= 2100) dissolveStage = 3;
-    PetIcons::drawBirdDissolve(display_, 32, 14, dissolveStage);
+    PetIcons::drawPetDissolve(display_, 32, 14, pet_.lifeStage(), dissolveStage);
 
     if (deathAnimationElapsedMs_ >= 300) {
         const uint32_t soulElapsed = deathAnimationElapsedMs_ - 300;

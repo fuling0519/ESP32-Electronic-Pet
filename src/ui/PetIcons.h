@@ -25,11 +25,12 @@ void drawCleaningAlert(Hardware::Display& display, int16_t x, int16_t y,
                        Pet::CleanlinessState state);
 void drawSick(Hardware::Display& display, int16_t x, int16_t y);
 void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
-// User-drawn tit: two exact 64 x 44 frames from assets/BIRD/BIRD-normal.png.
-void drawBird(Hardware::Display& display, int16_t x, int16_t y, uint8_t frame);
-// Dissolve stages 0..3 progressively remove the bird during the farewell.
-void drawBirdDissolve(Hardware::Display& display, int16_t x, int16_t y,
-                      uint8_t stage);
+// User-drawn egg, baby and adult sheets, each with two 64 x 44 frames.
+void drawPet(Hardware::Display& display, int16_t x, int16_t y,
+             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame);
+// Dissolve stages 0..3 progressively remove the current bird.
+void drawPetDissolve(Hardware::Display& display, int16_t x, int16_t y,
+                     Pet::LifeStage lifeStage, uint8_t dissolveStage);
 // Shared user-drawn ghost. Frames 0 and 1 alternate the wing positions.
 void drawGhost(Hardware::Display& display, int16_t x, int16_t y,
                uint8_t frame);

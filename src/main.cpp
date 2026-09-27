@@ -74,6 +74,7 @@ void Application::setup() {
                 Serial.println("Pet save loaded.");
                 break;
             case Storage::LoadStatus::Empty:
+                pet.startNewEgg();
                 if (save.save(pet)) Serial.println("Created initial pet save.");
                 else Serial.println("Initial pet save failed.");
                 break;
@@ -84,6 +85,12 @@ void Application::setup() {
                 Serial.println("Pet save unavailable.");
                 break;
         }
+#if defined(PET_GROWTH_TEST_MODE)
+        if (pet.lifeStage() == Pet::LifeStage::Adult) {
+            pet.startNewEgg();
+            if (save.save(pet)) Serial.println("Growth test restarted from egg.");
+        }
+#endif
 #endif
     }
     const uint32_t now = millis();
@@ -103,10 +110,25 @@ void Application::loop() {
 
     const uint32_t now = millis();
     const Pet::HealthState healthBeforeAdvance = pet.healthState();
+    const Pet::LifeStage stageBeforeAdvance = pet.lifeStage();
+    const uint64_t ageBeforeAdvanceMs = pet.ageSeconds() * 1000ULL;
     pet.advanceSeconds(petClock.consumeElapsedSeconds(now));
-    if (!pet.isDead() && pet.healthState() != healthBeforeAdvance) save.markDirty(now);
+    const uint64_t ageAfterAdvanceMs = pet.ageSeconds() * 1000ULL;
+    const bool crossedEggCrackMilestone =
+        stageBeforeAdvance == Pet::LifeStage::Egg &&
+        pet.lifeStage() == Pet::LifeStage::Egg &&
+        ((ageBeforeAdvanceMs < Pet::PetData::kEggSmallCrackAgeMilliseconds &&
+          ageAfterAdvanceMs >= Pet::PetData::kEggSmallCrackAgeMilliseconds) ||
+         (ageBeforeAdvanceMs < Pet::PetData::kEggLargeCrackAgeMilliseconds &&
+          ageAfterAdvanceMs >= Pet::PetData::kEggLargeCrackAgeMilliseconds));
     if (pet.isDead() && healthBeforeAdvance != Pet::HealthState::Dead) {
         if (!save.save(pet)) Serial.println("Failed to save pet death state.");
+    } else if (pet.lifeStage() != stageBeforeAdvance) {
+        if (!save.save(pet)) Serial.println("Failed to save pet growth stage.");
+    } else if (crossedEggCrackMilestone) {
+        if (!save.save(pet)) Serial.println("Failed to save egg crack progress.");
+    } else if (pet.healthState() != healthBeforeAdvance) {
+        save.markDirty(now);
     }
     const Hardware::InputEvent event = input.update();
     if (kDebugUi && event != Hardware::InputEvent::None) {
@@ -115,16 +137,29 @@ void Application::loop() {
     }
     const bool changed = ui.update(event, now);
     const uint32_t revisionBeforeAction = pet.displayRevision();
-    switch (ui.takeAction()) {
-        case Ui::UiAction::Feed: pet.feed(); sound.playSuccess(); break;
-        case Ui::UiAction::Clean: pet.clean(); sound.playSuccess(); break;
+    const Pet::LifeStage stageBeforeAction = pet.lifeStage();
+    const Ui::UiAction action = ui.takeAction();
+    switch (action) {
+        case Ui::UiAction::Feed:
+            if (pet.feed()) sound.playSuccess(); else sound.playFailure();
+            break;
+        case Ui::UiAction::Clean:
+            if (pet.clean()) sound.playSuccess(); else sound.playFailure();
+            break;
+        case Ui::UiAction::Play:
+            if (pet.play()) sound.playSuccess(); else sound.playFailure();
+            break;
         case Ui::UiAction::Treat:
             if (pet.treat()) sound.playSuccess();
             else sound.playFailure();
             break;
         case Ui::UiAction::None: break;
     }
-    if (pet.displayRevision() != revisionBeforeAction) save.markDirty(now);
+    if (pet.lifeStage() != stageBeforeAction) {
+        if (!save.save(pet)) Serial.println("Failed to save pet growth stage.");
+    } else if (pet.displayRevision() != revisionBeforeAction) {
+        save.markDirty(now);
+    }
     save.update(pet, now);
     if (changed) printUiState(event);
     sound.update();

@@ -22,14 +22,14 @@ enum class ScreenId {
     FeedCare,
     CleanCare,
     TreatCare,
-    PlayPlaceholder,
+    PlayCare,
     RestPlaceholder,
     DetailedStatus,
     DeathAnimation,
     DeathMemorial,
 };
 
-enum class UiAction : uint8_t { None, Feed, Clean, Treat };
+enum class UiAction : uint8_t { None, Feed, Clean, Treat, Play };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
 // state so future shortcuts can extend the enum without a navigation framework.
@@ -67,6 +67,7 @@ private:
     void beginDeathAnimation(uint32_t now);
     void renderDeathAnimation();
     void renderDeathMemorial();
+    uint8_t eggCrackStage(uint32_t now) const;
 
     Hardware::Display& display_;
     Hardware::Sound& sound_;
@@ -80,6 +81,9 @@ private:
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
     uint8_t homeAnimationFrame_ = 0;
+    uint8_t eggCrackStage_ = 0;
+    uint64_t eggAgeAtInitMilliseconds_ = 0;
+    uint32_t eggAgeInitAtMs_ = 0;
     bool dirty_ = true;
     uint32_t lastRenderedPetRevision_ = 0;
     UiAction pendingAction_ = UiAction::None;

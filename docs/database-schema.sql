@@ -19,7 +19,7 @@ CREATE TABLE pet_species (
 
 CREATE TABLE pet (
     pet_id                     TEXT PRIMARY KEY,
-    species_id                 TEXT,
+    species_id                 TEXT NOT NULL,
     name                       TEXT NOT NULL,
     life_stage                 TEXT NOT NULL DEFAULT 'egg',
     satiety                    INTEGER NOT NULL DEFAULT 80,
@@ -51,11 +51,7 @@ CREATE TABLE pet (
     CHECK (length(trim(pet_id)) > 0),
     CHECK (length(name) BETWEEN 1 AND 8),
     CHECK (name NOT GLOB '*[^ -~]*'),
-    CHECK (life_stage IN ('egg', 'hatched')),
-    CHECK (
-        (life_stage = 'egg' AND species_id IS NULL)
-        OR (life_stage = 'hatched' AND species_id IS NOT NULL)
-    ),
+    CHECK (life_stage IN ('egg', 'baby', 'adult')),
     CHECK (satiety BETWEEN 0 AND 100),
     CHECK (mood BETWEEN 0 AND 100),
     CHECK (cleanliness BETWEEN 0 AND 100),
@@ -63,9 +59,21 @@ CREATE TABLE pet (
     CHECK (exp >= 0),
     CHECK (health_state IN ('healthy', 'sick', 'dead')),
     CHECK (age_seconds >= 0),
-    CHECK (satiety_remainder_seconds BETWEEN 0 AND 599),
-    CHECK (cleanliness_remainder_seconds BETWEEN 0 AND 899),
-    CHECK (mood_remainder_seconds BETWEEN 0 AND 1199),
+    CHECK (
+        (life_stage = 'egg' AND satiety_remainder_seconds = 0)
+        OR (life_stage = 'baby' AND satiety_remainder_seconds BETWEEN 0 AND 59)
+        OR (life_stage = 'adult' AND satiety_remainder_seconds BETWEEN 0 AND 599)
+    ),
+    CHECK (
+        (life_stage = 'egg' AND cleanliness_remainder_seconds = 0)
+        OR (life_stage = 'baby' AND cleanliness_remainder_seconds BETWEEN 0 AND 89)
+        OR (life_stage = 'adult' AND cleanliness_remainder_seconds BETWEEN 0 AND 899)
+    ),
+    CHECK (
+        (life_stage = 'egg' AND mood_remainder_seconds = 0)
+        OR (life_stage = 'baby' AND mood_remainder_seconds BETWEEN 0 AND 119)
+        OR (life_stage = 'adult' AND mood_remainder_seconds BETWEEN 0 AND 1199)
+    ),
     CHECK (death_cause IN ('none', 'untreated_sickness')),
     CHECK (
         (health_state = 'dead' AND death_cause != 'none')

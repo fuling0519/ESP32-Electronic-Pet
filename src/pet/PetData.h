@@ -38,6 +38,20 @@ public:
     static constexpr uint32_t kSatietyDecaySeconds = 600;
     static constexpr uint32_t kCleanlinessDecaySeconds = 900;
     static constexpr uint32_t kMoodDecaySeconds = 1200;
+#if defined(PET_GROWTH_TEST_MODE)
+    static constexpr uint32_t kEggSmallCrackAgeMilliseconds = 10UL * 1000;
+    static constexpr uint32_t kEggLargeCrackAgeMilliseconds = 12500;
+    static constexpr uint32_t kEggHatchAgeSeconds = 15;
+    static constexpr uint32_t kAdultAgeSeconds = 2UL * 60 + kEggHatchAgeSeconds;
+#else
+    static constexpr uint32_t kEggSmallCrackAgeMilliseconds = 4UL * 60 * 1000;
+    static constexpr uint32_t kEggLargeCrackAgeMilliseconds = 270UL * 1000;
+    static constexpr uint32_t kEggHatchAgeSeconds = 5UL * 60;
+    static constexpr uint32_t kAdultAgeSeconds = 60UL * 60 + kEggHatchAgeSeconds;
+#endif
+    static constexpr uint32_t kBabySatietyDecaySeconds = 60;
+    static constexpr uint32_t kBabyCleanlinessDecaySeconds = 90;
+    static constexpr uint32_t kBabyMoodDecaySeconds = 120;
 #if defined(PET_DEATH_TEST_MODE)
     static constexpr uint32_t kSicknessExposureSeconds = 10;
     static constexpr uint32_t kDeathAfterSickAwakeSeconds = 30;
@@ -47,6 +61,7 @@ public:
 #endif
     static constexpr uint8_t kFeedAmount = 20;
     static constexpr uint8_t kCleanAmount = 30;
+    static constexpr uint8_t kPlayAmount = 15;
 
     PetData();
 
@@ -85,15 +100,24 @@ public:
     void setExp(uint16_t value);
     void setSick(bool value);
     void setDead(bool value);
+    // Resets the current logical pet to the egg stage. The current identity
+    // is retained so a future adoption flow can assign it before this call.
+    void startNewEgg();
     // Advances awake time in whole seconds. Keep the remainders with the pet
     // so future recovery can resume without losing partial intervals.
     void advanceSeconds(uint32_t seconds);
     bool feed();
     bool clean();
+    bool play();
     bool treat();
 
 private:
     static uint8_t clampNeedValue(int64_t value);
+    uint32_t advanceCareSeconds(uint32_t seconds, uint32_t satietyInterval,
+                                uint32_t cleanlinessInterval,
+                                uint32_t moodInterval);
+    void hatch();
+    void growUpIfReady();
 
     uint64_t petId_;
     char name_[kPetNameMaxLength + 1];

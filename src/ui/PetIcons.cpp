@@ -125,24 +125,41 @@ void drawStatusCard(Hardware::Display& d, int16_t x, int16_t y) {
     }
 }
 
-void drawBird(Hardware::Display& d, int16_t x, int16_t y, uint8_t frame) {
-    d.drawGlyph(x, y, kBirdFrames[frame % 2], kBirdFrameWidth, kBirdFrameHeight);
+namespace {
+const uint8_t* petFrame(Pet::LifeStage lifeStage, uint8_t eggCrackStage,
+                        uint8_t frame) {
+    const uint8_t index = frame % 2;
+    if (lifeStage == Pet::LifeStage::Egg) {
+        if (eggCrackStage == 1) return kCrackedEggFrames[0];
+        if (eggCrackStage >= 2) return kCrackedEggFrames[1];
+        return kEggFrames[index];
+    }
+    if (lifeStage == Pet::LifeStage::Baby) return kBabyBirdFrames[index];
+    return kBirdFrames[index];
+}
+}  // namespace
+
+void drawPet(Hardware::Display& d, int16_t x, int16_t y,
+             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame) {
+    d.drawGlyph(x, y, petFrame(lifeStage, eggCrackStage, frame),
+                kBirdFrameWidth, kBirdFrameHeight);
 }
 
-void drawBirdDissolve(Hardware::Display& d, int16_t x, int16_t y,
-                      uint8_t stage) {
-    if (stage == 0) {
-        drawBird(d, x, y, 0);
+void drawPetDissolve(Hardware::Display& d, int16_t x, int16_t y,
+                     Pet::LifeStage lifeStage, uint8_t dissolveStage) {
+    if (dissolveStage == 0) {
+        drawPet(d, x, y, lifeStage, 0, 0);
         return;
     }
-    if (stage >= 3) return;
+    if (dissolveStage >= 3) return;
 
     // Keep a stable subset of the original pixels at each fade stage.
+    const uint8_t* bitmap = petFrame(lifeStage, 0, 0);
     for (uint8_t row = 0; row < kBirdFrameHeight; ++row) {
         for (uint8_t col = 0; col < kBirdFrameWidth; ++col) {
-            const uint8_t bits = pgm_read_byte(&kBirdFrames[0][row * 8 + col / 8]);
+            const uint8_t bits = pgm_read_byte(&bitmap[row * 8 + col / 8]);
             if ((bits & (0x80 >> (col % 8))) != 0) continue;
-            if ((row * 11 + col * 7) % 3 < stage) continue;
+            if ((row * 11 + col * 7) % 3 < dissolveStage) continue;
             d.drawLine(x + col, y + row, x + col, y + row);
         }
     }

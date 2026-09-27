@@ -4,13 +4,13 @@
 
 對應的 SQLite 建表語句見 [database-schema.sql](database-schema.sql)。
 
-本圖選用企劃允許的「蛋與寵物共用同一筆資料」方案：領養即產生 petId，孵化前 speciesId 可空，孵化後固定種類。欄位型別為概念型別，實際儲存寬度與列舉值待存檔格式定稿。
+本圖選用「蛋與寵物共用同一筆資料」方案：領養即產生 petId，第一版建立蛋時已固定為小鳥，之後只改變生命階段。欄位型別為概念型別，實際存檔採固定寬度版本化格式。
 
 ## ERD
 
 ```mermaid
 erDiagram
-    PetSpecies |o--o{ Pet : "種類歸屬（蛋可未定）"
+    PetSpecies ||--o{ Pet : "種類歸屬"
     Pet ||--o{ PlaySession : "參與"
     Game ||--o{ PlaySession : "遊玩項目"
     Pet ||--o{ SleepSession : "睡眠"
@@ -23,9 +23,9 @@ erDiagram
     }
     Pet {
         string petId PK "領養時建立，不重複使用"
-        string speciesId FK "蛋階段可空"
+        string speciesId FK "第一版固定小鳥"
         string name "名字，ASCII 1 至 8 字元"
-        enum lifeStage "蛋或已孵化"
+        enum lifeStage "蛋、幼鳥或成鳥"
         int satiety "飽食度 0 至 100"
         int mood "心情 0 至 100"
         int cleanliness "清潔度 0 至 100"

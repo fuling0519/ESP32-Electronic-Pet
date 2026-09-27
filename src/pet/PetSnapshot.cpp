@@ -14,7 +14,8 @@ bool isKnownSpecies(SpeciesId species) {
 }
 
 bool isKnownLifeStage(LifeStage stage) {
-    return stage == LifeStage::Egg || stage == LifeStage::Hatched;
+    return stage == LifeStage::Egg || stage == LifeStage::Baby ||
+           stage == LifeStage::Adult;
 }
 
 bool isKnownHealthState(HealthState state) {
@@ -54,9 +55,15 @@ bool isValidPetSnapshot(const PetSnapshotV1& s) {
         s.cleanliness > PetData::kMaxNeedValue || s.level == 0) {
         return false;
     }
-    if (s.satietyRemainderSeconds >= PetData::kSatietyDecaySeconds ||
-        s.cleanlinessRemainderSeconds >= PetData::kCleanlinessDecaySeconds ||
-        s.moodRemainderSeconds >= PetData::kMoodDecaySeconds ||
+    const uint32_t satietyInterval = s.lifeStage == LifeStage::Baby ?
+        PetData::kBabySatietyDecaySeconds : PetData::kSatietyDecaySeconds;
+    const uint32_t cleanlinessInterval = s.lifeStage == LifeStage::Baby ?
+        PetData::kBabyCleanlinessDecaySeconds : PetData::kCleanlinessDecaySeconds;
+    const uint32_t moodInterval = s.lifeStage == LifeStage::Baby ?
+        PetData::kBabyMoodDecaySeconds : PetData::kMoodDecaySeconds;
+    if (s.satietyRemainderSeconds >= satietyInterval ||
+        s.cleanlinessRemainderSeconds >= cleanlinessInterval ||
+        s.moodRemainderSeconds >= moodInterval ||
         s.dangerSeconds > PetData::kSicknessExposureSeconds ||
         s.sickAwakeSeconds > PetData::kDeathAfterSickAwakeSeconds) {
         return false;
@@ -70,9 +77,14 @@ bool isValidPetSnapshot(const PetSnapshotV1& s) {
         return false;
     }
     if (s.lifeStage == LifeStage::Egg &&
-        (s.healthState != HealthState::Healthy || s.ageSeconds != 0)) {
-        return false;
-    }
+        (s.healthState != HealthState::Healthy ||
+         s.ageSeconds >= PetData::kEggHatchAgeSeconds ||
+         s.satietyRemainderSeconds != 0 ||
+         s.cleanlinessRemainderSeconds != 0 ||
+         s.moodRemainderSeconds != 0 || s.dangerSeconds != 0 ||
+         s.sickAwakeSeconds != 0)) return false;
+    if (s.lifeStage == LifeStage::Baby &&
+        s.ageSeconds < PetData::kEggHatchAgeSeconds) return false;
     if (s.healthState == HealthState::Healthy) {
         if (s.sickAwakeSeconds != 0 ||
             s.dangerSeconds >= PetData::kSicknessExposureSeconds) {

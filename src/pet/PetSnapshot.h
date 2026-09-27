@@ -12,7 +12,10 @@ enum class SpeciesId : uint8_t {
 
 enum class LifeStage : uint8_t {
     Egg = 0,
-    Hatched = 1,
+    // Value 1 was named Hatched in save version 1. It already represented
+    // the fully grown bird, so keeping the value preserves existing saves.
+    Adult = 1,
+    Baby = 2,
 };
 
 enum class HealthState : uint8_t {

@@ -11,6 +11,8 @@ namespace {
 
 #if defined(PET_DEATH_TEST_MODE)
 constexpr char kNamespace[] = "pet-test";
+#elif defined(PET_GROWTH_TEST_MODE)
+constexpr char kNamespace[] = "pet-grow";
 #else
 constexpr char kNamespace[] = "pet-save";
 #endif
