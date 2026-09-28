@@ -40,7 +40,7 @@ erDiagram
         datetime diedAt "可信死亡時間，可空"
         enum deathCause "死亡原因，存活時為無"
         int dangerSeconds "飽食或清潔為零的連續清醒秒數"
-        int sickAwakeSeconds "生病後未治療的清醒秒數"
+        int sickAwakeSeconds "生病後未治療的有效秒數（舊欄位名）"
         enum sleepMode "清醒、一般睡眠、省電睡眠"
         datetime sleepStartedAt "可信入睡時間，可空"
         timestamp lastSleepSettledAt "同一時間基準的睡眠結算游標，可空"
@@ -100,9 +100,9 @@ erDiagram
 1. **邏輯關聯與 NVS 分開看**：本圖將 Pet 視為寵物生命週期的邏輯身分。在未來關聯式資料庫中，Memorial.petId 可作 FK，需保留對應 Pet 身分列；死亡後可移除／封存可變狀態。ESP32 首版不需要永久保存所有舊 Pet 完整快照，墓碑採獨立快照保存 petId、名字與種類顯示名，不能依賴已被新蛋取代的當前寵物物件。NVS 不執行 SQL 外鍵約束。
 2. **墓碑保存**：死亡流程以 petId 去重，成功保存後才能領養新蛋；新蛋使用新 ID。墓碑內容唯讀，但允許玩家明確刪除。首版最多 32 筆，滿額不得自動覆寫，開始下一隻前須選擇刪除並二次確認。
 3. **未知時間**：首版不顯示日曆日期。若後續啟用日期，每個欄位各自允許空值；不能事後回填無證據的日期。完全斷電的未知時段不補算年齡或需求。
-4. **疾病與睡眠**：依目前規則，只要飽食或清潔至少一項維持為零，就以同一個 `dangerSeconds` 累計連續危險時間；兩項都離開零且尚未生病時才清除。一般睡眠與 Deep Sleep 暫停疾病倒數；真正斷電且無有效時間基準時，不猜測離線時間。
+4. **疾病與睡眠**：依目前規則，只要飽食或清潔至少一項維持為零，就以同一個 `dangerSeconds` 累計連續危險時間；兩項都離開零且尚未生病時才清除。一般睡眠會繼續疾病與死亡倒數；未來 Deep Sleep 結算也沿用相同規則。真正斷電且無有效時間基準時，不猜測離線時間。
 5. **只結算一次**：lastSleepSettledAt 必須搭配有效 timeBaseId 解讀，不能跨開機直接相減 millis()。Timer 量光仍屬同次睡眠，不應每次都結束 SleepSession。SleepSession 若保留，是歷史紀錄；目前狀態以 Pet 為準，結束時一致寫入。
 6. **遊戲獎勵**：若實作可恢復的逐局結算，需以 sessionId 搭配獎勵套用狀態或原子快照，確保重啟不重複領取；本圖的結果欄位本身不保證交易一致性。
 7. **存檔封套**：magic、schemaVersion、payloadLength、sequence、checksum 屬儲存格式，包住當前寵物與墓碑等完整快照，不是新的遊戲實體。依企劃使用 A／B 槽及有效性驗證；此圖不定義具體二進位格式。
 
-本圖已與 `PetSnapshotV1` 的單一危險計時及互斥健康狀態對齊；ESP32 的 NVS 寫入仍未實作。
+本圖已與 `PetSnapshotV1` 的單一危險計時及互斥健康狀態對齊；當前寵物與墓碑群已使用 CRC32 及 NVS A／B 槽保存。

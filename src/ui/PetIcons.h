@@ -28,6 +28,9 @@ void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
 // User-drawn egg, baby and adult sheets, each with two 64 x 44 frames.
 void drawPet(Hardware::Display& display, int16_t x, int16_t y,
              Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame);
+// Draws the current bird unchanged except for deterministic closed-eye lines.
+void drawSleepingPet(Hardware::Display& display, int16_t x, int16_t y,
+                     Pet::LifeStage lifeStage, uint8_t frame);
 // Dissolve stages 0..3 progressively remove the current bird.
 void drawPetDissolve(Hardware::Display& display, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t dissolveStage);

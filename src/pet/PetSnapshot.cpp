@@ -78,6 +78,7 @@ bool isValidPetSnapshot(const PetSnapshotV1& s) {
     }
     if (s.lifeStage == LifeStage::Egg &&
         (s.healthState != HealthState::Healthy ||
+         s.sleepMode != SleepMode::Awake ||
          s.ageSeconds >= PetData::kEggHatchAgeSeconds ||
          s.satietyRemainderSeconds != 0 ||
          s.cleanlinessRemainderSeconds != 0 ||

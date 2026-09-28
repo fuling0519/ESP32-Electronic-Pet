@@ -145,6 +145,31 @@ void drawPet(Hardware::Display& d, int16_t x, int16_t y,
                 kBirdFrameWidth, kBirdFrameHeight);
 }
 
+void drawSleepingPet(Hardware::Display& d, int16_t x, int16_t y,
+                     Pet::LifeStage lifeStage, uint8_t frame) {
+    drawPet(d, x, y, lifeStage, 0, frame);
+    if (lifeStage == Pet::LifeStage::Baby) {
+        const int16_t eyeOffsetY = frame % 2;
+        d.clearArea(x + 23, y + 15 + eyeOffsetY, 4, 4);
+        d.clearArea(x + 34, y + 15 + eyeOffsetY, 4, 4);
+        d.drawLine(x + 24, y + 17 + eyeOffsetY,
+                   x + 25, y + 17 + eyeOffsetY);
+        d.drawLine(x + 35, y + 17 + eyeOffsetY,
+                   x + 36, y + 17 + eyeOffsetY);
+        return;
+    }
+    if (lifeStage == Pet::LifeStage::Adult) {
+        // Frame 1 is shifted down by one pixel in the source sheet.
+        const int16_t eyeOffsetY = frame % 2;
+        d.clearArea(x + 19, y + 13 + eyeOffsetY, 5, 5);
+        d.clearArea(x + 30, y + 14 + eyeOffsetY, 5, 5);
+        d.drawLine(x + 20, y + 16 + eyeOffsetY,
+                   x + 22, y + 16 + eyeOffsetY);
+        d.drawLine(x + 31, y + 17 + eyeOffsetY,
+                   x + 33, y + 17 + eyeOffsetY);
+    }
+}
+
 void drawPetDissolve(Hardware::Display& d, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t dissolveStage) {
     if (dissolveStage == 0) {

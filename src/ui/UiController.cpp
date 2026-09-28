@@ -19,6 +19,8 @@ constexpr uint32_t kDeathAnimationDurationMs = 3600;
 constexpr uint32_t kDeathAnimationFrameMs = 100;
 constexpr uint32_t kBirdIdleCycleMs = 1100;
 constexpr uint32_t kBirdIdleSecondFrameAtMs = 700;
+constexpr uint32_t kSleepBirdFrameMs = 900;
+constexpr uint32_t kSleepZFrameMs = 650;
 constexpr uint8_t kMenuItemCount = 7;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -110,6 +112,10 @@ void UiController::init(uint32_t now) {
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
     homeAnimationFrame_ = 0;
+    sleepStartedAtMs_ = 0;
+    sleepAnimationFrame_ = 0;
+    sleepZPhase_ = 0;
+    sleepVisualStage_ = pet_.lifeStage();
     eggAgeAtInitMilliseconds_ = pet_.lifeStage() == Pet::LifeStage::Egg ?
         pet_.ageSeconds() * 1000ULL : 0;
     eggAgeInitAtMs_ = now;
@@ -158,7 +164,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         return screen_ != previousScreen;
     }
 
-    if (pet_.lifeStage() != observedLifeStage_) {
+    if (pet_.lifeStage() != observedLifeStage_ &&
+        screen_ != ScreenId::Sleeping) {
         const Pet::LifeStage previousStage = observedLifeStage_;
         observedLifeStage_ = pet_.lifeStage();
         if (previousStage == Pet::LifeStage::Egg &&
@@ -259,7 +266,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                     case 1: setScreen(ScreenId::CleanCare); break;
                     case 2: setScreen(ScreenId::TreatCare); break;
                     case 3: setScreen(ScreenId::PlayCare); break;
-                    case 4: setScreen(ScreenId::RestPlaceholder); break;
+                    case 4: setScreen(ScreenId::Rest); break;
                     case 5: setScreen(ScreenId::DetailedStatus); break;
                     default:
                         memorialIndex_ = 0;
@@ -290,10 +297,35 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
             break;
 
-        case ScreenId::RestPlaceholder:
-            if (event == Hardware::InputEvent::LongPress) {
+        case ScreenId::Rest:
+            if (event == Hardware::InputEvent::Press) {
+                if (pet_.lifeStage() == Pet::LifeStage::Egg) {
+                    sound_.playFailure();
+                } else {
+                    pendingAction_ = UiAction::StartNormalSleep;
+                }
+            } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::MainMenu);
+            }
+            break;
+
+        case ScreenId::Sleeping:
+            {
+                const uint32_t elapsed = now - sleepStartedAtMs_;
+                const uint8_t birdFrame = static_cast<uint8_t>(
+                    (elapsed / kSleepBirdFrameMs) % 2);
+                const uint8_t zPhase = static_cast<uint8_t>(
+                    (elapsed / kSleepZFrameMs) % 3);
+                if (birdFrame != sleepAnimationFrame_ ||
+                    zPhase != sleepZPhase_) {
+                    sleepAnimationFrame_ = birdFrame;
+                    sleepZPhase_ = zPhase;
+                    dirty_ = true;
+                }
+            }
+            if (event == Hardware::InputEvent::Press) {
+                pendingAction_ = UiAction::Wake;
             }
             break;
 
@@ -420,7 +452,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 }
 
 void UiController::render() {
-    if ((screen_ == ScreenId::Home || screen_ == ScreenId::DetailedStatus ||
+    if ((screen_ == ScreenId::Home || screen_ == ScreenId::Sleeping ||
+         screen_ == ScreenId::DetailedStatus ||
          screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
          screen_ == ScreenId::TreatCare || screen_ == ScreenId::PlayCare) &&
         pet_.displayRevision() != lastRenderedPetRevision_) dirty_ = true;
@@ -435,7 +468,8 @@ void UiController::render() {
         case ScreenId::TreatCare:
             renderCare("治療", "健康", pet_.isSick() ? 1 : 0); break;
         case ScreenId::PlayCare: renderCare("陪玩", "心情", pet_.mood()); break;
-        case ScreenId::RestPlaceholder: renderPlaceholder("休息"); break;
+        case ScreenId::Rest: renderRest(); break;
+        case ScreenId::Sleeping: renderSleeping(); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
         case ScreenId::HatchTransition: renderHatchTransition(); break;
         case ScreenId::GrowTransition: renderGrowTransition(); break;
@@ -462,7 +496,8 @@ const char* UiController::screenName() const {
         case ScreenId::CleanCare: return "CLEAN_CARE";
         case ScreenId::TreatCare: return "TREAT_CARE";
         case ScreenId::PlayCare: return "PLAY_CARE";
-        case ScreenId::RestPlaceholder: return "REST_PLACEHOLDER";
+        case ScreenId::Rest: return "REST";
+        case ScreenId::Sleeping: return "SLEEPING";
         case ScreenId::DetailedStatus: return "DETAILED_STATUS";
         case ScreenId::HatchTransition: return "HATCH_TRANSITION";
         case ScreenId::GrowTransition: return "GROW_TRANSITION";
@@ -490,6 +525,18 @@ void UiController::setMemorialReady(bool ready) {
     if (memorialReady_ == ready) return;
     memorialReady_ = ready;
     dirty_ = true;
+}
+
+void UiController::onSleepStarted(uint32_t now) {
+    sleepStartedAtMs_ = now;
+    sleepAnimationFrame_ = 0;
+    sleepZPhase_ = 0;
+    sleepVisualStage_ = pet_.lifeStage();
+    setScreen(ScreenId::Sleeping);
+}
+
+void UiController::onWakeSucceeded() {
+    setScreen(ScreenId::Home);
 }
 
 void UiController::onAdoptionSucceeded(uint32_t now) {
@@ -568,7 +615,11 @@ void UiController::renderHome() {
         display_.drawFrame(111, 38, 16, 16);
     }
 
-    // Reserve y=55 as whitespace. This baseline is not EXP progress.
+    renderPetFooter();
+}
+
+void UiController::renderPetFooter() {
+    // Reserve y=55 as whitespace. This line is not yet tied to EXP progress.
     char levelText[6];  // "Lv255" plus terminator covers the uint8_t level.
     if (pet_.lifeStage() == Pet::LifeStage::Egg) strcpy(levelText, "EGG");
     else if (pet_.lifeStage() == Pet::LifeStage::Baby) strcpy(levelText, "BABY");
@@ -666,6 +717,37 @@ void UiController::renderCare(const char* title, const char* stat, unsigned valu
         screen_ == ScreenId::PlayCare ? "按下執行 +15" : "按下執行";
     drawCenteredUiText(display_, 50, action);
     drawCenteredUiText(display_, 62, "長按返回");
+}
+
+void UiController::renderRest() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    drawCenteredUiText(display_, 15, "休息");
+    display_.drawLine(6, 20, 121, 20);
+    if (pet_.lifeStage() == Pet::LifeStage::Egg) {
+        drawCenteredUiText(display_, 38, "等待孵化");
+        drawCenteredUiText(display_, 53, "無法使用");
+        return;
+    }
+    drawCenteredUiText(display_, 42, "按下執行");
+    drawCenteredUiText(display_, 60, "長按返回");
+}
+
+void UiController::renderSleeping() {
+    display_.clear();
+    PetIcons::drawMood(display_, 3, 3, pet_.moodState());
+    PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
+    PetIcons::drawSleepingPet(display_, 32, 6, sleepVisualStage_,
+                              sleepAnimationFrame_);
+    if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
+    PetIcons::drawCleaningAlert(display_, 113, 23,
+                                pet_.cleanlinessState());
+    // Keep the familiar shortcut glyph, but omit the focus frame while asleep.
+    PetIcons::drawStatusCard(display_, 113, 40);
+    const char* zText = sleepZPhase_ == 0 ? "Z" :
+        sleepZPhase_ == 1 ? "Zz" : "Zzz";
+    display_.drawSmallText(83, 14, zText);
+    renderPetFooter();
 }
 
 void UiController::renderHatchTransition() {

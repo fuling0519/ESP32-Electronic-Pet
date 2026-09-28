@@ -55,6 +55,9 @@ public:
 #if defined(PET_DEATH_TEST_MODE) || defined(PET_MEMORIAL_TEST_MODE)
     static constexpr uint32_t kSicknessExposureSeconds = 10;
     static constexpr uint32_t kDeathAfterSickAwakeSeconds = 30;
+#elif defined(PET_SLEEP_TEST_MODE)
+    static constexpr uint32_t kSicknessExposureSeconds = 20;
+    static constexpr uint32_t kDeathAfterSickAwakeSeconds = 30;
 #else
     static constexpr uint32_t kSicknessExposureSeconds = 6UL * 60 * 60;
     static constexpr uint32_t kDeathAfterSickAwakeSeconds = 24UL * 60 * 60;
@@ -62,6 +65,11 @@ public:
     static constexpr uint8_t kFeedAmount = 20;
     static constexpr uint8_t kCleanAmount = 30;
     static constexpr uint8_t kPlayAmount = 15;
+#if defined(PET_SLEEP_TEST_MODE)
+    static constexpr uint32_t kSleepMoodRecoverySeconds = 10;
+#else
+    static constexpr uint32_t kSleepMoodRecoverySeconds = 10UL * 60;
+#endif
 
     PetData();
 
@@ -81,6 +89,7 @@ public:
     uint32_t displayRevision() const;
     uint32_t dangerSeconds() const;
     uint32_t sickAwakeSeconds() const;
+    SleepMode sleepMode() const;
     PetSnapshotV1 snapshot() const;
     // Restores only validated snapshots and leaves the current pet untouched
     // on failure. Runtime-only display revision is never loaded from storage.
@@ -109,6 +118,11 @@ public:
     // Advances awake time in whole seconds. Keep the remainders with the pet
     // so future recovery can resume without losing partial intervals.
     void advanceSeconds(uint32_t seconds);
+    // Normal sleep keeps needs, sickness and death progressing, but replaces
+    // awake mood decay with slow mood recovery.
+    void advanceSleepSeconds(uint32_t seconds);
+    bool beginNormalSleep();
+    bool wake();
     bool feed();
     bool clean();
     bool play();
@@ -118,7 +132,8 @@ private:
     static uint8_t clampNeedValue(int64_t value);
     uint32_t advanceCareSeconds(uint32_t seconds, uint32_t satietyInterval,
                                 uint32_t cleanlinessInterval,
-                                uint32_t moodInterval);
+                                uint32_t moodInterval, bool sleeping);
+    void advanceSecondsForMode(uint32_t seconds, bool sleeping);
     void hatch();
     void growUpIfReady();
 
@@ -144,6 +159,9 @@ private:
     SleepMode sleepMode_;
     SavedTimestamp sleepStartedAt_;
     SavedTimestamp lastSleepSettledAt_;
+    // Runtime-only remainder. A reset can lose less than one ten-minute mood
+    // recovery interval, avoiding a version-1 save-layout change.
+    uint32_t sleepMoodRecoveryRemainderSeconds_;
     uint32_t displayRevision_;
 };
 

@@ -153,6 +153,13 @@ void Display::drawGlyph(int16_t x, int16_t y, const uint8_t* bitmap,
     }
 }
 
+void Display::clearArea(int16_t x, int16_t y, int16_t width, int16_t height) {
+    if (!initialized_ || width <= 0 || height <= 0) return;
+    sh1106.setDrawColor(0);
+    sh1106.drawBox(x, y, width, height);
+    sh1106.setDrawColor(1);
+}
+
 void Display::drawFrame(int16_t x, int16_t y, int16_t width, int16_t height) {
     if (initialized_) sh1106.drawFrame(x, y, width, height);
 }

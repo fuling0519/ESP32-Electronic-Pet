@@ -26,7 +26,8 @@ enum class ScreenId {
     CleanCare,
     TreatCare,
     PlayCare,
-    RestPlaceholder,
+    Rest,
+    Sleeping,
     DetailedStatus,
     HatchTransition,
     GrowTransition,
@@ -44,6 +45,8 @@ enum class UiAction : uint8_t {
     Clean,
     Treat,
     Play,
+    StartNormalSleep,
+    Wake,
     AdoptNewEgg,
     DeleteMemorial,
 };
@@ -73,6 +76,8 @@ public:
     UiAction takeAction();
     uint8_t selectedMemorialIndex() const;
     void setMemorialReady(bool ready);
+    void onSleepStarted(uint32_t now);
+    void onWakeSucceeded();
     void onAdoptionSucceeded(uint32_t now);
     void onMemorialDeleteResult(bool success);
 
@@ -80,12 +85,15 @@ private:
     void setScreen(ScreenId screen);
     void renderBoot();
     void renderHome();
+    void renderPetFooter();
     void renderMainMenu();
     void renderDetailedStatus();
     void renderDetailedStatusPage1();
     void renderDetailedStatusPage2();
     void renderPlaceholder(const char* title);
     void renderCare(const char* title, const char* stat, unsigned value);
+    void renderRest();
+    void renderSleeping();
     void beginGrowthTransition(ScreenId screen, uint32_t now);
     void renderHatchTransition();
     void renderGrowTransition();
@@ -117,6 +125,10 @@ private:
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
     uint8_t homeAnimationFrame_ = 0;
+    uint32_t sleepStartedAtMs_ = 0;
+    uint8_t sleepAnimationFrame_ = 0;
+    uint8_t sleepZPhase_ = 0;
+    Pet::LifeStage sleepVisualStage_;
     uint8_t eggCrackStage_ = 0;
     uint64_t eggAgeAtInitMilliseconds_ = 0;
     uint32_t eggAgeInitAtMs_ = 0;

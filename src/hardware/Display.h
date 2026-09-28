@@ -20,6 +20,8 @@ public:
     // cht2bitmap row-major, MSB-first bitmap; zero bits are visible strokes.
     void drawGlyph(int16_t x, int16_t y, const uint8_t* bitmap,
                    uint8_t width, uint8_t height);
+    // Clears a rectangular region in the current framebuffer.
+    void clearArea(int16_t x, int16_t y, int16_t width, int16_t height);
     void drawFrame(int16_t x, int16_t y, int16_t width, int16_t height);
     void drawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2);
     bool isInitialized() const;

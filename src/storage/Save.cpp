@@ -13,6 +13,8 @@ namespace {
 constexpr char kNamespace[] = "pet-test";
 #elif defined(PET_MEMORIAL_TEST_MODE)
 constexpr char kNamespace[] = "pet-mem";
+#elif defined(PET_SLEEP_TEST_MODE)
+constexpr char kNamespace[] = "pet-sleep";
 #elif defined(PET_GROWTH_TEST_MODE)
 constexpr char kNamespace[] = "pet-grow";
 #else

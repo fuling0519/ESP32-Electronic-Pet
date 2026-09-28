@@ -27,6 +27,7 @@ PetData::PetData()
       sleepMode_(SleepMode::Awake),
       sleepStartedAt_{0, false},
       lastSleepSettledAt_{0, false},
+      sleepMoodRecoveryRemainderSeconds_(0),
       displayRevision_(0) {
     memcpy(name_, "Pet-0001", sizeof(name_));
 }
@@ -47,6 +48,7 @@ uint64_t PetData::ageSeconds() const { return ageSeconds_; }
 uint32_t PetData::displayRevision() const { return displayRevision_; }
 uint32_t PetData::dangerSeconds() const { return dangerSeconds_; }
 uint32_t PetData::sickAwakeSeconds() const { return sickAwakeSeconds_; }
+SleepMode PetData::sleepMode() const { return sleepMode_; }
 
 PetSnapshotV1 PetData::snapshot() const {
     PetSnapshotV1 result{};
@@ -99,6 +101,7 @@ bool PetData::restore(const PetSnapshotV1& saved) {
     sleepMode_ = saved.sleepMode;
     sleepStartedAt_ = saved.sleepStartedAt;
     lastSleepSettledAt_ = saved.lastSleepSettledAt;
+    sleepMoodRecoveryRemainderSeconds_ = 0;
     ++displayRevision_;
     return true;
 }
@@ -168,6 +171,10 @@ void PetData::setDead(bool value) {
     if (value && !isDead()) {
         healthState_ = HealthState::Dead;
         deathCause_ = DeathCause::UntreatedSickness;
+        sleepMode_ = SleepMode::Awake;
+        sleepStartedAt_ = {0, false};
+        lastSleepSettledAt_ = {0, false};
+        sleepMoodRecoveryRemainderSeconds_ = 0;
         ++displayRevision_;
     }
 }
@@ -192,6 +199,7 @@ void PetData::startNewEgg() {
     sleepMode_ = SleepMode::Awake;
     sleepStartedAt_ = {0, false};
     lastSleepSettledAt_ = {0, false};
+    sleepMoodRecoveryRemainderSeconds_ = 0;
     ++displayRevision_;
 }
 
@@ -228,7 +236,8 @@ void PetData::growUpIfReady() {
 uint32_t PetData::advanceCareSeconds(uint32_t seconds,
                                      uint32_t satietyInterval,
                                      uint32_t cleanlinessInterval,
-                                     uint32_t moodInterval) {
+                                     uint32_t moodInterval,
+                                     bool sleeping) {
     const uint64_t satietyZeroAt = satiety_ == 0 ? 0 :
         static_cast<uint64_t>(satiety_) * satietyInterval - satietyRemainderSeconds_;
     const uint64_t cleanlinessZeroAt = cleanliness_ == 0 ? 0 :
@@ -274,18 +283,29 @@ uint32_t PetData::advanceCareSeconds(uint32_t seconds,
 
     const uint64_t satietyTotal = static_cast<uint64_t>(satietyRemainderSeconds_) + elapsedSeconds;
     const uint64_t cleanlinessTotal = static_cast<uint64_t>(cleanlinessRemainderSeconds_) + elapsedSeconds;
-    const uint64_t moodTotal = static_cast<uint64_t>(moodRemainderSeconds_) + elapsedSeconds;
     satietyRemainderSeconds_ = satietyTotal % satietyInterval;
     cleanlinessRemainderSeconds_ = cleanlinessTotal % cleanlinessInterval;
-    moodRemainderSeconds_ = moodTotal % moodInterval;
     changeSatiety(-static_cast<int>(satietyTotal / satietyInterval));
     changeCleanliness(-static_cast<int>(cleanlinessTotal / cleanlinessInterval));
-    changeMood(-static_cast<int>(moodTotal / moodInterval));
+    if (sleeping) {
+        const uint64_t moodRecoveryTotal =
+            static_cast<uint64_t>(sleepMoodRecoveryRemainderSeconds_) +
+            elapsedSeconds;
+        sleepMoodRecoveryRemainderSeconds_ = static_cast<uint32_t>(
+            moodRecoveryTotal % kSleepMoodRecoverySeconds);
+        changeMood(static_cast<int>(moodRecoveryTotal /
+                                    kSleepMoodRecoverySeconds));
+    } else {
+        const uint64_t moodTotal =
+            static_cast<uint64_t>(moodRemainderSeconds_) + elapsedSeconds;
+        moodRemainderSeconds_ = moodTotal % moodInterval;
+        changeMood(-static_cast<int>(moodTotal / moodInterval));
+    }
     if (diesThisAdvance) setDead(true);
     return elapsedSeconds;
 }
 
-void PetData::advanceSeconds(uint32_t seconds) {
+void PetData::advanceSecondsForMode(uint32_t seconds, bool sleeping) {
     if (isDead() || seconds == 0) return;
     uint32_t remaining = seconds;
     while (remaining > 0 && !isDead()) {
@@ -309,11 +329,45 @@ void PetData::advanceSeconds(uint32_t seconds) {
             elapsed,
             baby ? kBabySatietyDecaySeconds : kSatietyDecaySeconds,
             baby ? kBabyCleanlinessDecaySeconds : kCleanlinessDecaySeconds,
-            baby ? kBabyMoodDecaySeconds : kMoodDecaySeconds);
+            baby ? kBabyMoodDecaySeconds : kMoodDecaySeconds,
+            sleeping);
         remaining -= consumed;
         if (isDead() || consumed < elapsed) return;
         growUpIfReady();
     }
+}
+
+void PetData::advanceSeconds(uint32_t seconds) {
+    if (sleepMode_ != SleepMode::Awake) return;
+    advanceSecondsForMode(seconds, false);
+}
+
+void PetData::advanceSleepSeconds(uint32_t seconds) {
+    if (sleepMode_ != SleepMode::Normal) return;
+    advanceSecondsForMode(seconds, true);
+}
+
+bool PetData::beginNormalSleep() {
+    if (isDead() || lifeStage_ == LifeStage::Egg ||
+        sleepMode_ != SleepMode::Awake) return false;
+    sleepMode_ = SleepMode::Normal;
+    sleepStartedAt_ = {0, false};
+    lastSleepSettledAt_ = {0, false};
+    moodRemainderSeconds_ = 0;
+    sleepMoodRecoveryRemainderSeconds_ = 0;
+    ++displayRevision_;
+    return true;
+}
+
+bool PetData::wake() {
+    if (isDead() || sleepMode_ == SleepMode::Awake) return false;
+    sleepMode_ = SleepMode::Awake;
+    sleepStartedAt_ = {0, false};
+    lastSleepSettledAt_ = {0, false};
+    sleepMoodRecoveryRemainderSeconds_ = 0;
+    growUpIfReady();
+    ++displayRevision_;
+    return true;
 }
 
 bool PetData::feed() {

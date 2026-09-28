@@ -109,6 +109,56 @@ int main() {
     assert(fatalBatch.sickAwakeSeconds() == Pet::PetData::kDeathAfterSickAwakeSeconds);
     assert(fatalBatch.ageSeconds() == fatalElapsed);
 
+    Pet::PetData sleeping;
+    sleeping.setMood(50);
+    sleeping.advanceSeconds(Pet::PetData::kMoodDecaySeconds - 1);
+    assert(sleeping.mood() == 50);
+    assert(sleeping.beginNormalSleep());
+    assert(sleeping.sleepMode() == Pet::SleepMode::Normal);
+    assert(Pet::isValidPetSnapshot(sleeping.snapshot()));
+    const uint64_t sleepStartAge = sleeping.ageSeconds();
+    sleeping.advanceSeconds(60);  // Awake updates are ignored while asleep.
+    assert(sleeping.ageSeconds() == sleepStartAge);
+    sleeping.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds - 1);
+    assert(sleeping.mood() == 50);
+    sleeping.advanceSleepSeconds(1);
+    assert(sleeping.mood() == 51);
+    assert(sleeping.satiety() == 78);
+    assert(sleeping.wake());
+    assert(sleeping.sleepMode() == Pet::SleepMode::Awake);
+    assert(Pet::isValidPetSnapshot(sleeping.snapshot()));
+    sleeping.advanceSeconds(Pet::PetData::kMoodDecaySeconds - 1);
+    assert(sleeping.mood() == 51);
+    sleeping.advanceSeconds(1);
+    assert(sleeping.mood() == 50);
+
+    Pet::PetData sleepingBatch;
+    sleepingBatch.setMood(50);
+    assert(sleepingBatch.beginNormalSleep());
+    sleepingBatch.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds * 2);
+    assert(sleepingBatch.mood() == 52);
+    assert(sleepingBatch.satiety() == 78);
+    assert(sleepingBatch.ageSeconds() ==
+           Pet::PetData::kSleepMoodRecoverySeconds * 2);
+
+    Pet::PetData sleepingNeglect;
+    sleepingNeglect.setSatiety(0);
+    assert(sleepingNeglect.beginNormalSleep());
+    sleepingNeglect.advanceSleepSeconds(Pet::PetData::kSicknessExposureSeconds);
+    assert(sleepingNeglect.isSick());
+    assert(sleepingNeglect.sickAwakeSeconds() == 0);
+    sleepingNeglect.advanceSleepSeconds(
+        Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(sleepingNeglect.isDead());
+    assert(sleepingNeglect.sleepMode() == Pet::SleepMode::Awake);
+    assert(sleepingNeglect.sickAwakeSeconds() ==
+           Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(sleepingNeglect.ageSeconds() ==
+           static_cast<uint64_t>(Pet::PetData::kSicknessExposureSeconds) +
+           Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(Pet::isValidPetSnapshot(sleepingNeglect.snapshot()));
+    assert(!sleepingNeglect.wake());
+
     Pet::PetData manualDeath;
     manualDeath.setDead(true);
     assert(manualDeath.isDead() && manualDeath.isSick());

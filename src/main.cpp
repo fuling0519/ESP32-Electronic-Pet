@@ -25,6 +25,8 @@ private:
     void printUiState(Hardware::InputEvent event);
     bool prepareNewEgg(Pet::PetData& target, uint64_t petId);
     bool ensureCurrentMemorialSaved();
+    bool startNormalSleep(uint32_t now);
+    bool wakeFromNormalSleep(uint32_t now);
     bool adoptNewEgg(uint32_t now);
     bool deleteSelectedMemorial();
 
@@ -79,6 +81,36 @@ bool Application::ensureCurrentMemorialSaved() {
     Storage::Memorials updated = memorials;
     if (!updated.append(pet) || !save.saveMemorials(updated)) return false;
     memorials = updated;
+    return true;
+}
+
+bool Application::startNormalSleep(uint32_t now) {
+    const Pet::PetSnapshotV1 before = pet.snapshot();
+#if defined(PET_SLEEP_TEST_MODE)
+    pet.setSatiety(0);
+#endif
+    if (!pet.beginNormalSleep()) {
+        pet.restore(before);
+        return false;
+    }
+    if (!save.save(pet)) {
+        pet.restore(before);
+        return false;
+    }
+    petClock.reset(now);
+    ui.onSleepStarted(now);
+    return true;
+}
+
+bool Application::wakeFromNormalSleep(uint32_t now) {
+    const Pet::PetSnapshotV1 before = pet.snapshot();
+    if (!pet.wake()) return false;
+    if (!save.save(pet)) {
+        pet.restore(before);
+        return false;
+    }
+    petClock.reset(now);
+    ui.onWakeSucceeded();
     return true;
 }
 
@@ -137,8 +169,12 @@ void Application::setup() {
                 Serial.println("Memorial archive unavailable.");
                 break;
         }
-#if defined(PET_DEATH_TEST_MODE)
+#if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE)
+#if defined(PET_SLEEP_TEST_MODE)
+        Serial.println("Sleep test mode: stored test state is ignored on startup.");
+#else
         Serial.println("Death test mode: stored test state is ignored on startup.");
+#endif
 #else
         switch (save.load(pet)) {
             case Storage::LoadStatus::Loaded:
@@ -165,6 +201,15 @@ void Application::setup() {
 #endif
 #endif
     }
+    if (pet.sleepMode() == Pet::SleepMode::Normal) {
+        if (pet.wake()) {
+            if (save.save(pet)) {
+                Serial.println("Interrupted normal sleep ended at startup.");
+            } else {
+                Serial.println("Failed to save startup wake state.");
+            }
+        }
+    }
     if (pet.isDead()) memorialReady = ensureCurrentMemorialSaved();
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
@@ -172,6 +217,10 @@ void Application::setup() {
 #if defined(PET_DEATH_TEST_MODE)
     pet.setSick(true);
     Serial.println("Death test mode: pet starts sick and dies after 30 seconds.");
+#elif defined(PET_SLEEP_TEST_MODE)
+    pet.setMood(50);
+    if (!save.save(pet)) Serial.println("Failed to save initial sleep test state.");
+    Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 10 seconds, sickness starts after 20 seconds, and death follows 30 seconds later.");
 #endif
     ui.init(now);
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
@@ -188,7 +237,12 @@ void Application::loop() {
     const Pet::HealthState healthBeforeAdvance = pet.healthState();
     const Pet::LifeStage stageBeforeAdvance = pet.lifeStage();
     const uint64_t ageBeforeAdvanceMs = pet.ageSeconds() * 1000ULL;
-    pet.advanceSeconds(petClock.consumeElapsedSeconds(now));
+    const uint32_t elapsedSeconds = petClock.consumeElapsedSeconds(now);
+    if (pet.sleepMode() == Pet::SleepMode::Normal) {
+        pet.advanceSleepSeconds(elapsedSeconds);
+    } else {
+        pet.advanceSeconds(elapsedSeconds);
+    }
 #if defined(PET_MEMORIAL_TEST_MODE)
     if (pet.lifeStage() != Pet::LifeStage::Egg &&
         pet.healthState() == Pet::HealthState::Healthy) {
@@ -233,6 +287,7 @@ void Application::loop() {
     const uint32_t revisionBeforeAction = pet.displayRevision();
     const Pet::LifeStage stageBeforeAction = pet.lifeStage();
     const Ui::UiAction action = ui.takeAction();
+    bool actionSavedImmediately = false;
     switch (action) {
         case Ui::UiAction::Feed:
             if (pet.feed()) sound.playSuccess(); else sound.playFailure();
@@ -247,6 +302,22 @@ void Application::loop() {
             if (pet.treat()) sound.playSuccess();
             else sound.playFailure();
             break;
+        case Ui::UiAction::StartNormalSleep:
+            if (startNormalSleep(now)) {
+                sound.playConfirm();
+                actionSavedImmediately = true;
+            } else {
+                sound.playFailure();
+            }
+            break;
+        case Ui::UiAction::Wake:
+            if (wakeFromNormalSleep(now)) {
+                sound.playSuccess();
+                actionSavedImmediately = true;
+            } else {
+                sound.playFailure();
+            }
+            break;
         case Ui::UiAction::AdoptNewEgg:
             if (adoptNewEgg(now)) sound.playSuccess();
             else sound.playFailure();
@@ -256,7 +327,9 @@ void Application::loop() {
             break;
         case Ui::UiAction::None: break;
     }
-    if (pet.lifeStage() != stageBeforeAction) {
+    if (actionSavedImmediately) {
+        // Entering and leaving sleep already wrote a verified checkpoint.
+    } else if (pet.lifeStage() != stageBeforeAction) {
         if (!save.save(pet)) Serial.println("Failed to save pet growth stage.");
     } else if (pet.displayRevision() != revisionBeforeAction) {
         save.markDirty(now);
