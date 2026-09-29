@@ -2,8 +2,14 @@
 .pio/
 .piolibdeps/
 
+# Python tool caches and optional local environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+
 # VS Code
-.vscode/
+.vscode/*
 !.vscode/extensions.json
 
 # Local secrets

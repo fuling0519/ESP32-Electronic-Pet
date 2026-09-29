@@ -6,7 +6,7 @@
 
 1. 先讀本 README，再讀 [企劃](docs/project-plan.md) 第 2、3、4、6、8、10、11 節；[架構筆記](docs/architecture.md) 可補充模組邊界，但其中部分 UI 描述較舊，需與目前程式核對。
 2. 先看 `git status --short`；工作目錄可能有尚未提交的 UI、顯示及字圖修改，勿直接重置或覆蓋。
-3. 打開 [專案設定](platformio.ini)，確認本機 PlatformIO 已安裝 ESP32 平台與 U8g2，再編譯。
+3. 打開 [專案設定](platformio.ini)，依照下方「新環境建置」安裝 PlatformIO 並編譯；依賴會由設定檔安裝。
 4. 需要實機驗證的項目請列出操作步驟、預期結果及需人類回報的現象。Agent 負責程式和可推導的細節，人類主要提供想法、硬體現況與實機測試結果。
 5. 完成一項工作後，同步更新企劃核取項、本 README 的現況，以及實測／未實測註記；文件中的「已實作」不代表上板驗收通過。
 6. 修改畫面、字型或操作文案前必讀 [OLED 排版引導手冊](docs/ui-layout-guide.md)：先規劃元素範圍、留白與動態內容，再修改繪圖；編譯成功不能代替視覺檢查。
@@ -16,15 +16,38 @@
 - 語言：C++。
 - 開發工具：Visual Studio Code + PlatformIO，或 PlatformIO CLI。
 - 框架：Arduino for ESP32；PlatformIO 平台為 `espressif32`，環境 `esp32dev`，板型 `nodemcu-32s`。
-- 顯示依賴：`olikraus/U8g2`，由 `platformio.ini` 的 `lib_deps` 安裝。沒有自建字型產生器或其他已宣告第三方依賴。
+- 顯示依賴：`olikraus/U8g2`，由 `platformio.ini` 的 `lib_deps` 安裝。
 - 序列埠監控速度：115200。
-- 尚未固定 `espressif32` 與 U8g2 的具體版本；2026/09/25 建置實際解析為 Espressif32 7.1.3、Arduino-ESP32 4.20017.260907、U8g2 2.36.18，若後續 API 不一致再處理版本釘選。
+- 開發環境／dependency reproducibility：`platformio.ini` 固定 Espressif32 7.1.3、Arduino-ESP32 4.20017.260907+sha.dcc1105b、U8g2 2.36.18；這些版本取自既有成功建置的環境。PlatformIO Core 本機使用 6.2.0。這次只調整建置依賴與接手文件，沒有新增遊戲功能。
+
+## 新環境建置
+
+1. 安裝 [Visual Studio Code](https://code.visualstudio.com/) 與 [PlatformIO IDE 擴充套件](https://platformio.org/install/ide?install=vscode)。若使用命令列，請確認 `pio` 可在終端機執行（PlatformIO Core 6.2.0 已用於本專案建置）。
+2. 安裝 Git，然後 clone 專案：`git clone https://github.com/fuling0519/ESP32-Electronic-Pet.git`。
+3. 在 VS Code 選擇「開啟資料夾」，開啟 clone 出來的 `ESP32-Electronic-Pet`。PlatformIO 會讀取 `platformio.ini`，在首次 build 時安裝指定的 ESP32 platform、Arduino framework 與 U8g2 library；首次下載需要網路。
+4. 在專案根目錄執行下列指令。接好 NodeMCU-32S 後才執行 upload；如有多個序列埠，先選定正確的埠。
 
 ```text
 pio run -e esp32dev
 pio run -e esp32dev -t upload
 pio device monitor -b 115200
 ```
+
+只有要重新產生字圖素材時才需要 Python。建議安裝 Python 3.10 以上；`tools/generate_ui_font.py` 只用標準函式庫，`tools/generate_bird_sprite.py` 需要 Pillow 12.3.0。建議在專案根目錄先建立並啟用 `.venv`，再安裝 requirements：
+
+```text
+python -m venv .venv
+```
+
+Windows PowerShell 執行 `.venv\Scripts\Activate.ps1`；macOS／Linux 執行 `source .venv/bin/activate`。啟用後執行：
+
+```text
+python -m pip install -r requirements.txt
+```
+
+`.venv/` 已被 Git 忽略，不需提交。
+
+ESP32 韌體資料使用 Preferences／NVS。MySQL、SQLite 都不是目前韌體的必要依賴；`docs/database-erd.md` 與 SQL schema 是未來規劃資料，不屬於此建置流程。
 
 死亡動畫可用專用測試環境在約 30 秒內驗收；此環境開機後直接把測試寵物設為生病，正式 `esp32dev` 環境仍使用六小時生病、24 小時清醒疾病死亡門檻：
 
