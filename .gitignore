@@ -8,6 +8,16 @@ venv/
 __pycache__/
 *.pyc
 
+# Flutter generated files (keep pubspec.lock under version control)
+esp32_pet_app/.dart_tool/
+esp32_pet_app/build/
+esp32_pet_app/.flutter-plugins
+esp32_pet_app/.flutter-plugins-dependencies
+esp32_pet_app/android/local.properties
+esp32_pet_app/ios/Flutter/Generated.xcconfig
+esp32_pet_app/ios/Flutter/ephemeral/
+esp32_pet_app/windows/flutter/ephemeral/
+
 # VS Code
 .vscode/*
 !.vscode/extensions.json
