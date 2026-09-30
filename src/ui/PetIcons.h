@@ -23,6 +23,7 @@ void drawHunger(Hardware::Display& display, int16_t x, int16_t y, Pet::HungerSta
 // Alert / shortcut icons fit a 12 x 12 canvas.
 void drawCleaningAlert(Hardware::Display& display, int16_t x, int16_t y,
                        Pet::CleanlinessState state);
+void drawDirt(Hardware::Display& display, Pet::CleanlinessState state);
 void drawSick(Hardware::Display& display, int16_t x, int16_t y);
 void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
 // User-drawn egg, baby and adult sheets, each with two 64 x 44 frames.

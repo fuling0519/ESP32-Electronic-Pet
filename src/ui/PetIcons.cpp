@@ -4,6 +4,7 @@
 
 #include "hardware/Display.h"
 #include "ui/BirdSprite.h"
+#include "ui/DirtySprite.h"
 
 namespace Ui {
 namespace PetIcons {
@@ -107,6 +108,15 @@ void drawCleaningAlert(Hardware::Display& d, int16_t x, int16_t y,
     d.drawLine(x + 4, y + 7, x + 4, y + 11);
     d.drawLine(x + 5, y + 7, x + 6, y + 11);
     if (state == Pet::CleanlinessState::Filthy) drawCritical(d, x + 10, y + 2);
+}
+
+void drawDirt(Hardware::Display& d, Pet::CleanlinessState state) {
+    if (state == Pet::CleanlinessState::Clean) return;
+    d.drawGlyph(22, 6, kDirtFrames[1], kDirtWidth, kDirtHeight);
+    if (state == Pet::CleanlinessState::SlightlyDirty) return;
+    d.drawGlyph(90, 2, kDirtFrames[2], kDirtWidth, kDirtHeight);
+    if (state == Pet::CleanlinessState::Dirty) return;
+    d.drawGlyph(90, 30, kDirtFrames[0], kDirtWidth, kDirtHeight);
 }
 
 void drawSick(Hardware::Display& d, int16_t x, int16_t y) {

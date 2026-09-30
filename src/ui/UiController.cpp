@@ -628,6 +628,9 @@ void UiController::renderBoot() {
 void UiController::renderHome() {
     display_.clear();
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
+        PetIcons::drawDirt(display_, pet_.cleanlinessState());
+    }
+    if (pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawMood(display_, 3, 3, pet_.moodState());
         PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
     }
@@ -781,7 +784,8 @@ void UiController::renderSleeping() {
     PetIcons::drawStatusCard(display_, 113, 40);
     const char* zText = sleepZPhase_ == 0 ? "Z" :
         sleepZPhase_ == 1 ? "Zz" : "Zzz";
-    display_.drawSmallText(83, 14, zText);
+    display_.drawSmallText(78, 17, zText);
+    PetIcons::drawDirt(display_, pet_.cleanlinessState());
     renderPetFooter();
 }
 
