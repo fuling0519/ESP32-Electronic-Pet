@@ -1,4 +1,5 @@
 #include "ble/BleLink.h"
+#include "hardware/DeviceIdentity.h"
 #include <ArduinoJson.h>
 #include <BLE2902.h>
 #include <BLECharacteristic.h>
@@ -46,6 +47,7 @@ private: Link& link_;
 };
 
 bool Link::init() {
+    if (!Hardware::deviceId()[0]) return false;
     rxQueue_ = xQueueCreate(kQueueSize, sizeof(RxFrame));
     if (!rxQueue_) return false;
     BLEDevice::init(kName);
@@ -104,8 +106,9 @@ void Link::result(uint32_t id, bool hasId, const char* code) {
     if (len && len<=kMaxJson) queue(json,false);
 }
 bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const {
-    StaticJsonDocument<384> d;
+    StaticJsonDocument<512> d;
     d["v"]=1; d["type"]="status";
+    d["device_id"]=Hardware::deviceId();
     JsonObject p=d.createNestedObject("pet");
     char id[21], age[21];
     snprintf(id,sizeof(id),"%llu",static_cast<unsigned long long>(pet.petId()));
@@ -168,8 +171,9 @@ void Link::processCommand() {
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
-    StaticJsonDocument<256> info;
+    StaticJsonDocument<384> info;
     info["v"]=1; info["type"]="device_info"; info["id"]=id; info["name"]=kName;
+    info["device_id"]=Hardware::deviceId();
     info["protocol_version"]=1; info["firmware_version"]=PET_FIRMWARE_VERSION;
     info["max_message_bytes"]=kMaxJson;
     char json[kMaxJson+1]; size_t len=serializeJson(info,json,sizeof(json));

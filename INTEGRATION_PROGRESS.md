@@ -4,6 +4,10 @@ Last updated: 2026-09-30
 
 ## Current checkpoint
 
+Device identity added (2026-09-30): firmware derives `device_id` from the factory eFuse base MAC, prints it at boot, and includes it in BLE device info and status. Flutter displays a selectable ID while connected and clears it on disconnect. No NVS migration is required. This provides identification for future account binding; login, ownership verification, pairing codes, and the account backend are not implemented.
+
+Device identity verification: native C++ harness passed for MAC read failure, all-zero/all-FF rejection, leading-zero/uppercase formatting, and cached stable identity. `git diff --check` passed. Full firmware build could not finish because the required PlatformIO platform download stalled; Flutter SDK was not found in the current environment, so Flutter analysis/build were not rerun. The earlier build results below predate this change. No firmware was flashed. Hardware acceptance must confirm that the boot log, BLE `device_info`, `status`, and Web display report the same ID, that the ID survives reboot/new adoption, and that two boards have different IDs. Check that disconnect clears the Web ID and old firmware displays ID unavailable.
+
 Work is paused at Stage 2 (read-only BLE status). Do not start remote care commands until Stage 2 has passed the team's hardware acceptance.
 
 ## Stage 0 — inventory

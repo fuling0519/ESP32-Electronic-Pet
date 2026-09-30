@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "hardware/Display.h"
+#include "hardware/DeviceIdentity.h"
 #include "hardware/Input.h"
 #include "hardware/Sound.h"
 #include "pet/PetData.h"
@@ -148,6 +149,8 @@ void Application::setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Electronic Pet Boot ===");
+    const char* deviceId = Hardware::deviceId();
+    Serial.printf("Device ID: %s\n", deviceId[0] ? deviceId : "unavailable");
     if (!display.init()) {
         Serial.println("Display init failed.");
         return;

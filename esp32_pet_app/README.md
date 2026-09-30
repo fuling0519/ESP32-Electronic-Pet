@@ -2,6 +2,8 @@
 
 本 App 是 ESP32 電子寵物的狀態檢視介面。ESP32 離線獨立運作，並是寵物狀態與保存的唯一權威來源。BLE 共用規格以 [PROTOCOL.md](PROTOCOL.md) 為準。
 
+程式以 BLE DTO → adapter → Web domain model 隔離硬體協定與網站資料結構；domain model 與欄位映射見 [Web 資料結構隔離規格](../docs/web-data-structure.md)。Web UI 不直接解析韌體欄位，雲端 API／DB 也不直接使用 BLE JSON。
+
 ## 專案位置與建置
 
 App 放在韌體倉庫的 `esp32_pet_app/`；PlatformIO 的 `src/`、`include/`、`lib/` 結構不變。Flutter 與 C++ 分開編譯。

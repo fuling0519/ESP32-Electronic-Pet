@@ -49,18 +49,28 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 若訊息損壞到無法取得命令 ID，回覆 `id:null`，App 不得配對到待處理命令。`ok:true` 只搭配 `code:"ok"`。成功查詢裝置資訊後另送：
 
 ```json
-{"v":1,"type":"device_info","id":1,"name":"ESP32-PET","protocol_version":1,"firmware_version":"<韌體實際版本>","max_message_bytes":1024}
+{"v":1,"type":"device_info","id":1,"name":"ESP32-PET","device_id":"esp32-pet-AABBCCDDEEFF","protocol_version":1,"firmware_version":"<韌體實際版本>","max_message_bytes":1024}
 ```
 
 成功查詢狀態後及每次狀態改變時，透過 Event Notify 發送完整快照：
 
 ```json
-{"v":1,"type":"status","pet":{"id":"42","name":"Tamama","life_stage":"baby","satiety":80,"mood":70,"cleanliness":95,"age_seconds":"3600","health":"healthy","is_dead":false,"sleep":"awake"}}
+{"v":1,"type":"status","device_id":"esp32-pet-AABBCCDDEEFF","pet":{"id":"42","name":"Tamama","life_stage":"baby","satiety":80,"mood":70,"cleanliness":95,"age_seconds":"3600","health":"healthy","is_dead":false,"sleep":"awake"}}
 ```
 
 `max_message_bytes` 是重組後 JSON 上限，不是單封包大小。`firmware_version` 範例值不是目前韌體版本。
 
 ## 狀態欄位
+
+### 裝置識別與未來帳號綁定
+
+`device_info.device_id` 與 `status.device_id` 是同一個公開裝置識別字串，格式為 `esp32-pet-` 加上 12 位大寫十六進位字元。以上 ID 僅為示例。韌體讀取 ESP32 出廠 eFuse base MAC 產生此值，不需要 Wi-Fi 連線，也不寫入 NVS。重新開機、重新燒錄、清除寵物存檔與領養新蛋都不改變 ID；更換 ESP32 晶片則會改變。讀取失敗時不啟動 BLE，避免回報共用的假 ID。
+
+這是 v1 新增欄位；舊 App 可以忽略，新 App 遇到沒有此欄位的舊韌體仍可查看寵物，但顯示「裝置 ID 尚未提供」。App 斷線及切換裝置時清除 ID，不以藍牙 remoteId 或廣播名稱代替。
+
+未來 Web 後端可用 `device_id` 作為裝置唯一鍵，另存登入帳號的 `userId` 與裝置之間的擁有關係。此 ID 不是登入密碼或綁定憑證，不能只憑輸入 ID 就認領裝置。正式綁定仍需實體確認、短效一次性配對碼或裝置驗證憑證；這些流程及帳號後端尚未實作。`pet.id` 仍只代表裝置內的寵物，存檔重置後可能重用；上線寵物歷史前仍需加入存檔世代識別。
+
+### 寵物資料
 
 | 欄位 | 型別／值 | 規則 |
 |---|---|---|

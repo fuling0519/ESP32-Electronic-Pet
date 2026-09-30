@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'data/ble/ble_snapshot_adapter.dart';
+import 'domain/models/web_pet.dart';
 
 void main() => runApp(const Esp32PetApp());
 
@@ -20,57 +22,6 @@ class Esp32PetApp extends StatelessWidget {
         ),
         home: const PetHomePage(),
       );
-}
-
-class _PetSnapshot {
-  const _PetSnapshot({
-    required this.id,
-    required this.name,
-    required this.stage,
-    required this.satiety,
-    required this.mood,
-    required this.cleanliness,
-    required this.ageSeconds,
-    required this.health,
-    required this.isDead,
-    required this.sleep,
-  });
-
-  final String id, name, stage, ageSeconds, health, sleep;
-  final int satiety, mood, cleanliness;
-  final bool isDead;
-
-  static _PetSnapshot? parse(Object? value) {
-    if (value is! Map<String, dynamic>) return null;
-    final id = value['id'];
-    final name = value['name'];
-    final stage = value['life_stage'];
-    final age = value['age_seconds'];
-    final health = value['health'];
-    final sleep = value['sleep'];
-    final dead = value['is_dead'];
-    final satiety = value['satiety'];
-    final mood = value['mood'];
-    final cleanliness = value['cleanliness'];
-    if (id is! String || !RegExp(r'^\d+$').hasMatch(id) ||
-        name is! String || name.isEmpty ||
-        !{'egg', 'baby', 'adult'}.contains(stage) ||
-        age is! String || !RegExp(r'^\d+$').hasMatch(age) ||
-        !{'healthy', 'sick', 'dead'}.contains(health) ||
-        dead is! bool || dead != (health == 'dead') ||
-        !{'awake', 'normal'}.contains(sleep) ||
-        satiety is! int || satiety < 0 || satiety > 100 ||
-        mood is! int || mood < 0 || mood > 100 ||
-        cleanliness is! int || cleanliness < 0 || cleanliness > 100) {
-      return null;
-    }
-    return _PetSnapshot(
-      id: id, name: name, stage: stage as String,
-      satiety: satiety, mood: mood, cleanliness: cleanliness,
-      ageSeconds: age, health: health as String, isDead: dead,
-      sleep: sleep as String,
-    );
-  }
 }
 
 class PetHomePage extends StatefulWidget {
@@ -93,7 +44,8 @@ class _PetHomePageState extends State<PetHomePage> {
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   bool _scanning = false, _connecting = false, _waitingForData = false;
   String _status = '尚未連線';
-  _PetSnapshot? _pet;
+  String? _deviceId;
+  WebPetSnapshot? _pet;
   DateTime? _lastReceived;
   int _nextRequestId = 0, _nextMessageId = 0;
   final Map<String, ScanResult> _found = {};
@@ -152,7 +104,7 @@ class _PetHomePageState extends State<PetHomePage> {
 
   Future<void> _connect(BluetoothDevice device) async {
     if (_connecting || _device != null) return;
-    setState(() { _connecting = true; _status = '連線中'; });
+    setState(() { _connecting = true; _status = '連線中'; _deviceId = null; });
     try {
       await FlutterBluePlus.stopScan();
       await device.connect(license: License.nonprofit, timeout: const Duration(seconds: 15));
@@ -205,6 +157,7 @@ class _PetHomePageState extends State<PetHomePage> {
     _connectionSubscription = null;
     _command = null;
     _device = null;
+    _deviceId = null;
     _incoming.clear();
     _finishPending(StateError('BLE 連線中斷'));
     if (disconnect) {
@@ -284,15 +237,23 @@ class _PetHomePageState extends State<PetHomePage> {
         }
         break;
       case 'status':
-        final snapshot = _PetSnapshot.parse(data['pet']);
+        final deviceId = WebDeviceId.tryParse(data['device_id']);
+        final snapshot = data['device_id'] != null && deviceId == null
+            ? null
+            : const BleSnapshotAdapter().decode(
+                deviceId: deviceId,
+                payload: data['pet'],
+                receivedAt: DateTime.now(),
+              );
         if (snapshot == null) {
           if (mounted) _message('ESP32 狀態欄位不完整或值無效');
           return;
         }
         if (mounted) {
           setState(() {
+            _deviceId = snapshot.key.deviceId?.value;
             _pet = snapshot;
-            _lastReceived = DateTime.now();
+            _lastReceived = snapshot.receivedAt;
             _waitingForData = false;
             _status = '已連線';
           });
@@ -301,6 +262,12 @@ class _PetHomePageState extends State<PetHomePage> {
       case 'device_info':
         if (data['protocol_version'] != 1 || data['name'] != 'ESP32-PET') {
           if (mounted) _message('裝置通訊版本不相容');
+          return;
+        }
+        final deviceId = WebDeviceId.tryParse(data['device_id']);
+        if (mounted) setState(() => _deviceId = deviceId?.value);
+        if (data['device_id'] != null && deviceId == null) {
+          _message('裝置 ID 格式無效');
         }
         break;
     }
@@ -318,9 +285,8 @@ class _PetHomePageState extends State<PetHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
-  String _age(String seconds) {
-    final value = int.tryParse(seconds);
-    if (value == null) return '未知';
+  String _age(Duration age) {
+    final value = age.inSeconds;
     final days = value ~/ 86400;
     final hours = (value % 86400) ~/ 3600;
     final minutes = (value % 3600) ~/ 60;
@@ -331,9 +297,13 @@ class _PetHomePageState extends State<PetHomePage> {
     if (_pet == null) return _waitingForData ? '等待裝置狀態' : '尚無狀態資料';
     final pet = _pet!;
     if (pet.isDead) return '已死亡';
-    if (pet.sleep == 'normal') return '睡眠中';
-    if (pet.health == 'sick') return '生病';
-    switch (pet.stage) { case 'egg': return '蛋'; case 'baby': return '幼鳥'; case 'adult': return '成鳥'; }
+    if (pet.sleep == PetSleepState.sleeping) return '睡眠中';
+    if (pet.health == PetHealthState.sick) return '生病';
+    switch (pet.lifeStage) {
+      case PetLifeStage.egg: return '蛋';
+      case PetLifeStage.baby: return '幼鳥';
+      case PetLifeStage.adult: return '成鳥';
+    }
     return '未知狀態';
   }
 
@@ -362,6 +332,12 @@ class _PetHomePageState extends State<PetHomePage> {
                 child: Text(_scanning ? '搜尋中…' : _connecting ? '連線中…' : _device == null ? '搜尋裝置' : '中斷'),
               ),
             ]),
+            if (_device != null) ...[
+              const SizedBox(height: 8),
+              SelectableText(_deviceId == null
+                  ? '裝置 ID 尚未提供'
+                  : '裝置 ID：$_deviceId'),
+            ],
             if (_found.isNotEmpty && _device == null) ...[
               const Divider(),
               for (final result in _found.values)
@@ -383,10 +359,10 @@ class _PetHomePageState extends State<PetHomePage> {
               Container(width: double.infinity, padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: const Color(0xff9bbc0f), border: Border.all(color: const Color(0xff3b4b16), width: 3), borderRadius: BorderRadius.circular(14)),
                 child: Column(children: [
-                  Text(pet?.isDead == true ? '†' : pet?.stage == 'egg' ? '🥚' : pet?.stage == 'baby' ? '🐣' : pet?.stage == 'adult' ? '🐦' : '—', style: const TextStyle(fontSize: 48)),
+                  Text(pet?.isDead == true ? '†' : pet?.lifeStage == PetLifeStage.egg ? '🥚' : pet?.lifeStage == PetLifeStage.baby ? '🐣' : pet?.lifeStage == PetLifeStage.adult ? '🐦' : '—', style: const TextStyle(fontSize: 48)),
                   Text(pet?.name ?? '等待 ESP32 狀態'),
                   Text(_stateLabel),
-                  if (pet != null) Text('寵物 ID：${pet.id}'),
+                  if (pet != null) Text('寵物 ID：${pet.key.petId}'),
                 ]),
               ),
               if (_lastReceived != null) ...[
@@ -400,13 +376,13 @@ class _PetHomePageState extends State<PetHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('寵物狀態', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              _meter('飽食度', pet?.satiety, Colors.amber),
-              _meter('心情值', pet?.mood, Colors.pink),
-              _meter('清潔度', pet?.cleanliness, Colors.cyan),
+              _meter('飽食度', pet?.satietyPercent, Colors.amber),
+              _meter('心情值', pet?.moodPercent, Colors.pink),
+              _meter('清潔度', pet?.cleanlinessPercent, Colors.cyan),
               const Divider(),
-              Text('年齡：${pet == null ? '--' : _age(pet.ageSeconds)}'),
-              Text('健康：${pet == null ? '--' : pet.health == 'healthy' ? '健康' : pet.health == 'sick' ? '生病' : '死亡'}'),
-              Text('睡眠：${pet == null ? '--' : pet.sleep == 'normal' ? '睡眠中' : '清醒'}'),
+              Text('年齡：${pet == null ? '--' : _age(pet.age)}'),
+              Text('健康：${pet == null ? '--' : pet.health == PetHealthState.healthy ? '健康' : pet.health == PetHealthState.sick ? '生病' : '死亡'}'),
+              Text('睡眠：${pet == null ? '--' : pet.sleep == PetSleepState.sleeping ? '睡眠中' : pet.sleep == PetSleepState.deepSleep ? '深度睡眠' : '清醒'}'),
             ],
           ))),
           const SizedBox(height: 16),
