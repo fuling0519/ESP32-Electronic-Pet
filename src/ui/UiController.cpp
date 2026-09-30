@@ -792,7 +792,7 @@ void UiController::renderHatchTransition() {
     } else if (growthTransitionElapsedMs_ >= 1000) {
         PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Baby, 0,
                           growthTransitionFrame_ % 2);
-        char message[20];
+        char message[Pet::kPetNameMaxLength + sizeof(" 孵化了！")];
         snprintf(message, sizeof(message), "%s 孵化了！", pet_.name());
         drawCenteredUiText(display_, 62, message);
     } else {
