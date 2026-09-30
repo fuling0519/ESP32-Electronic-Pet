@@ -20,6 +20,8 @@ constexpr uint32_t kDeathAnimationFrameMs = 100;
 constexpr uint32_t kBirdIdleCycleMs = 1100;
 constexpr uint32_t kBirdIdleSecondFrameAtMs = 700;
 constexpr uint32_t kSleepBirdFrameMs = 900;
+constexpr uint32_t kFeedingDurationMs = 3000;
+constexpr uint32_t kFeedingFrameMs = 250;
 constexpr uint32_t kSleepZFrameMs = 650;
 constexpr uint8_t kMenuItemCount = 7;
 constexpr bool kDebugUiEvents = true;
@@ -112,6 +114,7 @@ void UiController::init(uint32_t now) {
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
     homeAnimationFrame_ = 0;
+    feeding_ = false;
     sleepStartedAtMs_ = 0;
     sleepAnimationFrame_ = 0;
     sleepZPhase_ = 0;
@@ -218,6 +221,23 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
 
     switch (screen_) {
         case ScreenId::Home:
+            if (feeding_) {
+                const uint32_t elapsed = now - feedingStartedAt_;
+                if (elapsed >= kFeedingDurationMs) {
+                    feeding_ = false;
+                    dirty_ = true;
+                } else {
+                    const uint8_t frame = (elapsed / kFeedingFrameMs) % 2;
+                    const uint8_t bowlStage = elapsed / 1000;
+                    if (frame != feedingFrame_ || bowlStage != feedingBowlStage_) {
+                        feedingFrame_ = frame;
+                        feedingBowlStage_ = bowlStage;
+                        dirty_ = true;
+                    }
+                    // Finish the short animation before accepting navigation.
+                    break;
+                }
+            }
             {
                 const uint8_t frame = (now % kBirdIdleCycleMs) >=
                     kBirdIdleSecondFrameAtMs ? 1 : 0;
@@ -527,6 +547,15 @@ void UiController::setMemorialReady(bool ready) {
     dirty_ = true;
 }
 
+void UiController::onFeedSucceeded(uint32_t now) {
+    setScreen(ScreenId::Home);
+    feeding_ = true;
+    feedingStartedAt_ = now;
+    feedingFrame_ = 0;
+    feedingBowlStage_ = 0;
+    dirty_ = true;
+}
+
 void UiController::onSleepStarted(uint32_t now) {
     sleepStartedAtMs_ = now;
     sleepAnimationFrame_ = 0;
@@ -583,6 +612,7 @@ void UiController::beginDeathAnimation(uint32_t now) {
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
     screen_ = screen;
+    feeding_ = false;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
     if (screen_ == ScreenId::DetailedStatus) statusPage_ = 0;
     dirty_ = true;
@@ -602,8 +632,13 @@ void UiController::renderHome() {
         PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
     }
 
-    PetIcons::drawPet(display_, 32, 6, pet_.lifeStage(),
-                      eggCrackStage_, homeAnimationFrame_);
+    if (feeding_) {
+        PetIcons::drawEatingPet(display_, 32, 6, pet_.lifeStage(),
+                               feedingFrame_, feedingBowlStage_);
+    } else {
+        PetIcons::drawPet(display_, 32, 6, pet_.lifeStage(),
+                          eggCrackStage_, homeAnimationFrame_);
+    }
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawCleaningAlert(display_, 113, 23, pet_.cleanlinessState());

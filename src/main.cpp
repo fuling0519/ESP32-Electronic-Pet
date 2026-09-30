@@ -290,7 +290,10 @@ void Application::loop() {
     bool actionSavedImmediately = false;
     switch (action) {
         case Ui::UiAction::Feed:
-            if (pet.feed()) sound.playSuccess(); else sound.playFailure();
+            if (pet.feed()) {
+                sound.playSuccess();
+                ui.onFeedSucceeded(now);
+            } else sound.playFailure();
             break;
         case Ui::UiAction::Clean:
             if (pet.clean()) sound.playSuccess(); else sound.playFailure();

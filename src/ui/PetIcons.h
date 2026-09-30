@@ -31,6 +31,8 @@ void drawPet(Hardware::Display& display, int16_t x, int16_t y,
 // Draws a frame generated from the current bird with its eyes closed.
 void drawSleepingPet(Hardware::Display& display, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t frame);
+void drawEatingPet(Hardware::Display& display, int16_t x, int16_t y,
+                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage);
 // Dissolve stages 0..3 progressively remove the current bird.
 void drawPetDissolve(Hardware::Display& display, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t dissolveStage);

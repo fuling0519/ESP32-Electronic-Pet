@@ -77,6 +77,7 @@ public:
     uint8_t selectedMemorialIndex() const;
     void setMemorialReady(bool ready);
     void onSleepStarted(uint32_t now);
+    void onFeedSucceeded(uint32_t now);
     void onWakeSucceeded();
     void onAdoptionSucceeded(uint32_t now);
     void onMemorialDeleteResult(bool success);
@@ -125,6 +126,10 @@ private:
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
     uint8_t homeAnimationFrame_ = 0;
+    bool feeding_ = false;
+    uint32_t feedingStartedAt_ = 0;
+    uint8_t feedingFrame_ = 0;
+    uint8_t feedingBowlStage_ = 0;
     uint32_t sleepStartedAtMs_ = 0;
     uint8_t sleepAnimationFrame_ = 0;
     uint8_t sleepZPhase_ = 0;

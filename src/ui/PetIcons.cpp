@@ -153,6 +153,18 @@ void drawSleepingPet(Hardware::Display& d, int16_t x, int16_t y,
     d.drawGlyph(x, y, bitmap, kBirdFrameWidth, kBirdFrameHeight);
 }
 
+void drawEatingPet(Hardware::Display& d, int16_t x, int16_t y,
+                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage) {
+    const bool baby = lifeStage == Pet::LifeStage::Baby;
+    d.drawGlyph(x, y, baby ? kBabyBirdEatingFrames[frame % 2]
+                          : kBirdEatingFrames[frame % 2],
+                kBirdFrameWidth, kBirdFrameHeight);
+    // Visible bowl x=26..42; bird starts at x=45 (adult) or 50 (baby).
+    // Bowl bottom (local y=12) aligns with feet at y=49 / 47 on Home.
+    d.drawGlyph(x - 8, y + (baby ? 29 : 31), kBowlFrames[bowlStage % 3],
+                kBowlWidth, kBowlHeight);
+}
+
 void drawPetDissolve(Hardware::Display& d, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t dissolveStage) {
     if (dissolveStage == 0) {

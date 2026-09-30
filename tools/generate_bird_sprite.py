@@ -15,6 +15,8 @@ SHEETS = (
     ("kBabyBirdFrames", ROOT / "assets" / "BIRD" / "BIRD-baby2.png"),
     ("kEggFrames", ROOT / "assets" / "EGG" / "Egg-normal.png"),
     ("kCrackedEggFrames", ROOT / "assets" / "EGG" / "Egg-born.png"),
+    ("kBirdEatingFrames", ROOT / "assets" / "BIRD" / "BIRD-adult-eat.png"),
+    ("kBabyBirdEatingFrames", ROOT / "assets" / "BIRD" / "BIRD-baby-eat.png"),
 )
 
 
@@ -39,21 +41,25 @@ def close_eyes(image: Image.Image, symbol: str, frame: int) -> None:
             image.putpixel((x, y + shift), (0, 0, 0, 0))
 
 
-def read_frames(source: Path, symbol: str) -> list[list[int]]:
+def read_frames(source: Path, symbol: str, width=WIDTH, height=HEIGHT,
+                count=FRAME_COUNT) -> list[list[int]]:
     image = Image.open(source).convert("RGBA")
-    if image.size != (WIDTH, HEIGHT * FRAME_COUNT):
-        raise ValueError(f"Expected 64x88 sprite sheet, got {image.size}: {source}")
+    if image.size != (width, height * count):
+        raise ValueError(f"Unexpected sprite sheet size {image.size}: {source}")
 
     frames = []
-    for frame in range(FRAME_COUNT):
-        frame_image = image.crop((0, frame * HEIGHT, WIDTH, (frame + 1) * HEIGHT))
+    for frame in range(count):
+        frame_image = image.crop((0, frame * height, width, (frame + 1) * height))
         if symbol in ("kBirdSleepingFrames", "kBabyBirdSleepingFrames"):
             close_eyes(frame_image, symbol, frame)
         data = []
-        for y in range(HEIGHT):
-            for byte_x in range(WIDTH // 8):
+        for y in range(height):
+            for byte_x in range((width + 7) // 8):
                 bits = 0
                 for bit in range(8):
+                    if byte_x * 8 + bit >= width:
+                        bits |= 0x80 >> bit
+                        continue
                     red, green, blue, alpha = frame_image.getpixel((byte_x * 8 + bit, y))
                     if alpha > 127:
                         if (red, green, blue) != (255, 255, 255):
@@ -91,7 +97,13 @@ def main() -> None:
                 lines.append(f"        {values},")
             lines.append("    },")
         lines.append("};")
-    lines += ["} }  // namespace Ui::PetIcons", ""]
+    lines += ["// assets/FEED/bowl.png: three 21x15 frames, full to empty.",
+              "constexpr uint8_t kBowlWidth = 21;",
+              "constexpr uint8_t kBowlHeight = 15;",
+              "const uint8_t kBowlFrames[3][45] PROGMEM = {"]
+    for data in read_frames(ROOT / "assets/FEED/bowl.png", "kBowlFrames", 21, 15, 3):
+        lines.append("    {" + ", ".join(f"0x{value:02X}" for value in data) + "},")
+    lines += ["};", "} }  // namespace Ui::PetIcons", ""]
     OUTPUT.write_text("\n".join(lines), encoding="utf-8")
     print(OUTPUT)
 
