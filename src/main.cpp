@@ -11,6 +11,7 @@
 #include "storage/Save.h"
 #include "storage/Memorials.h"
 #include "ui/UiController.h"
+#include "ble/BleLink.h"
 
 namespace {
 constexpr bool kDebugUi = true;
@@ -37,6 +38,7 @@ private:
     Pet::PetData pet;
     Pet::PetClock petClock;
     Storage::Memorials memorials;
+    Ble::Link ble;
     Ui::UiController ui{display, sound, pet, memorials};
     uint64_t lastEggCheckpointMinute = 0;
     bool memorialReady = false;
@@ -226,6 +228,7 @@ void Application::setup() {
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
         pet.ageSeconds() / 60 : 0;
     appReady = true;
+    if (!ble.init()) Serial.println("BLE init failed; pet remains available offline.");
     printUiState(Hardware::InputEvent::None);
     ui.render();
 }
@@ -338,6 +341,7 @@ void Application::loop() {
     if (changed) printUiState(event);
     sound.update();
     ui.render();
+    ble.update(pet, now);
 }
 
 Application application;
