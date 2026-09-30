@@ -1,51 +1,39 @@
 # 實作內容說明
 
-更新日期：2026-09-26
+更新日期：2026-09-30
 
-## 目標
+## 目前成果
 
-依下載資料 `index.html` 的掌上型寵物與硬體儀表板視覺，建立 Flutter 跨平台原型；將 ESP32 NodeMCU-32S 硬體企劃、狀態字型／字圖規格與使用者新增的平台需求彙整到專案文件。
+Flutter 原型已更新為 Stage 2 唯讀 BLE 狀態 App，不再使用早期未實作的 A／B／C 與 reset 示範流程。
 
-## 讀取並整理的來源
-
-- `Downloads/index.html`：包含黃色掌上型外殼、LCD 寵物畫面、A／B／C 操作鍵、飽足／心情／清潔／年齡及開發者遙測的 HTML 片段。檔案引用 `handleButton()` 和 `resetPet()`，但沒有附上實作這些函式的 JavaScript，因此視為視覺稿，不當成已定義的行為規格。
-- `Downloads/project-plan.md`：描述 NodeMCU-32S 離線電子寵物、搖桿操作、三項需求、疾病／治療／死亡／墓碑、一般睡眠與 Deep Sleep、NVS 保存及後續感測器規劃。
-- `Downloads/StatusFont12.h`：U8g2 使用的 WenQuanYi Bitmap Song 12×12 子集，檔內提供字型來源及授權註記。
-- `Downloads/StatusGlyphs.h`：OLED 狀態頁中文字圖名稱與 14–15×16 尺寸索引；它包含其他 `ui/glyphs/*.h` 檔案，單獨這個索引檔不足以取得全部點陣圖。
-
-## 已建立或更新的檔案
-
-- `lib/main.dart`：建立 Flutter 寵物控制介面原型，包含 ESP32 BLE 搜尋／連線、A／B／C 遠端按鍵、寵物螢幕風格、飽食度／心情／清潔度進度及年齡。數值等 ESP32 回傳後才顯示；未連線或尚未收到資料時顯示 `--`。
-- `PROTOCOL.md`：定義跨平台共用的 BLE GATT Service、Command、Event UUID，以及 JSON 命令、ack 與狀態通知範例。欄位使用 `satiety`（飽食度）、`mood`（數值）與 `mood_text`（顯示文字），避免把飽足度誤當飢餓百分比。
-- `docs/project-plan.md`：在硬體原企劃副本上新增 Flutter 原生 App／Web 平台、HTML 介面映射、中文字型與中文字圖處理原則、資料來源要求、BLE 驗收方向，並列出睡覺、心情不好、吃飯、玩樂、排便、喝水作為下一步共同討論的候選資訊／互動。原始下載檔沒有被覆寫。
-- `README.md`：補充 Windows、手機與 Flutter Web 的開發／建置指令，說明瀏覽器 BLE 的適用限制。
-- `setup_windows.bat`、`run_windows.bat`、`build_windows.bat`、`run_web.bat`、`build_web.bat`：在 Windows 安裝 Flutter SDK 後建立平台骨架、啟動或建置 Windows／Web 版本。
+- `lib/main.dart`：搜尋並連線 `ESP32-PET`，查詢裝置資訊與寵物狀態，配對命令 ID，重組 BLE 分片，驗證完整快照，並在斷線後保留及標示最後資料。
+- `PROTOCOL.md`：定義 BLE v1 UUID、4-byte 分片標頭、每片 16-byte JSON payload、1024-byte 完整訊息上限、命令結果、錯誤碼與狀態欄位。
+- `src/ble/BleLink.*`：ESP32 BLE Peripheral；BLE callback 只收取分片，主迴圈處理唯讀命令與狀態通知，不經 BLE 修改養成狀態或 NVS。
+- Web 平台骨架、FlutterBluePlus 2.3.13 與 `pubspec.lock` 已納入版控。
 
 ## 整合原則
 
-- ESP32 是寵物狀態與離線養成的權威來源；App／網站是控制與檢視介面，不替 ESP32 推算或保存假資料。
-- 原硬體的搖桿操作保留。A／B／C 是 HTML 設計中的虛擬遙控鍵，不能據此新增實體按鍵 GPIO。
-- `StatusFont12.h` 是 C++／U8g2 字型資料，`StatusGlyphs.h` 是韌體中文字圖索引；兩者不直接作為 Flutter 字型載入。Flutter 先用一般 Unicode 中文字型呈現相同欄位名稱與狀態，韌體 OLED 繼續使用既有點陣資產。
-- HTML 的 CPU／SRAM／Flash/NVS 數值是樣板內容。App 只有在韌體真的回報即時資料時才呈現遙測，不能把樣板數字當成設備實況。
-- MVP 仍以原企劃的飽食度、心情、清潔度為需求值，不自動新增體力或口渴值。喝水、排便先作待討論互動，不預設它們一定是新的數值欄位。
-- Flutter Web 的介面可在瀏覽器顯示；Web BLE 需要瀏覽器支援 Web Bluetooth 且從 HTTPS／localhost 安全來源開啟。iPhone Safari 網站不支援 BLE 時，應使用原生 iOS App。
+- ESP32 是寵物狀態、離線養成與保存的唯一權威來源；App 不自行扣數值、判定成長、死亡或維護另一份存檔。
+- v1 只接受 `get_device_info` 與 `get_status`。遠端照顧、睡眠、A／B／C 與 reset 均停用。
+- App 未收到有效快照前顯示尚未取得；未知版本、缺少欄位、錯誤型別或未知列舉不得以預設值補成健康狀態。
+- Flutter Web 需支援 Web Bluetooth 並從 HTTPS／localhost 啟動；iOS Safari 不支援時使用原生 iOS App。
+- 清潔不建立排便事件。韌體以 `cleanliness` 四階段顯示 0～3 個髒污，Clean `+30` 後依新階段減少或移除；App 若呈現髒污，也由同一欄位衍生。
 
-## 尚未完成／驗收限制
+## 已完成檢查
 
-- 本環境未安裝 Flutter／Dart SDK；沒有執行 `flutter pub get`、靜態分析、模擬器、手機、Windows 或瀏覽器建置。
-- 平台骨架資料夾需在安裝 Flutter 的 Windows 開發機執行 `setup_windows.bat` 後產生；目前提供的是 Flutter 原始碼與建置腳本，不是已編譯的 `.exe` 或已部署網站。
-- ESP32 韌體資料夾不在本專案內，BLE Peripheral 尚未實作，故掃描、連線及實際傳輸都未經硬體驗證。
-- 目前 Flutter 畫面只顯示三項需求與年齡。睡眠／睡覺、心情不好、吃飯、玩樂、排便、喝水、生病／治療／死亡、墓碑／新蛋等完整畫面與互動流程尚待共同定義及實作。
-- HTML 樣板使用 `hunger` 等名稱且心情預設值和韌體企劃不一致；協定草案已對齊為 `satiety` 與 `mood`，但需在韌體 BLE 實作前共同確認最終 schema 和預設狀態。
-- `flutter_blue_plus` 目前需依其授權條款評估發布用途；商業發佈前須確認授權需求。
+- PlatformIO `esp32dev` 正式環境編譯通過。
+- `flutter analyze` 通過，沒有問題。
+- Chrome Web Release Build 通過。
 
-## Windows 上的下一步
+加入完整 ESP32 BLE stack 後，正式韌體 Flash 為 1,216,921／1,310,720 bytes（92.8%），App 分割區只剩約 93.8 KB。後續功能應先評估 NimBLE；若調整分割區，須一併評估 OTA 雙槽取捨。
 
-1. 安裝 Flutter SDK 及 Visual Studio 的 **Desktop development with C++** 工作負載。
-2. 解壓專案後執行 `setup_windows.bat`，產生 Windows、Android、iOS、Web 平台骨架並取得套件。
-3. 執行 `run_windows.bat` 或 `run_web.bat` 檢視原型；Windows BLE 需有可用的 BLE 藍牙介面卡。
-4. iOS App 建置仍需 macOS／Xcode；Web BLE 需支援 Web Bluetooth 的瀏覽器與安全來源。
+## 尚未完成
 
-## 下一步共同規劃
+- BLE 搜尋、連線、通知分片、搖桿驅動狀態更新、斷線重連與離線養成互不干擾仍待真實 ESP32 驗收。
+- Windows、Android 與 iOS 原生建置及實機驗收尚未完成；iOS 仍需 macOS／Xcode。
+- 墓碑群、遠端照顧、睡眠、reset 等功能未納入 BLE v1。
+- 不可逆操作未定義確認流程，因此不得提前開放。
 
-先討論使用者提出的六項候選情境——睡覺、心情不好、吃飯、玩樂、排便、喝水——各自要在 Flutter 顯示什麼、是否能遠端操作、對現有需求值有何影響，以及哪些資訊由 ESP32 回報。確認後再更新 UI、JSON schema 和韌體命令；在此之前不增加新的寵物需求值。
+## 下一步
+
+依 [整合進度](../../INTEGRATION_PROGRESS.md) 完成 Stage 2 硬體驗收並記錄結果。在進入 Stage 3 前先處理 Flash 容量餘裕，再規劃遠端照顧與睡眠命令。

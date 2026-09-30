@@ -33,7 +33,7 @@ Work is paused at Stage 2 (read-only BLE status). Do not start remote care comma
 
 ## Checks completed
 
-- PlatformIO `pio run -e esp32dev`: passed with the pinned ESP32 platform/framework. RAM: 16.4%; Flash: 92.7% of the configured application partition.
+- PlatformIO `pio run -e esp32dev`: passed with the pinned ESP32 platform/framework. RAM: 53,748 bytes (16.4%); Flash: 1,216,921 of 1,310,720 bytes (92.8%), leaving about 93.8 KB in the configured application partition. Most of the increase from the pre-BLE 27.0% build comes from the full ESP32 BLE stack. Future feature work must track this limit; likely remedies are migrating to NimBLE or deliberately changing the partition layout and its OTA trade-off.
 - Flutter `flutter analyze`: passed with no issues.
 - Flutter `flutter build web --release`: passed.
 - Build outputs and PlatformIO tool packages were placed in the temporary `D:\ESP32Pet_stage2_build` directory to avoid low free space on C:. The temporary directory is not part of the project.
