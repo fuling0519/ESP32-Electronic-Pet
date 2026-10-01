@@ -359,12 +359,12 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 sound_.playCancel();
                 setScreen(ScreenId::Home);
             } else if ((event == Hardware::InputEvent::Right ||
-                        event == Hardware::InputEvent::Down) && statusPage_ == 0) {
-                statusPage_ = 1;
+                        event == Hardware::InputEvent::Down) && statusPage_ < 2) {
+                ++statusPage_;
                 dirty_ = true;
             } else if ((event == Hardware::InputEvent::Left ||
-                        event == Hardware::InputEvent::Up) && statusPage_ == 1) {
-                statusPage_ = 0;
+                        event == Hardware::InputEvent::Up) && statusPage_ > 0) {
+                --statusPage_;
                 dirty_ = true;
             }
             break;
@@ -702,12 +702,28 @@ void UiController::renderDetailedStatus() {
     display_.drawFrame(0, 0, 128, 64);
     display_.drawText(64 - static_cast<int16_t>(strlen(pet_.name()) * 3),
                       14, pet_.name());
-    display_.drawText(99, 14, statusPage_ == 0 ? "1/2" : "2/2");
+    char pageText[4];
+    snprintf(pageText, sizeof(pageText), "%u/3", static_cast<unsigned>(statusPage_ + 1));
+    display_.drawText(99, 14, pageText);
     display_.drawLine(6, 18, 121, 18);
     if (statusPage_ == 0) {
         renderDetailedStatusPage1();
-    } else {
+    } else if (statusPage_ == 1) {
         renderDetailedStatusPage2();
+    } else {
+        // Chinese rows span y=24..35 and y=44..55; values end at x=118.
+        const uint64_t age = pet_.ageSeconds();
+        char days[32];
+        if (age / 86400 > 999999) strcpy(days, ">999999 天");
+        else snprintf(days, sizeof(days), "%llu 天",
+                      static_cast<unsigned long long>(age / 86400));
+        char time[32];
+        snprintf(time, sizeof(time), "%u 時 %u 分",
+                 static_cast<unsigned>((age / 3600) % 24),
+                 static_cast<unsigned>((age / 60) % 60));
+        display_.drawUiText(kStatusLabelX, 35, "年齡");
+        display_.drawUiText(kStatusValueRight - display_.uiTextWidth(days), 35, days);
+        display_.drawUiText(kStatusValueRight - display_.uiTextWidth(time), 55, time);
     }
 }
 

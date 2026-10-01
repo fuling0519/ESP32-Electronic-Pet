@@ -138,3 +138,5 @@ Common choices:
 - **GPL-3.0**: requires distributed derivative works to remain under GPL-3.0; suitable when preserving software freedom is a priority.
 
 The project owner should choose based on the intended contribution and distribution model before the first public release.
+
+狀態頁共有三頁，可用右／下前進、左／上返回。第 3 頁顯示年齡，第一行「年齡　200 天」，第二行「15 時 30 分」，數值靠右對齊。包含已結算的睡眠時間，斷電時間不計入；不足一分鐘顯示 0 分，超過 999999 天顯示「>999999 天」。
