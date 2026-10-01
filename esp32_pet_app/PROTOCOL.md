@@ -1,5 +1,7 @@
 # ESP32-PET BLE 通訊協定 v1
 
+更新：2026-10-01；對應韌體 1.1.0（NimBLE-Arduino 2.5.0）。協定 v1 以新增可忽略欄位維持向後相容。文件角色：共用介面規格；驗證與開發進度只看 [主台帳](../docs/project-plan.md#progress)。
+
 本文件是韌體與 Flutter App 共用規格。ESP32 是 GATT Peripheral／Server；App 是 Central／Client。v1 先提供裝置資訊與唯讀狀態，不提供照顧、睡眠控制或重置。
 
 ## GATT
@@ -49,13 +51,13 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 若訊息損壞到無法取得命令 ID，回覆 `id:null`，App 不得配對到待處理命令。`ok:true` 只搭配 `code:"ok"`。成功查詢裝置資訊後另送：
 
 ```json
-{"v":1,"type":"device_info","id":1,"name":"ESP32-PET","protocol_version":1,"firmware_version":"<韌體實際版本>","max_message_bytes":1024}
+{"v":1,"type":"device_info","id":1,"name":"ESP32-PET","device_id":"esp32-AABBCCDDEEFF","protocol_version":1,"firmware_version":"<韌體實際版本>","max_message_bytes":1024}
 ```
 
 成功查詢狀態後及每次狀態改變時，透過 Event Notify 發送完整快照：
 
 ```json
-{"v":1,"type":"status","pet":{"id":"42","name":"Tamama","life_stage":"baby","satiety":80,"mood":70,"cleanliness":95,"age_seconds":"3600","health":"healthy","is_dead":false,"sleep":"awake"}}
+{"v":1,"type":"status","device_id":"esp32-AABBCCDDEEFF","pet":{"id":"42","name":"Tamama","life_stage":"baby","satiety":80,"mood":70,"cleanliness":95,"age_seconds":"3600","health":"healthy","is_dead":false,"sleep":"awake"}}
 ```
 
 `max_message_bytes` 是重組後 JSON 上限，不是單封包大小。`firmware_version` 範例值不是目前韌體版本。
@@ -80,3 +82,23 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 `malformed_message`（封包／UTF-8／JSON 無效）、`missing_field`（欄位缺少或型別錯誤）、`unsupported_version`、`unknown_command`、`invalid_value`、`busy`、`not_supported`、`internal_error`。不支援版本的回覆可附 `supported_versions`。
 
 v1 只接受 `get_device_info`、`get_status`。A／B／C、照顧、睡眠與 reset 指令均未啟用，收到時回錯誤；新增命令前需同步更新本規格與兩端實作。
+
+## 固定裝置 ID 與韌體組交接
+
+韌體 1.1.0 在 `device_info` 及 `status` 的 JSON **頂層**增加 `device_id`，範例 `esp32-AABBCCDDEEFF`，格式為 `^esp32-[0-9A-F]{12}$`。以 `esp_efuse_mac_get_default` 回傳的六個工廠 MAC bytes 原順序轉大寫 hex；不是掃描 API 的 remoteId，也不跟隨 BLE 私有位址。固定硬體不因重啟、重養、NVS 清除或韌體重刷改變；換 ESP32 模組則改變。不要人工覆寫工廠識別。
+
+此 ID 為公開定位欄位，不能證明裝置真品或帳號所有權。韌體讀取 ID 失敗時不啟用 BLE，不產生虛構 ID；離線養成仍可運行。
+
+舊前端忽略新增欄位，仍可使用 v1；新前端收到舊韌體缺少 ID 時允許本機唯讀，明確提示不能用於雲端認領。若欄位存在但格式錯誤或同一連線的 info／status ID 不一致，拒絕套用該資料。雲端同步及綁定必須先取得有效 ID，不能改用 pet.id 或 remoteId。
+
+廣播名稱、UUID、Write with response、Notify、1024-byte JSON 上限與分片標頭不變。NimBLE 限制一個 Central，Notify 的 CCCD 由函式庫建立，App 先訂閱再送命令。查詢 `get_status` 即使狀態未變也會再次傳完整快照。
+
+## Deep Sleep 交接約定（未來介面需求）
+
+一般睡眠 `normal` 可持續 BLE；Deep Sleep 會終止 BLE 連線，醒來重新初始化並廣播。前端顯示斷線、舊資料與最後收到時間，由使用者重新連線並查最新快照；不要求背景自動重連，也不能將所有斷線推斷為睡眠。
+
+v1 不新增 `sleep:"deep"`，也不新增遠端睡眠命令。韌體不得在入睡前發布現有前端不接受的列舉；若將來需要可辨識睡眠預告，先另行擴充共用規格。恢復連線後回報實際可用狀態。
+
+`saveGeneration`／個體 UUID、事件佇列、配對驗證、revision 和遠端命令不屬於本版 v1 介面；是否已實作與後續交付追蹤統一看主台帳。
+
+規格中的拒絕規則是相容性要求，不等於已完成所有錯誤輸入測試。兩端分片重複／逾時／重新起始與版本錯誤處理仍需依 BLE-S1／BLE-S2 補測，不把文件敘述當作測試結果。

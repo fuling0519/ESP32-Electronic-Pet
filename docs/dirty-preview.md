@@ -1,5 +1,7 @@
 # 汙點快速預覽
 
+文件角色：預覽操作手冊；正式畫面驗收只記主台帳 A5-VIS。核對日期：2026-10-01；[最新進度](project-plan.md#progress)。
+
 接上 ESP32，關閉占用序列埠的監控視窗，雙擊專案根目錄的 `upload-dirty-preview.cmd` 即可編譯並上傳。
 若同時接了多塊開發板，可使用 `pio run -e esp32dev_dirty_preview -t upload --upload-port COM埠號` 指定目標。
 

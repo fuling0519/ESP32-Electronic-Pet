@@ -93,6 +93,7 @@ class _PetHomePageState extends State<PetHomePage> {
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   bool _scanning = false, _connecting = false, _waitingForData = false;
   String _status = '尚未連線';
+  String? _deviceId;
   _PetSnapshot? _pet;
   DateTime? _lastReceived;
   int _nextRequestId = 0, _nextMessageId = 0;
@@ -152,7 +153,10 @@ class _PetHomePageState extends State<PetHomePage> {
 
   Future<void> _connect(BluetoothDevice device) async {
     if (_connecting || _device != null) return;
-    setState(() { _connecting = true; _status = '連線中'; });
+    setState(() {
+      _connecting = true; _status = '連線中';
+      _deviceId = null; _pet = null; _lastReceived = null;
+    });
     try {
       await FlutterBluePlus.stopScan();
       await device.connect(license: License.nonprofit, timeout: const Duration(seconds: 15));
@@ -284,6 +288,13 @@ class _PetHomePageState extends State<PetHomePage> {
         }
         break;
       case 'status':
+        final statusDeviceId = data['device_id'];
+        if (statusDeviceId != null &&
+            (!_validDeviceId(statusDeviceId) ||
+             (_deviceId != null && statusDeviceId != _deviceId))) {
+          _message('裝置 ID 無效或與目前連線不一致');
+          return;
+        }
         final snapshot = _PetSnapshot.parse(data['pet']);
         if (snapshot == null) {
           if (mounted) _message('ESP32 狀態欄位不完整或值無效');
@@ -291,6 +302,7 @@ class _PetHomePageState extends State<PetHomePage> {
         }
         if (mounted) {
           setState(() {
+            if (statusDeviceId is String) _deviceId = statusDeviceId;
             _pet = snapshot;
             _lastReceived = DateTime.now();
             _waitingForData = false;
@@ -301,10 +313,24 @@ class _PetHomePageState extends State<PetHomePage> {
       case 'device_info':
         if (data['protocol_version'] != 1 || data['name'] != 'ESP32-PET') {
           if (mounted) _message('裝置通訊版本不相容');
+          return;
+        }
+        final infoDeviceId = data['device_id'];
+        if (infoDeviceId != null &&
+            (!_validDeviceId(infoDeviceId) ||
+             (_deviceId != null && infoDeviceId != _deviceId))) {
+          _message('裝置 ID 無效或與目前連線不一致');
+          return;
+        }
+        if (mounted && infoDeviceId is String) {
+          setState(() => _deviceId = infoDeviceId);
         }
         break;
     }
   }
+
+  bool _validDeviceId(Object? value) =>
+      value is String && RegExp(r'^esp32-[0-9A-F]{12}$').hasMatch(value);
 
   void _finishPending(Object error) {
     for (final item in _pending.values) {
@@ -362,6 +388,11 @@ class _PetHomePageState extends State<PetHomePage> {
                 child: Text(_scanning ? '搜尋中…' : _connecting ? '連線中…' : _device == null ? '搜尋裝置' : '中斷'),
               ),
             ]),
+            const SizedBox(height: 8),
+            if (_deviceId != null)
+              SelectableText('裝置 ID：$_deviceId')
+            else if (_device != null)
+              const Text('尚未取得裝置 ID；舊版韌體僅供本機唯讀使用'),
             if (_found.isNotEmpty && _device == null) ...[
               const Divider(),
               for (final result in _found.values)

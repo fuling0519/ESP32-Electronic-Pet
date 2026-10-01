@@ -1,9 +1,9 @@
 # 神秘蛋電子寵物 Web 端分階段企劃
 
-- 版本：1.0
-- 日期：2026-09-30
+- 版本：1.1
+- 日期：2026-10-01
 - 範圍：承接現有 ESP32 NodeMCU-32S、BLE v1、Flutter Web companion 與 `device_id`。
-- 定位：第二階段 Web 產品與雲端資料服務規劃；本文列出的未來功能不代表已實作。
+- 文件角色：Web 需求、分工與驗收條件；本文不維護完成狀態。最新 W0～W8 與韌體進度只看 [主台帳](project-plan.md#progress)。
 
 ## 1. 企劃目標
 
@@ -11,13 +11,11 @@
 
 網站不執行養成規則。ESP32 保有寵物資料及遊戲狀態的最終決定權；網站顯示裝置回報、管理雲端副本，並在已連線時提出受限的操作命令。
 
-## 2. 根據目前專案現況規劃
+## 2. 開工依據
 
-- ESP32 已有唯讀 BLE GATT Peripheral，Flutter Web 已有搜尋、連線、狀態通知及完整快照顯示流程；實際 BLE 瀏覽器及硬體整合仍須驗收。
-- ESP32 已產生固定 `device_id`，透過 BLE 裝置資訊與狀態傳遞；Web 可顯示及複製。它是公開識別碼，不是秘密或身分驗證憑證。
-- BLE v1 目前只接受 `get_device_info` 與 `get_status`。遠端餵食、清潔、治療及 reset 都尚未啟用。
-- 最近可參照的韌體建置使用 1,216,921／1,310,720 bytes（92.8%），剩約 93.8 KB。這筆數字是加入 `device_id` 前的歷史建置，後續韌體增量必須重新量測。
-- 目前專案不含帳號服務、裝置擁有權資料或正式雲端 API。現有 SQLite Schema 是規劃參考，不代表雲端資料庫已建立。
+Web 組先讀 [主進度台帳](project-plan.md#progress) 的 BLE-S2、FW-CAP、APP-NATIVE 與 W0～W8，再讀 [共用協定](../esp32_pet_app/PROTOCOL.md)。實際容量由台帳連到最新有日期報告；本計畫不複製數字或完成宣告。
+
+既有 Flutter 唯讀介面是開發基礎，不能推定登入、配對、事件、revision、saveGeneration 或雲端 API 已存在。SQLite schema 是邏輯模型參考，不是部署好的服務。
 
 ## 3. 首版建議架構
 
@@ -31,11 +29,11 @@ Web 後端 ── PostgreSQL
 
 瀏覽器在使用者明確選擇裝置後透過 Web Bluetooth 直接連線，讀取裝置 ID 與狀態。網頁將經驗證的資料透過 HTTPS API 寫入後端。帳號、擁有權、歷史紀錄及網站使用者介面都放在伺服器端，ESP32 只負責養成及 BLE 封包，不在有限的韌體 Flash 裡運行 Web Server、帳號系統或 SQL 資料庫。
 
-目前 Web Bluetooth 有瀏覽器支援限制，並要求安全來源（HTTPS；本機開發可使用 localhost）。首版需將 Chrome 作為已知目標，以實際手機／電腦和 OS 確認 BLE 權限、斷線重連及部署環境。未支援 Web Bluetooth 的瀏覽器顯示清楚的相容性說明，並提供安裝原生 App 作為將來替代方案。
+目前 Web Bluetooth 有瀏覽器支援限制，並要求安全來源（HTTPS；本機開發可使用 localhost）。首版需將 Chrome 作為已知目標，以實際手機／電腦和 OS 確認 BLE 權限、斷線重連及部署環境。未支援 Web Bluetooth 的瀏覽器顯示清楚的相容性說明，將原生 App 列為未來替代方向；目前不顯示不存在的安裝連結。
 
 此架構須明確接受一個產品限制：**首版的雲端同步由登入中的瀏覽器充當橋接器。** 網頁連上電子雞且有網路時才會上傳；使用者關閉網頁、離開藍牙範圍或 ESP32 斷電時，後端拿不到新狀態。歷史事件亦只有裝置或仍運行中的 App 曾保存，才可能完整補上。首版不得將它描述為全天候遠端監控。
 
-如果產品需求要求關閉網頁後依然能遠端查看或照顧，需另做 Wi-Fi／MQTT over TLS／雲端架構。開始前先確認模組實際 Flash 與 OTA 分區；精簡 BLE 或更換 NimBLE 的效益與風險須實際編譯量測。可加大 App 分區，但須說明 OTA 分區縮小或移除的維護代價。**不要假設 Wi-Fi/TLS 韌體可以塞進目前只剩約 94 KB 的空間。**
+如果產品需求要求關閉網頁後依然能遠端查看或照顧，需另做 Wi-Fi／MQTT over TLS／雲端架構。開始前先確認模組實際 Flash 與 OTA 分區；精簡 BLE 或更換 NimBLE 的效益與風險須實際編譯量測。可加大 App 分區，但須說明 OTA 分區縮小或移除的維護代價。**目前 NimBLE 已釋放空間，但仍不得未經 build 就假設 Wi-Fi/TLS 能容納且有足夠運行 RAM。**
 
 ## 4. 角色及核心資料流
 
@@ -100,11 +98,11 @@ Web 後端 ── PostgreSQL
 - **BLE**：沿用既有 GATT UUID、16-byte JSON 分片與完整快照協定。協定每次擴欄位需考慮舊韌體、舊網頁與訊息長度。
 - **Flash／RAM**：前端、圖鑑圖檔、歷史頁和帳號程式全留在 Web／伺服器。任何會增加 ESP32 韌體的功能須以 PlatformIO 實際 build 作為容量閘門，記錄 Flash、靜態 RAM 及可用 heap。
 
-登入供應商、雲端平台、正式網域與預算在 W1 比較易部署及可供學校專題使用的方案後選定；不可把雲端服務免費額度或長期供應當成前提。
+登入供應商、雲端平台、正式網域與預算在 W0 比較易部署及可供學校專題使用的方案後選定；不可把雲端服務免費額度或長期供應當成前提。
 
 ## 7. 資料模型與 API 草案
 
-硬體 BLE 資料、Web domain、Web API 和雲端資料表必須是四個有 adapter／mapper 隔開的結構；依[Web 資料結構隔離規格](web-data-structure.md)實作。前端 UI 不讀取 BLE snake_case 欄位；ESP32 不認識登入帳號、資料庫 schema 或純 Web 偏好。
+硬體 BLE 資料、Web domain、Web API 和雲端資料表必須是四個有 adapter／mapper 隔開的結構；依本節分層原則實作；獨立 Web 資料結構規格尚未建立，不引用不存在的文件。前端 UI 不讀取 BLE snake_case 欄位；ESP32 不認識登入帳號、資料庫 schema 或純 Web 偏好。
 
 ### 核心資料表
 
@@ -139,11 +137,13 @@ Web 後端 ── PostgreSQL
 ### W0：確認產品邊界與硬體基線（約 2～3 天）
 
 - 確認本企劃首版為近距離 Web Bluetooth，由瀏覽器橋接雲端；界定離線、無藍牙與關閉網頁時網站顯示行為。
-- 建立 ESP32 Flash/RAM baseline，量測加入 `device_id` 後實際韌體；確認量產板型、Flash 容量、分割區及 OTA 需求。
+- 接收韌體組的 NimBLE＋device_id 容量基線與協定；韌體組負責重現 build、核對實機 Flash／分割區／OTA，Web 組共同完成瀏覽器相容驗收。容量改善不由 Web 組執行。
 - 清點 Chrome Web 支援 OS／裝置，選出硬體驗收清單；確認 HTTPS、登入供應商及 API／DB 部署候選。
 - 定義 Web v1 API、BLE 舊韌體相容原則、`saveGeneration` 方案與資料保留規則。
 
-**驗收：**團隊可清楚說明首版有／無網路時可做什麼；以目前正常韌體建立可重現的 Flash/RAM 數字及操作流程。
+**驗收：**團隊可清楚說明首版有／無網路時可做什麼；接收並重現韌體組提供的 Flash/RAM 報告及操作流程。
+
+Deep Sleep 與小遊戲由韌體組獨立開發。Deep Sleep 期間 BLE 斷線，醒來重新廣播；Web 首版維持最後資料並提示重連，不依斷線推斷睡眠。v1 的 sleep 仍只接受 awake／normal，未新增 deep 列舉。
 
 ### W1：BLE 唯讀硬體與瀏覽器驗收（約 1 週）
 

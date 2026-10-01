@@ -1,10 +1,6 @@
-# ESP32 Pet App Integration Progress
+# BLE 整合歷史紀錄（2026-09-30）
 
-Last updated: 2026-09-30
-
-## Current checkpoint
-
-Work is paused at Stage 2 (read-only BLE status). Do not start remote care commands until Stage 2 has passed the team's hardware acceptance.
+文件角色：2026-09-30 的 Stage 0～2 建置歷史，保留當時工具版本與容量。**本檔不再追蹤當前進度**；請看 [主企畫](docs/project-plan.md#progress)。2026-10-01 的 NimBLE／device_id 結果見 [當日紀錄](docs/firmware-capacity-handoff.md)。
 
 ## Stage 0 — inventory
 
@@ -29,7 +25,7 @@ Work is paused at Stage 2 (read-only BLE status). Do not start remote care comma
 - Replaced the old Flutter A/B/C and reset prototype with real connection status, device/status requests, command-result correlation, fragment reassembly, full snapshot validation, and stale-data labeling after disconnect.
 - Fixed the no-data care bars to remain empty and still; they animate/fill only after valid ESP32 readings arrive.
 - Added the Flutter Web platform skeleton and resolved `pubspec.lock` for FlutterBluePlus 2.3.13.
-- `esp32_pet_app/README.md` and this file describe the current checkpoint.
+- `esp32_pet_app/README.md` and this file described the checkpoint on 2026-09-30.
 
 ## Checks completed
 
@@ -39,17 +35,9 @@ Work is paused at Stage 2 (read-only BLE status). Do not start remote care comma
 - Build outputs and PlatformIO tool packages were placed in the temporary `D:\ESP32Pet_stage2_build` directory to avoid low free space on C:. The temporary directory is not part of the project.
 - No firmware was flashed, no NVS was cleared, and no hardware was reset.
 
-## Still required before Stage 3
+## 後續追蹤
 
-Team hardware acceptance is pending. Flashing and device operation must be performed deliberately by a team member:
-
-1. Build the firmware with `pio run -e esp32dev` (build only).
-2. Flash the normal firmware using the team's usual procedure; do not erase flash.
-3. Start the app with `cd esp32_pet_app` and `flutter run -d chrome` on a machine/browser with BLE support.
-4. Confirm first connection, real values, joystick-driven state changes, disconnect, and reconnect/latest snapshot.
-5. Record the results and any failures. Do not enable remote care commands before these checks pass.
-
-The following are not yet hardware-verified: BLE discovery/connection, notifications and framing under real radio conditions, joystick state updates, disconnect/reconnect, and offline gameplay while the app is disconnected.
+當時待驗收項目已移到主企畫 BLE-S2／FW-CAP；操作步驟引用當日交接報告。以下容量與工具版本只代表 2026-09-30，不能用作現在的容量限制。
 
 ## Build versions observed
 

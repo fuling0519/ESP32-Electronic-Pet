@@ -1,10 +1,8 @@
 #include "ble/BleLink.h"
 #include <ArduinoJson.h>
-#include <BLE2902.h>
-#include <BLECharacteristic.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEService.h>
+#include <NimBLEDevice.h>
+#include <esp_system.h>
+#include <esp_heap_caps.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -14,6 +12,12 @@ constexpr char kService[] = "7d2a0001-8b7c-4f3a-9c2d-1e5f6a7b8c90";
 constexpr char kCommand[] = "7d2a0002-8b7c-4f3a-9c2d-1e5f6a7b8c90";
 constexpr char kEvent[] = "7d2a0003-8b7c-4f3a-9c2d-1e5f6a7b8c90";
 constexpr char kName[] = "ESP32-PET";
+void logHeap(const char* phase) {
+    Serial.printf("BLE heap [%s]: free=%u minimum=%u largest=%u bytes\n", phase,
+                  static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_8BIT)),
+                  static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT)),
+                  static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)));
+}
 #ifndef PET_FIRMWARE_VERSION
 #define PET_FIRMWARE_VERSION "development"
 #endif
@@ -31,47 +35,65 @@ const char* sleep(Pet::SleepMode v) {
 }
 }
 
-class Link::ServerCallbacks final : public BLEServerCallbacks {
+class Link::ServerCallbacks final : public NimBLEServerCallbacks {
 public:
     explicit ServerCallbacks(Link& link): link_(link) {}
-    void onConnect(BLEServer*) override { link_.connected(); }
-    void onDisconnect(BLEServer*) override { link_.disconnected(); }
+    void onConnect(NimBLEServer*, NimBLEConnInfo&) override { link_.connected(); }
+    void onDisconnect(NimBLEServer*, NimBLEConnInfo&, int) override { link_.disconnected(); }
 private: Link& link_;
 };
-class Link::CommandCallbacks final : public BLECharacteristicCallbacks {
+class Link::CommandCallbacks final : public NimBLECharacteristicCallbacks {
 public:
     explicit CommandCallbacks(Link& link): link_(link) {}
-    void onWrite(BLECharacteristic* c) override { link_.onWrite(c); }
+    void onWrite(NimBLECharacteristic* c, NimBLEConnInfo&) override { link_.onWrite(c); }
+private: Link& link_;
+};
+class Link::EventCallbacks final : public NimBLECharacteristicCallbacks {
+public:
+    explicit EventCallbacks(Link& link): link_(link) {}
+    void onSubscribe(NimBLECharacteristic*, NimBLEConnInfo&, uint16_t value) override {
+        link_.subscribed_ = (value & 1) != 0;
+    }
 private: Link& link_;
 };
 
 bool Link::init() {
+    logHeap("before init");
+    uint8_t mac[6];
+    if (esp_efuse_mac_get_default(mac) != ESP_OK) return false;
+    snprintf(deviceId_, sizeof(deviceId_), "esp32-%02X%02X%02X%02X%02X%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     rxQueue_ = xQueueCreate(kQueueSize, sizeof(RxFrame));
     if (!rxQueue_) return false;
-    BLEDevice::init(kName);
-    server_ = BLEDevice::createServer();
+    if (!NimBLEDevice::init(kName)) return false;
+    server_ = NimBLEDevice::createServer();
     if (!server_) return false;
     server_->setCallbacks(new ServerCallbacks(*this));
-    BLEService* service = server_->createService(kService);
+    NimBLEService* service = server_->createService(kService);
     if (!service) return false;
-    command_ = service->createCharacteristic(kCommand, BLECharacteristic::PROPERTY_WRITE);
-    event_ = service->createCharacteristic(kEvent, BLECharacteristic::PROPERTY_NOTIFY);
+    command_ = service->createCharacteristic(kCommand, NIMBLE_PROPERTY::WRITE);
+    event_ = service->createCharacteristic(kEvent, NIMBLE_PROPERTY::NOTIFY);
     if (!command_ || !event_) return false;
     command_->setCallbacks(new CommandCallbacks(*this));
-    event_->addDescriptor(new BLE2902());
-    service->start();
-    BLEDevice::getAdvertising()->addServiceUUID(kService);
-    BLEDevice::getAdvertising()->setScanResponse(true);
-    BLEDevice::startAdvertising();
-    return true;
+    event_->setCallbacks(new EventCallbacks(*this));
+    if (!server_->start()) return false;
+    auto* advertising = NimBLEDevice::getAdvertising();
+    advertising->enableScanResponse(true);
+    // Keep the service in the primary advertisement for service-filtered scans.
+    if (!advertising->addServiceUUID(kService) || !advertising->setName(kName)) return false;
+    const bool started = NimBLEDevice::startAdvertising();
+    Serial.printf("BLE device_id=%s firmware=%s\n", deviceId_, PET_FIRMWARE_VERSION);
+    logHeap("after init");
+    return started;
 }
 void Link::connected() { connected_ = true; }
-void Link::disconnected() { connected_ = false; }
+void Link::disconnected() { subscribed_ = false; connected_ = false; }
 
-void Link::onWrite(BLECharacteristic* c) {
+void Link::onWrite(NimBLECharacteristic* c) {
     if (!rxQueue_ || !c) return;
-    size_t len = c->getLength();
-    const uint8_t* data = c->getData();
+    const auto value = c->getValue();
+    size_t len = value.size();
+    const uint8_t* data = value.data();
     if (!data || len < kHeader || len > kMaxFrame) return;
     RxFrame f{};
     f.length = static_cast<uint16_t>(len);
@@ -104,8 +126,8 @@ void Link::result(uint32_t id, bool hasId, const char* code) {
     if (len && len<=kMaxJson) queue(json,false);
 }
 bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const {
-    StaticJsonDocument<384> d;
-    d["v"]=1; d["type"]="status";
+    StaticJsonDocument<512> d;
+    d["v"]=1; d["type"]="status"; d["device_id"]=deviceId_;
     JsonObject p=d.createNestedObject("pet");
     char id[21], age[21];
     snprintf(id,sizeof(id),"%llu",static_cast<unsigned long long>(pet.petId()));
@@ -120,10 +142,11 @@ bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& 
 }
 void Link::publishStatus(const Pet::PetData& pet, uint32_t nowMs) {
     if (!forceStatus_ && nowMs-lastStatusAt_<500) return;
-    lastStatusAt_=nowMs; forceStatus_=false;
+    const bool forced = forceStatus_;
+    lastStatusAt_=nowMs;
     char json[kMaxJson+1]; uint16_t len=0;
-    if (!makeStatus(pet,json,sizeof(json),len) || strcmp(json,lastStatus_)==0) return;
-    if (queue(json,true)) memcpy(lastStatus_,json,len+1);
+    if (!makeStatus(pet,json,sizeof(json),len) || (!forced && strcmp(json,lastStatus_)==0)) return;
+    if (queue(json,true)) { memcpy(lastStatus_,json,len+1); forceStatus_=false; }
 }
 
 void Link::receive(const RxFrame& f, uint32_t nowMs) {
@@ -168,15 +191,15 @@ void Link::processCommand() {
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
-    StaticJsonDocument<256> info;
+    StaticJsonDocument<384> info;
     info["v"]=1; info["type"]="device_info"; info["id"]=id; info["name"]=kName;
     info["protocol_version"]=1; info["firmware_version"]=PET_FIRMWARE_VERSION;
-    info["max_message_bytes"]=kMaxJson;
+    info["max_message_bytes"]=kMaxJson; info["device_id"]=deviceId_;
     char json[kMaxJson+1]; size_t len=serializeJson(info,json,sizeof(json));
     if (len && len<=kMaxJson) queue(json,false);
 }
 void Link::sendFrame(uint32_t nowMs) {
-    if (!connected_ || !event_ || nowMs-lastFrameAt_<20) return;
+    if (!connected_ || !subscribed_ || !event_ || nowMs-lastFrameAt_<20) return;
     if (!txActive_) {
         if (!txCount_) return;
         current_=tx_[txHead_]; txHead_=(txHead_+1)%kQueueSize; --txCount_;
@@ -192,23 +215,30 @@ void Link::sendFrame(uint32_t nowMs) {
     frame[0]=txMessageId_&0xff; frame[1]=txMessageId_>>8;
     frame[2]=txIndex_; frame[3]=txCountFrames_;
     memcpy(frame+kHeader,current_.json+offset,payload);
-    event_->setValue(frame,kHeader+payload); event_->notify();
+    event_->setValue(frame,kHeader+payload);
+    if (!event_->notify()) { lastFrameAt_=nowMs; return; }
     lastFrameAt_=nowMs;
     if (++txIndex_>=txCountFrames_) txActive_=false;
 }
 void Link::update(const Pet::PetData& pet, uint32_t nowMs) {
     bool connected=connected_;
     if (connected!=observedConnected_) {
+        logHeap(connected ? "connected" : "disconnected");
         observedConnected_=connected; resetRx();
         txHead_=txTail_=txCount_=0; txActive_=false; lastStatus_[0]='\0';
         if (connected) forceStatus_=true;
-        else BLEDevice::startAdvertising();
+        else NimBLEDevice::startAdvertising();
     }
     if (!connected) {
         RxFrame discard{};
         while (rxQueue_ && xQueueReceive(rxQueue_,&discard,0)==pdTRUE) {}
         return;
     }
+    if (nowMs-lastHeapAt_>=30000) {
+        lastHeapAt_=nowMs;
+        logHeap(connected ? "connected periodic" : "advertising periodic");
+    }
+    if (!subscribed_) return;
     RxFrame frame{};
     if (rxQueue_ && xQueueReceive(rxQueue_,&frame,0)==pdTRUE) receive(frame,nowMs);
     publishStatus(pet,nowMs);

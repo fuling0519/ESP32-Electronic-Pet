@@ -1,10 +1,11 @@
 #pragma once
 #include <Arduino.h>
+#include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include "pet/PetData.h"
-class BLECharacteristic;
-class BLEServer;
+class NimBLECharacteristic;
+class NimBLEServer;
 namespace Ble {
 class Link {
 public:
@@ -18,11 +19,13 @@ private:
     struct TxMessage { uint16_t length; bool status; char json[kMaxJson + 1]; };
     class ServerCallbacks;
     class CommandCallbacks;
+    class EventCallbacks;
     friend class ServerCallbacks;
     friend class CommandCallbacks;
+    friend class EventCallbacks;
     void connected();
     void disconnected();
-    void onWrite(BLECharacteristic* characteristic);
+    void onWrite(NimBLECharacteristic* characteristic);
     void receive(const RxFrame& frame, uint32_t nowMs);
     void processCommand();
     void result(uint32_t id, bool hasId, const char* code);
@@ -32,11 +35,12 @@ private:
     void sendFrame(uint32_t nowMs);
     void resetRx();
 
+    char deviceId_[19]{};  // esp32- followed by the factory MAC in uppercase hex.
     QueueHandle_t rxQueue_ = nullptr;
-    BLEServer* server_ = nullptr;
-    BLECharacteristic* command_ = nullptr;
-    BLECharacteristic* event_ = nullptr;
-    volatile bool connected_ = false;
+    NimBLEServer* server_ = nullptr;
+    NimBLECharacteristic* command_ = nullptr;
+    NimBLECharacteristic* event_ = nullptr;
+    std::atomic<bool> connected_{false}, subscribed_{false};
     bool observedConnected_ = false;
     bool rxActive_ = false;
     uint16_t rxMessageId_ = 0, rxLength_ = 0;
@@ -49,6 +53,7 @@ private:
     uint16_t txMessageId_ = 0;
     uint8_t txIndex_ = 0, txCountFrames_ = 0;
     uint32_t lastFrameAt_ = 0, lastStatusAt_ = 0;
+    uint32_t lastHeapAt_ = 0;
     char lastStatus_[kMaxJson + 1]{};
 };
 }  // namespace Ble

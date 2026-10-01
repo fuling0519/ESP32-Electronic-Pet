@@ -1,5 +1,7 @@
 # 神秘蛋電子寵物：資料關聯圖（ERD）
 
+文件角色：邏輯模型提案，不是 NVS 二進位格式或現有雲端 schema；進度只看 [主台帳](project-plan.md#progress)。
+
 依據 [專題企劃](project-plan.md) 第 4、6、8 節；日期：2026-09-24。這是建議的邏輯資料模型，尚未實作成資料庫。首版 ESP32 使用 Preferences／NVS 序列化存檔，不要求安裝 SQL 資料庫。
 
 對應的 SQLite 建表語句見 [database-schema.sql](database-schema.sql)。
@@ -22,7 +24,7 @@ erDiagram
         string assetSetId "韌體圖像資源代號"
     }
     Pet {
-        string petId PK "領養時建立，不重複使用"
+        string petId PK "當前存檔內識別，重建可能重用"
         string speciesId FK "第一版固定小鳥"
         string name "名字，ASCII 1 至 8 字元"
         enum lifeStage "蛋、幼鳥或成鳥"
@@ -39,7 +41,7 @@ erDiagram
         datetime bornAt "可信出生時間，可空"
         datetime diedAt "可信死亡時間，可空"
         enum deathCause "死亡原因，存活時為無"
-        int dangerSeconds "飽食或清潔為零的連續清醒秒數"
+        int dangerSeconds "飽食或清潔為零的連續有效秒數"
         int sickAwakeSeconds "生病後未治療的有效秒數（舊欄位名）"
         enum sleepMode "清醒、一般睡眠、省電睡眠"
         datetime sleepStartedAt "可信入睡時間，可空"
@@ -84,14 +86,14 @@ erDiagram
 
 - `PK`：主鍵，唯一識別一筆資料。`FK`：外鍵，對應另一個實體的主鍵。
 - `||` 表示恰好一筆、`o|`／`|o` 表示零或一筆、`o{` 表示零到多筆。
-- 一種寵物種類可對應多隻寵物；每隻寵物最多一種，蛋尚未孵化時可沒有種類。
+- 一種寵物種類可對應多隻寵物；本專案每隻寵物固定一種；蛋階段已指定 Bird。
 - 一隻寵物可玩多種遊戲，一種遊戲也可由多隻寵物玩。PlaySession 將此多對多關係拆成兩個一對多關係，每筆代表一次遊玩。
 - 一隻寵物可有多次睡眠；每筆睡眠只屬於一隻寵物。
 - 一隻寵物最多一筆墓碑；每筆墓碑對應一隻死亡寵物。
 
 ## MVP 與後續擴充
 
-- **首版必存**：當前寵物（含疾病計時、目前睡眠與最後結算游標）、墓碑群；墓碑顯示名字與有效累計年齡，日期欄位僅作後續擴充。墓碑群已以固定格式、CRC32 及 NVS A／B 槽實作。種類與遊戲目錄可直接定義在韌體。
+- **首版必存**：當前寵物（含疾病計時、目前睡眠與最後結算游標）、墓碑群；墓碑顯示名字與有效累計年齡，日期欄位僅作後續擴充。實作／驗收見 A6-MEM。種類與遊戲目錄可直接定義在韌體。
 - **可後續擴充**：PlaySession 逐局歷史、SleepSession 完整睡眠歷史。MVP 可只保留遊戲摘要及當前睡眠快照，不必為深睡保存全部睡眠紀錄。
 - 不設體力欄位；飽食、心情、清潔的文字等級由數值推導。玩家帳號、手機、雲端與感測器資料不在本次首版範圍。
 
@@ -105,4 +107,4 @@ erDiagram
 6. **遊戲獎勵**：若實作可恢復的逐局結算，需以 sessionId 搭配獎勵套用狀態或原子快照，確保重啟不重複領取；本圖的結果欄位本身不保證交易一致性。
 7. **存檔封套**：magic、schemaVersion、payloadLength、sequence、checksum 屬儲存格式，包住當前寵物與墓碑等完整快照，不是新的遊戲實體。依企劃使用 A／B 槽及有效性驗證；此圖不定義具體二進位格式。
 
-本圖已與 `PetSnapshotV1` 的單一危險計時及互斥健康狀態對齊；當前寵物與墓碑群已使用 CRC32 及 NVS A／B 槽保存。
+本圖採單一危險計時及互斥健康狀態；timeBaseId、歷史 Session 等屬規劃，並非都存在於 PetSnapshotV1。雲端需以 device_id＋saveGeneration＋petId 或 UUID 識別歷代個體；此處 SQLite 草案未提供完整雲端鍵與權限模型。
