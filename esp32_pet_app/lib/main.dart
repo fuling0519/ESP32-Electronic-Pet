@@ -129,9 +129,10 @@ class _PetHomePageState extends State<PetHomePage> {
         if (!mounted) return;
         setState(() {
           for (final result in results) {
-            final name = result.advertisementData.advName.isNotEmpty
-                ? result.advertisementData.advName : result.device.platformName;
-            if (name == 'ESP32-PET') _found[result.device.remoteId.str] = result;
+            // startScan filters by our service UUID. Browser/OS device names
+            // may be cached from older firmware, so do not filter by name again.
+            // _connect also verifies the service and both characteristics.
+            _found[result.device.remoteId.str] = result;
           }
         });
       });
@@ -141,7 +142,7 @@ class _PetHomePageState extends State<PetHomePage> {
         timeout: const Duration(seconds: 12),
       );
       if (mounted && _device == null) {
-        setState(() => _status = _found.isEmpty ? '找不到裝置' : '請選擇 ESP32-PET');
+        setState(() => _status = _found.isEmpty ? '找不到裝置' : '請點選裝置連線（名稱可能為舊名稱）');
       }
     } catch (error) {
       if (mounted) setState(() => _status = '搜尋失敗');

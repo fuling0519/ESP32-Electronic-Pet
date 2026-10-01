@@ -12,6 +12,8 @@
 #include "storage/Memorials.h"
 #include "ui/UiController.h"
 #include "ble/BleLink.h"
+#include "power/DeepSleep.h"
+#include "HardwareConfig.h"
 
 namespace {
 constexpr bool kDebugUi = true;
@@ -30,6 +32,8 @@ private:
     bool wakeFromNormalSleep(uint32_t now);
     bool adoptNewEgg(uint32_t now);
     bool deleteSelectedMemorial();
+    void requestDeepSleep(uint32_t now);
+    void serviceDeepSleep(Hardware::InputEvent event, uint32_t now);
 
     Hardware::Display display;
     Hardware::Input input;
@@ -43,6 +47,12 @@ private:
     uint64_t lastEggCheckpointMinute = 0;
     bool memorialReady = false;
     bool appReady = false;
+    bool deepPending = false;
+    uint32_t deepRequestedAt = 0;
+    uint32_t releaseStartedAt = 0;
+    bool releaseObserved = false;
+    uint32_t resumedRemainderMs = 0;
+    bool resumedFromDeep = false;
 };
 
 const char* inputEventName(Hardware::InputEvent event) {
@@ -87,16 +97,16 @@ bool Application::ensureCurrentMemorialSaved() {
 }
 
 bool Application::startNormalSleep(uint32_t now) {
-    const Pet::PetSnapshotV1 before = pet.snapshot();
+    const Pet::PetData before = pet;
 #if defined(PET_SLEEP_TEST_MODE)
     pet.setSatiety(0);
 #endif
     if (!pet.beginNormalSleep()) {
-        pet.restore(before);
+        pet = before;
         return false;
     }
     if (!save.save(pet)) {
-        pet.restore(before);
+        pet = before;
         return false;
     }
     petClock.reset(now);
@@ -105,10 +115,10 @@ bool Application::startNormalSleep(uint32_t now) {
 }
 
 bool Application::wakeFromNormalSleep(uint32_t now) {
-    const Pet::PetSnapshotV1 before = pet.snapshot();
+    const Pet::PetData before = pet;
     if (!pet.wake()) return false;
     if (!save.save(pet)) {
-        pet.restore(before);
+        pet = before;
         return false;
     }
     petClock.reset(now);
@@ -145,6 +155,7 @@ bool Application::deleteSelectedMemorial() {
 }
 
 void Application::setup() {
+    Power::releaseWakePins();
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Electronic Pet Boot ===");
@@ -152,7 +163,9 @@ void Application::setup() {
         Serial.println("Display init failed.");
         return;
     }
-    input.init();
+    int retainedX = -1, retainedY = -1;
+    Power::retainedCalibration(retainedX, retainedY);
+    input.init(retainedX, retainedY);
     sound.init();
     if (!save.init()) {
         Serial.println("NVS init failed; this session will not be saved.");
@@ -172,12 +185,13 @@ void Application::setup() {
                 break;
         }
 #if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE)
-#if defined(PET_SLEEP_TEST_MODE)
-        Serial.println("Sleep test mode: stored test state is ignored on startup.");
+        const bool ignoreTestSave = esp_reset_reason() != ESP_RST_DEEPSLEEP;
 #else
-        Serial.println("Death test mode: stored test state is ignored on startup.");
+        const bool ignoreTestSave = false;
 #endif
-#else
+        if (ignoreTestSave) {
+            Serial.println("Quick test mode: stored test state ignored on cold startup.");
+        } else {
         switch (save.load(pet)) {
             case Storage::LoadStatus::Loaded:
                 Serial.println("Pet save loaded.");
@@ -185,8 +199,14 @@ void Application::setup() {
             case Storage::LoadStatus::Empty:
                 if (!prepareNewEgg(pet, memorials.highestPetId() + 1)) {
                     Serial.println("Failed to create initial pet identity.");
-                } else if (save.save(pet)) Serial.println("Created initial pet save.");
-                else Serial.println("Initial pet save failed.");
+                } else {
+#if defined(PET_DEEP_SLEEP_TEST_MODE)
+                    pet.advanceSeconds(Pet::PetData::kAdultAgeSeconds);
+                    pet.setSatiety(80); pet.setCleanliness(100); pet.setMood(50);
+#endif
+                    if (save.save(pet)) Serial.println("Created initial pet save.");
+                    else Serial.println("Initial pet save failed.");
+                }
                 break;
             case Storage::LoadStatus::Invalid:
                 Serial.println("Pet saves are invalid; writes blocked to preserve recovery data.");
@@ -196,14 +216,19 @@ void Application::setup() {
                 break;
         }
 #if defined(PET_GROWTH_TEST_MODE)
-        if (pet.lifeStage() == Pet::LifeStage::Adult) {
+        if (esp_reset_reason() != ESP_RST_DEEPSLEEP && pet.lifeStage() == Pet::LifeStage::Adult) {
             pet.startNewEgg();
             if (save.save(pet)) Serial.println("Growth test restarted from egg.");
         }
 #endif
-#endif
+        }
     }
-    if (pet.sleepMode() == Pet::SleepMode::Normal) {
+    resumedFromDeep = Power::resume(pet, resumedRemainderMs);
+    if (resumedFromDeep && !save.save(pet)) {
+        Serial.println("Failed to save deep-sleep settlement; retry scheduled.");
+        save.markDirty(millis());
+    }
+    if (pet.sleepMode() == Pet::SleepMode::Normal || pet.sleepMode() == Pet::SleepMode::Deep) {
         if (pet.wake()) {
             if (save.save(pet)) {
                 Serial.println("Interrupted normal sleep ended at startup.");
@@ -215,22 +240,66 @@ void Application::setup() {
     if (pet.isDead()) memorialReady = ensureCurrentMemorialSaved();
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
-    petClock.reset(now);
+    petClock.reset(now - resumedRemainderMs);
 #if defined(PET_DEATH_TEST_MODE)
-    pet.setSick(true);
+    if (!resumedFromDeep) pet.setSick(true);
     Serial.println("Death test mode: pet starts sick and dies after 30 seconds.");
 #elif defined(PET_SLEEP_TEST_MODE)
+    if (!resumedFromDeep) {
     pet.setMood(50);
     if (!save.save(pet)) Serial.println("Failed to save initial sleep test state.");
+    }
     Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 10 seconds, sickness starts after 20 seconds, and death follows 30 seconds later.");
 #endif
     ui.init(now);
+    if (resumedFromDeep && !pet.isDead()) ui.onWakeSucceeded();
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
         pet.ageSeconds() / 60 : 0;
     appReady = true;
     if (!ble.init()) Serial.println("BLE init failed; pet remains available offline.");
     printUiState(Hardware::InputEvent::None);
     ui.render();
+}
+
+void Application::requestDeepSleep(uint32_t now) {
+    if (pet.isDead() || pet.lifeStage() == Pet::LifeStage::Egg ||
+        pet.sleepMode() != Pet::SleepMode::Awake) { sound.playFailure(); return; }
+    deepPending = true;
+    deepRequestedAt = now;
+    releaseObserved = false;
+    ui.onDeepSleepPending(true);
+}
+
+void Application::serviceDeepSleep(Hardware::InputEvent event, uint32_t now) {
+    if (!deepPending) return;
+    if (event == Hardware::InputEvent::LongPress || pet.isDead() ||
+        now - deepRequestedAt >= HardwareConfig::Sleep::ReleaseTimeoutMs) {
+        deepPending = false; ui.onDeepSleepPending(false); sound.playCancel(); return;
+    }
+    if (input.switchHeld()) { releaseObserved = false; return; }
+    if (!releaseObserved) { releaseObserved = true; releaseStartedAt = now; return; }
+    if (now - releaseStartedAt < HardwareConfig::Sleep::ReleaseStableMs) return;
+    deepPending = false;
+    const Pet::PetData before = pet;
+    if (!Power::configure() || !pet.beginDeepSleep()) {
+        Power::cancel(); ui.onDeepSleepPending(false, true); sound.playFailure(); return;
+    }
+    if (!save.save(pet)) {
+        pet = before; Power::cancel();
+        ui.onDeepSleepPending(false, true); sound.playFailure(); return;
+    }
+    // Recheck a level-triggered wake pin after the flash write. If pressed,
+    // cancel cleanly rather than entering an immediate sleep/wake loop.
+    if (Power::wakePressed()) {
+        pet = before; Power::cancel();
+        if (!save.save(pet)) save.markDirty(millis());
+        ui.onDeepSleepPending(false); return;
+    }
+    Power::retain(pet, input.centerX(), input.centerY(), petClock.remainderMilliseconds(millis()));
+    sound.stopTone();
+    display.setPowerSave(true);
+    ble.stop();
+    Power::enter();
 }
 
 void Application::loop() {
@@ -316,6 +385,9 @@ void Application::loop() {
                 sound.playFailure();
             }
             break;
+        case Ui::UiAction::StartDeepSleep:
+            requestDeepSleep(now);
+            break;
         case Ui::UiAction::Wake:
             if (wakeFromNormalSleep(now)) {
                 sound.playSuccess();
@@ -345,6 +417,7 @@ void Application::loop() {
     sound.update();
     ui.render();
     ble.update(pet, now);
+    serviceDeepSleep(event, now);
 }
 
 Application application;

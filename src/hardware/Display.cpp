@@ -55,6 +55,10 @@ uint8_t Display::scanI2c() {
     return detectedDeviceCount_;
 }
 
+void Display::setPowerSave(bool enabled) {
+    if (initialized_) sh1106.setPowerSave(enabled ? 1 : 0);
+}
+
 bool Display::init() {
     Wire.begin(HardwareConfig::Pins::OledSda, HardwareConfig::Pins::OledScl);
     if (i2cAddress_ == 0 && scanI2c() == 0) return false;

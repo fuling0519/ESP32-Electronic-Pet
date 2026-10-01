@@ -10,6 +10,7 @@ class PetClock {
 public:
     void reset(uint32_t nowMs);
     uint32_t consumeElapsedSeconds(uint32_t nowMs);
+    uint32_t remainderMilliseconds(uint32_t nowMs) const { return nowMs - lastWholeSecondMs_; }
 
 private:
     uint32_t lastWholeSecondMs_ = 0;

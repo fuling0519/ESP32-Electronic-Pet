@@ -8,6 +8,7 @@ public:
     uint8_t scanI2c();
     bool init();
     void clear();
+    void setPowerSave(bool enabled);
     void update();
     void drawText(int16_t x, int16_t y, const char* text);
     // 5-pixel advance, 7-pixel font height; y is the text baseline.

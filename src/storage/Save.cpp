@@ -9,7 +9,9 @@
 namespace Storage {
 namespace {
 
-#if defined(PET_DEATH_TEST_MODE)
+#if defined(PET_DEEP_SLEEP_TEST_MODE)
+constexpr char kNamespace[] = "pet-deep";
+#elif defined(PET_DEATH_TEST_MODE)
 constexpr char kNamespace[] = "pet-test";
 #elif defined(PET_MEMORIAL_TEST_MODE)
 constexpr char kNamespace[] = "pet-mem";

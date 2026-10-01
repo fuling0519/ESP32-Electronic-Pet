@@ -87,6 +87,13 @@ bool Link::init() {
     return started;
 }
 void Link::connected() { connected_ = true; }
+void Link::stop() {
+    NimBLEDevice::stopAdvertising();
+    NimBLEDevice::deinit(true);
+    if (rxQueue_) { vQueueDelete(rxQueue_); rxQueue_ = nullptr; }
+    server_ = nullptr; command_ = nullptr; event_ = nullptr;
+    connected_ = false; subscribed_ = false;
+}
 void Link::disconnected() { subscribed_ = false; connected_ = false; }
 
 void Link::onWrite(NimBLECharacteristic* c) {

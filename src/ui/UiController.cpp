@@ -286,7 +286,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                     case 1: setScreen(ScreenId::CleanCare); break;
                     case 2: setScreen(ScreenId::TreatCare); break;
                     case 3: setScreen(ScreenId::PlayCare); break;
-                    case 4: setScreen(ScreenId::Rest); break;
+                    case 4:
+                        restOption_ = 0; deepSleepFailed_ = false;
+                        setScreen(ScreenId::Rest); break;
                     case 5: setScreen(ScreenId::DetailedStatus); break;
                     default:
                         memorialIndex_ = 0;
@@ -318,11 +320,14 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             break;
 
         case ScreenId::Rest:
-            if (event == Hardware::InputEvent::Press) {
+            if (deepSleepPending_) break;
+            if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
+                restOption_ = 1 - restOption_; deepSleepFailed_ = false; dirty_ = true;
+            } else if (event == Hardware::InputEvent::Press) {
                 if (pet_.lifeStage() == Pet::LifeStage::Egg) {
                     sound_.playFailure();
                 } else {
-                    pendingAction_ = UiAction::StartNormalSleep;
+                    pendingAction_ = restOption_ == 0 ? UiAction::StartNormalSleep : UiAction::StartDeepSleep;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
@@ -568,6 +573,12 @@ void UiController::onWakeSucceeded() {
     setScreen(ScreenId::Home);
 }
 
+void UiController::onDeepSleepPending(bool pending, bool failed) {
+    deepSleepPending_ = pending;
+    deepSleepFailed_ = failed;
+    dirty_ = true;
+}
+
 void UiController::onAdoptionSucceeded(uint32_t now) {
     observedLifeStage_ = pet_.lifeStage();
     eggAgeAtInitMilliseconds_ = pet_.ageSeconds() * 1000ULL;
@@ -767,8 +778,19 @@ void UiController::renderRest() {
         drawCenteredUiText(display_, 53, "無法使用");
         return;
     }
-    drawCenteredUiText(display_, 42, "按下執行");
-    drawCenteredUiText(display_, 60, "長按返回");
+    if (deepSleepPending_) {
+        drawCenteredUiText(display_, 38, "Release SW");
+        drawCenteredUiText(display_, 55, "Hold SW: cancel");
+        return;
+    }
+    if (deepSleepFailed_) {
+        drawCenteredUiText(display_, 38, "Sleep failed");
+        drawCenteredUiText(display_, 55, "長按返回");
+        return;
+    }
+    display_.drawUiText(24, 36, "一般睡眠");
+    display_.drawUiText(24, 52, "省電睡眠");
+    display_.drawText(12, restOption_ == 0 ? 36 : 52, ">");
 }
 
 void UiController::renderSleeping() {

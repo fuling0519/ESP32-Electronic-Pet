@@ -10,6 +10,7 @@ namespace Ble {
 class Link {
 public:
     bool init();
+    void stop();
     void update(const Pet::PetData& pet, uint32_t nowMs);
 private:
     static constexpr uint16_t kMaxJson = 1024;

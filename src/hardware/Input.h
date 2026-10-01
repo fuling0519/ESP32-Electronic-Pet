@@ -7,7 +7,8 @@ enum class InputEvent { None, Up, Down, Left, Right, Press, LongPress };
 
 class Input {
 public:
-    void init();
+    void init(int savedCenterX = -1, int savedCenterY = -1);
+    bool switchHeld() const;
     InputEvent update();
     int centerX() const;
     int centerY() const;
@@ -27,6 +28,7 @@ private:
     bool lastRawSwitchPressed_ = false;
     bool switchPressed_ = false;
     bool longPressSent_ = false;
+    bool ignoreSwitchUntilRelease_ = false;
     uint32_t lastSwitchChangeAt_ = 0;
     uint32_t switchPressedAt_ = 0;
 };

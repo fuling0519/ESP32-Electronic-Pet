@@ -65,7 +65,7 @@ public:
     static constexpr uint8_t kFeedAmount = 20;
     static constexpr uint8_t kCleanAmount = 30;
     static constexpr uint8_t kPlayAmount = 15;
-#if defined(PET_SLEEP_TEST_MODE)
+#if defined(PET_SLEEP_TEST_MODE) || defined(PET_DEEP_SLEEP_TEST_MODE)
     static constexpr uint32_t kSleepMoodRecoverySeconds = 10;
 #else
     static constexpr uint32_t kSleepMoodRecoverySeconds = 10UL * 60;
@@ -122,6 +122,9 @@ public:
     // awake mood decay with slow mood recovery.
     void advanceSleepSeconds(uint32_t seconds);
     bool beginNormalSleep();
+    bool beginDeepSleep();
+    uint32_t sleepRecoveryRemainder() const { return sleepMoodRecoveryRemainderSeconds_; }
+    bool restoreSleepRecoveryRemainder(uint32_t seconds);
     bool wake();
     bool feed();
     bool clean();
@@ -159,8 +162,9 @@ private:
     SleepMode sleepMode_;
     SavedTimestamp sleepStartedAt_;
     SavedTimestamp lastSleepSettledAt_;
-    // Runtime-only remainder. A reset can lose less than one ten-minute mood
-    // recovery interval, avoiding a version-1 save-layout change.
+    // Carries across sleep sessions while running and via the deep-sleep RTC
+    // checkpoint. A cold reset loses less than one recovery interval; NVS V1
+    // remains compatible.
     uint32_t sleepMoodRecoveryRemainderSeconds_;
     uint32_t displayRevision_;
 };

@@ -13,18 +13,23 @@ int readAverage(int pin) {
 }
 }  // namespace
 
-void Input::init() {
+void Input::init(int savedCenterX, int savedCenterY) {
     analogReadResolution(HardwareConfig::Joystick::AdcResolutionBits);
     pinMode(HardwareConfig::Pins::JoystickX, INPUT);
     pinMode(HardwareConfig::Pins::JoystickY, INPUT);
     pinMode(HardwareConfig::Pins::JoystickSwitch, INPUT_PULLUP);
     // Calibrate from the actual joystick; leave the stick centred at boot.
-    centerX_ = readAverage(HardwareConfig::Pins::JoystickX);
-    centerY_ = readAverage(HardwareConfig::Pins::JoystickY);
+    centerX_ = savedCenterX >= 0 ? savedCenterX : readAverage(HardwareConfig::Pins::JoystickX);
+    centerY_ = savedCenterY >= 0 ? savedCenterY : readAverage(HardwareConfig::Pins::JoystickY);
     lastRawSwitchPressed_ = digitalRead(HardwareConfig::Pins::JoystickSwitch) == LOW;
     switchPressed_ = lastRawSwitchPressed_;
+    ignoreSwitchUntilRelease_ = switchPressed_;
+    longPressSent_ = false;
+    switchPressedAt_ = millis();
     lastSwitchChangeAt_ = millis();
-    directionLocked_ = false;
+    // A restored calibration must not emit a gesture from a stick held during
+    // wakeup. None stays locked until both axes return to neutral.
+    directionLocked_ = savedCenterX >= 0;
     lockedDirection_ = InputEvent::None;
 }
 
@@ -106,6 +111,14 @@ InputEvent Input::updateSwitch(uint32_t now) {
         lastRawSwitchPressed_ = rawPressed;
         lastSwitchChangeAt_ = now;
     }
+    if (ignoreSwitchUntilRelease_) {
+        if (!rawPressed && now - lastSwitchChangeAt_ >= HardwareConfig::Joystick::SwitchDebounceMs) {
+            ignoreSwitchUntilRelease_ = false;
+            switchPressed_ = false;
+            longPressSent_ = false;
+        }
+        return InputEvent::None;
+    }
     if (rawPressed != switchPressed_ && now - lastSwitchChangeAt_ >= HardwareConfig::Joystick::SwitchDebounceMs) {
         switchPressed_ = rawPressed;
         if (switchPressed_) {
@@ -120,6 +133,7 @@ InputEvent Input::updateSwitch(uint32_t now) {
     return InputEvent::None;
 }
 int Input::centerX() const { return centerX_; }
+bool Input::switchHeld() const { return digitalRead(HardwareConfig::Pins::JoystickSwitch) == LOW; }
 int Input::centerY() const { return centerY_; }
 int Input::rawX() const { return analogRead(HardwareConfig::Pins::JoystickX); }
 int Input::rawY() const { return analogRead(HardwareConfig::Pins::JoystickY); }

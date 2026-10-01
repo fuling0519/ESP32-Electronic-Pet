@@ -46,6 +46,7 @@ enum class UiAction : uint8_t {
     Treat,
     Play,
     StartNormalSleep,
+    StartDeepSleep,
     Wake,
     AdoptNewEgg,
     DeleteMemorial,
@@ -79,6 +80,7 @@ public:
     void onSleepStarted(uint32_t now);
     void onFeedSucceeded(uint32_t now);
     void onWakeSucceeded();
+    void onDeepSleepPending(bool pending, bool failed = false);
     void onAdoptionSucceeded(uint32_t now);
     void onMemorialDeleteResult(bool success);
 
@@ -115,6 +117,9 @@ private:
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;
     uint8_t statusPage_ = 0;
+    uint8_t restOption_ = 0;
+    bool deepSleepPending_ = false;
+    bool deepSleepFailed_ = false;
     uint8_t deathOptionIndex_ = 0;
     uint8_t memorialIndex_ = 0;
     uint8_t deleteConfirmIndex_ = 0;

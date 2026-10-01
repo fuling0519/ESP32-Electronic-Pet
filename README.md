@@ -72,6 +72,13 @@ pio run -e esp32dev_sleep_test
 pio run -e esp32dev_sleep_test -t upload
 ```
 
+手動深度睡眠測試使用 `esp32dev_deep_sleep_test`，詳細操作見 [深睡驗收步驟](docs/deep-sleep-test.md)。它使用獨立 NVS namespace `pet-deep`，首次建立成鳥、心情 50；資料會跨睡醒與重開機保留，不覆寫正式寵物。進入「休息」後，上下選擇一般睡眠或省電睡眠，短按執行、長按返回。測試版省電睡眠 60 秒 Timer 喚醒，心情每 10 秒 +1；正式版不啟用 Timer，只由 SW 喚醒，心情每 10 分鐘 +1；每次醒來最多結算 48 小時，超出的時間不補算。測試版也可按 SW 提早喚醒，醒來重新廣播 BLE。實作／驗收只見主進度。
+
+```text
+pio run -e esp32dev_deep_sleep_test
+pio run -e esp32dev_deep_sleep_test -t upload
+```
+
 上板前核對 COM 埠、接線和供電；可從 VS Code 的 PlatformIO Build／Upload／Monitor 執行同樣工作。目前開機序列訊息以 `src/main.cpp` 為準，舊 README 所列的 `System Booting...` 範例已不適用。
 
 ## 硬體接線與目前操作

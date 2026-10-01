@@ -41,4 +41,15 @@ namespace Sound {
 constexpr uint8_t LedcChannel = 0;
 constexpr uint8_t LedcResolutionBits = 8;
 }  // namespace Sound
+namespace Sleep {
+#if defined(PET_DEEP_SLEEP_TEST_MODE)
+constexpr uint32_t TimerSeconds = 60;
+#else
+// Zero disables timer wakeup. Players wake the production pet with SW only.
+constexpr uint32_t TimerSeconds = 0;
+#endif
+constexpr uint32_t ReleaseStableMs = 100;
+constexpr uint32_t ReleaseTimeoutMs = 10000;
+constexpr uint32_t MaximumElapsedSeconds = 48UL * 60 * 60;
+}
 }  // namespace HardwareConfig

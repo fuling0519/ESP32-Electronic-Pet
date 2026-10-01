@@ -14,6 +14,10 @@ flutter pub get
 flutter run -d chrome
 ```
 
+Android 手機可用 Chrome 開啟 HTTPS 測試網址，從網頁按「搜尋裝置」，在系統選擇視窗選擇 ESP32-PET，再點網頁中的裝置列連線。允許瀏覽器使用藍牙；ESP32 保持供電。手機直接透過 BLE 連 ESP32，提供網頁的電腦不需要藍牙。電腦的 localhost 網址不可直接給手機使用。
+
+臨時測試可先執行 `flutter build web --release`，只對 `build/web` 啟動本機靜態 HTTP 服務，再用 Cloudflare Quick Tunnel 轉成 HTTPS。測試時保留網頁服務與 tunnel 程序；電腦關機或 tunnel 停止後網址失效，重新啟動會得到新網址。此方式不加入雲端資料庫，且不代表 BLE 實機驗收已通過。
+
 FlutterBluePlus 固定為 `2.3.13`，`pubspec.lock` 已產生並納入版控。使用 `flutter analyze` 及 `flutter build web --release` 檢查；最近結果見主進度連結。Windows 原生建置另需 Visual Studio 的 **Desktop development with C++**；Android 需 Android SDK；iOS 建置需 macOS 與 Xcode。套件宣告平台支援不代表本 App 已通過該平台驗證。
 
 ## 文件入口

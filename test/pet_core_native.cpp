@@ -7,8 +7,20 @@
 #include "pet/PetData.h"
 #include "pet/PetName.h"
 #include "storage/Memorials.h"
+#include "power/SleepSettlement.h"
 
 int main() {
+    uint32_t settledSeconds = 0, settledRemainderMs = 0;
+    const uint32_t cap = 48UL * 60 * 60;
+    assert(Power::sleepSettlement(1000000LL, 62500000LL, cap, settledSeconds, settledRemainderMs));
+    assert(settledSeconds == 61 && settledRemainderMs == 500);
+    assert(Power::sleepSettlement(0, static_cast<int64_t>(cap) * 1000000LL, cap, settledSeconds, settledRemainderMs));
+    assert(settledSeconds == cap && settledRemainderMs == 0);
+    assert(Power::sleepSettlement(0, 50LL * 60 * 60 * 1000000LL + 999000, cap, settledSeconds, settledRemainderMs));
+    assert(settledSeconds == cap && settledRemainderMs == 0);
+    assert(!Power::sleepSettlement(1000000LL, 999999LL, cap, settledSeconds, settledRemainderMs));
+    assert(settledSeconds == 0 && settledRemainderMs == 0);
+    assert(!Power::sleepSettlement(-1, 1000000LL, cap, settledSeconds, settledRemainderMs));
     Pet::PetData pet;
     assert(pet.ageSeconds() == 0);
     pet.advanceSeconds(599);
@@ -241,6 +253,42 @@ int main() {
     assert(memorials.count() == Storage::kMemorialCapacity);
 
     Pet::PetClock clock;
+    Pet::PetData deep;
+    deep.setMood(50);
+    assert(deep.beginDeepSleep());
+    assert(Pet::isValidPetSnapshot(deep.snapshot()));
+    deep.advanceSeconds(30);
+    assert(deep.ageSeconds() == 0);
+    deep.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds - 1);
+    const auto deepSaved = deep.snapshot();
+    const auto recoveryRemainder = deep.sleepRecoveryRemainder();
+    Pet::PetData deepRestored;
+    assert(deepRestored.restore(deepSaved));
+    assert(!deepRestored.restoreSleepRecoveryRemainder(Pet::PetData::kSleepMoodRecoverySeconds));
+    assert(deepRestored.restoreSleepRecoveryRemainder(recoveryRemainder));
+    deepRestored.advanceSleepSeconds(1);
+    assert(deepRestored.mood() == 51);
+    assert(deepRestored.ageSeconds() == Pet::PetData::kSleepMoodRecoverySeconds);
+    assert(deepRestored.wake());
+    assert(!deepRestored.restoreSleepRecoveryRemainder(1));
+    assert(!namedEgg.beginDeepSleep());
+    Pet::PetData shortSleeps;
+    shortSleeps.setMood(50);
+    assert(shortSleeps.beginDeepSleep());
+    shortSleeps.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds - 1);
+    assert(shortSleeps.wake());
+    assert(shortSleeps.beginNormalSleep());
+    shortSleeps.advanceSleepSeconds(1);
+    assert(shortSleeps.mood() == 51);
+    Pet::PetData deepNeglect;
+    deepNeglect.setSatiety(0);
+    assert(deepNeglect.beginDeepSleep());
+    deepNeglect.advanceSleepSeconds(Pet::PetData::kSicknessExposureSeconds +
+        Pet::PetData::kDeathAfterSickAwakeSeconds + 100);
+    assert(deepNeglect.isDead());
+    assert(deepNeglect.ageSeconds() == Pet::PetData::kSicknessExposureSeconds +
+        Pet::PetData::kDeathAfterSickAwakeSeconds);
+    assert(Pet::isValidPetSnapshot(deepNeglect.snapshot()));
     assert(clock.consumeElapsedSeconds(UINT32_MAX - 500) == 0);
     assert(clock.consumeElapsedSeconds(498) == 0);
     assert(clock.consumeElapsedSeconds(499) == 1);

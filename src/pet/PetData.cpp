@@ -343,7 +343,7 @@ void PetData::advanceSeconds(uint32_t seconds) {
 }
 
 void PetData::advanceSleepSeconds(uint32_t seconds) {
-    if (sleepMode_ != SleepMode::Normal) return;
+    if (sleepMode_ != SleepMode::Normal && sleepMode_ != SleepMode::Deep) return;
     advanceSecondsForMode(seconds, true);
 }
 
@@ -354,7 +354,6 @@ bool PetData::beginNormalSleep() {
     sleepStartedAt_ = {0, false};
     lastSleepSettledAt_ = {0, false};
     moodRemainderSeconds_ = 0;
-    sleepMoodRecoveryRemainderSeconds_ = 0;
     ++displayRevision_;
     return true;
 }
@@ -364,9 +363,20 @@ bool PetData::wake() {
     sleepMode_ = SleepMode::Awake;
     sleepStartedAt_ = {0, false};
     lastSleepSettledAt_ = {0, false};
-    sleepMoodRecoveryRemainderSeconds_ = 0;
     growUpIfReady();
     ++displayRevision_;
+    return true;
+}
+
+bool PetData::beginDeepSleep() {
+    if (!beginNormalSleep()) return false;
+    sleepMode_ = SleepMode::Deep;
+    return true;
+}
+
+bool PetData::restoreSleepRecoveryRemainder(uint32_t seconds) {
+    if (seconds >= kSleepMoodRecoverySeconds || sleepMode_ == SleepMode::Awake) return false;
+    sleepMoodRecoveryRemainderSeconds_ = seconds;
     return true;
 }
 
