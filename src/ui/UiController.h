@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "hardware/Input.h"
+#include "games/RpsGame.h"
 
 namespace Hardware {
 class Display;
@@ -44,7 +45,7 @@ enum class UiAction : uint8_t {
     Feed,
     Clean,
     Treat,
-    Play,
+    FinishGame,
     StartNormalSleep,
     StartDeepSleep,
     Wake,
@@ -63,7 +64,8 @@ class UiController {
 public:
     UiController(Hardware::Display& display, Hardware::Sound& sound,
                  const Pet::PetData& pet,
-                 const Storage::Memorials& memorials);
+                 const Storage::Memorials& memorials,
+                 Games::RpsGame::RandomSource random);
 
     void init(uint32_t now);
     // Returns true when visible UI state has changed.
@@ -75,6 +77,8 @@ public:
     uint8_t menuIndex() const;
     const char* selectedMenuItem() const;
     UiAction takeAction();
+    uint8_t takeGameReward();
+    void onGameRewardApplied(uint8_t actualGain);
     uint8_t selectedMemorialIndex() const;
     void setMemorialReady(bool ready);
     void onSleepStarted(uint32_t now);
@@ -95,6 +99,8 @@ private:
     void renderDetailedStatusPage2();
     void renderPlaceholder(const char* title);
     void renderCare(const char* title, const char* stat, unsigned value);
+    void renderGame();
+    void updateGame(Hardware::InputEvent event, uint32_t now);
     void renderRest();
     void renderSleeping();
     void beginGrowthTransition(ScreenId screen, uint32_t now);
@@ -113,6 +119,8 @@ private:
     Hardware::Sound& sound_;
     const Pet::PetData& pet_;
     const Storage::Memorials& memorials_;
+    Games::RpsGame game_;
+    uint8_t gameMoodGain_ = 0;
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;

@@ -1,5 +1,6 @@
 #if defined(PET_DIRTY_PREVIEW_MODE)
 #include <Arduino.h>
+#include <esp_system.h>
 #include "hardware/Display.h"
 #include "hardware/Input.h"
 #include "hardware/Sound.h"
@@ -13,7 +14,7 @@ Hardware::Input input;
 Hardware::Sound sound;
 Pet::PetData pet;
 Storage::Memorials memorials;
-Ui::UiController ui(display, sound, pet, memorials);
+Ui::UiController ui(display, sound, pet, memorials, esp_random);
 constexpr uint8_t values[] = {100, 75, 50, 25};
 uint32_t changedAt;
 uint8_t stage = 0;

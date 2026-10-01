@@ -9,6 +9,7 @@
 #include "pet/PetData.h"
 #include "storage/Memorials.h"
 #include "ui/PetIcons.h"
+#include "ui/RpsIcons.h"
 
 namespace Ui {
 namespace {
@@ -95,8 +96,9 @@ const char* inputEventName(Hardware::InputEvent event) {
 
 UiController::UiController(Hardware::Display& display, Hardware::Sound& sound,
                            const Pet::PetData& pet,
-                           const Storage::Memorials& memorials)
-    : display_(display), sound_(sound), pet_(pet), memorials_(memorials) {}
+                           const Storage::Memorials& memorials,
+                           Games::RpsGame::RandomSource random)
+    : display_(display), sound_(sound), pet_(pet), memorials_(memorials), game_(random) {}
 
 void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
@@ -126,6 +128,8 @@ void UiController::init(uint32_t now) {
     observedLifeStage_ = pet_.lifeStage();
     dirty_ = true;
     pendingAction_ = UiAction::None;
+    game_.cancel();
+    gameMoodGain_ = 0;
     lastRenderedPetRevision_ = pet_.displayRevision();
 }
 
@@ -285,7 +289,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                     case 0: setScreen(ScreenId::FeedCare); break;
                     case 1: setScreen(ScreenId::CleanCare); break;
                     case 2: setScreen(ScreenId::TreatCare); break;
-                    case 3: setScreen(ScreenId::PlayCare); break;
+                    case 3:
+                        game_.begin(); gameMoodGain_ = 0;
+                        setScreen(ScreenId::PlayCare); break;
                     case 4:
                         restOption_ = 0; deepSleepFailed_ = false;
                         setScreen(ScreenId::Rest); break;
@@ -304,19 +310,22 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         case ScreenId::FeedCare:
         case ScreenId::CleanCare:
         case ScreenId::TreatCare:
-        case ScreenId::PlayCare:
             if (event == Hardware::InputEvent::Press) {
                 if (pet_.lifeStage() == Pet::LifeStage::Egg) {
                     sound_.playFailure();
                 } else {
                     pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
                         screen_ == ScreenId::CleanCare ? UiAction::Clean :
-                        screen_ == ScreenId::TreatCare ? UiAction::Treat : UiAction::Play;
+                        UiAction::Treat;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::MainMenu);
             }
+            break;
+
+        case ScreenId::PlayCare:
+            updateGame(event, now);
             break;
 
         case ScreenId::Rest:
@@ -492,7 +501,7 @@ void UiController::render() {
         case ScreenId::CleanCare: renderCare("清潔", "清潔", pet_.cleanliness()); break;
         case ScreenId::TreatCare:
             renderCare("治療", "健康", pet_.isSick() ? 1 : 0); break;
-        case ScreenId::PlayCare: renderCare("陪玩", "心情", pet_.mood()); break;
+        case ScreenId::PlayCare: renderGame(); break;
         case ScreenId::Rest: renderRest(); break;
         case ScreenId::Sleeping: renderSleeping(); break;
         case ScreenId::DetailedStatus: renderDetailedStatus(); break;
@@ -622,6 +631,10 @@ void UiController::beginDeathAnimation(uint32_t now) {
 
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
+    if (screen_ == ScreenId::PlayCare) {
+        game_.cancel();
+        if (pendingAction_ == UiAction::FinishGame) pendingAction_ = UiAction::None;
+    }
     screen_ = screen;
     feeding_ = false;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
@@ -760,6 +773,137 @@ void UiController::renderPlaceholder(const char* title) {
     drawCenteredUiText(display_, 59, "長按返回");
 }
 
+uint8_t UiController::takeGameReward() { return game_.takeReward(); }
+
+void UiController::onGameRewardApplied(uint8_t actualGain) {
+    gameMoodGain_ = actualGain;
+    dirty_ = true;
+}
+
+void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
+    using namespace Games;
+    if (event == Hardware::InputEvent::LongPress) {
+        sound_.playCancel();
+        setScreen(ScreenId::MainMenu);
+        return;
+    }
+    if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
+        pet_.sleepMode() != Pet::SleepMode::Awake) {
+        if (game_.phase() != RpsPhase::Ready) { game_.begin(); dirty_ = true; }
+        if (event == Hardware::InputEvent::Press) sound_.playFailure();
+        return;
+    }
+    RpsInput input = RpsInput::None;
+    switch (event) {
+        case Hardware::InputEvent::Left: input = RpsInput::Left; break;
+        case Hardware::InputEvent::Right: input = RpsInput::Right; break;
+        case Hardware::InputEvent::Press: input = RpsInput::Confirm; break;
+        case Hardware::InputEvent::Up:
+        case Hardware::InputEvent::Down: input = RpsInput::ToggleReplay; break;
+        default: break;
+    }
+    const RpsPhase previous = game_.phase();
+    const uint8_t previousDigit = game_.countdown();
+    if (game_.update(input, now)) dirty_ = true;
+    const RpsPhase current = game_.phase();
+    if (current == RpsPhase::Inactive) {
+        sound_.playCancel();
+        setScreen(ScreenId::MainMenu);
+        return;
+    }
+    if (current == RpsPhase::Select && previous != current && game_.round() == 1)
+        gameMoodGain_ = 0;
+    if (current == RpsPhase::Countdown &&
+        (previous != current || previousDigit != game_.countdown())) sound_.playTone(1000, 45);
+    if (current == RpsPhase::Reveal && previous != current) {
+        if (game_.roundOutcome() == RpsOutcome::Win) sound_.playSuccess();
+        else if (game_.roundOutcome() == RpsOutcome::Loss) sound_.playFailure();
+        else sound_.playConfirm();
+    }
+    if (game_.rewardPending()) pendingAction_ = UiAction::FinishGame;
+}
+
+void UiController::renderGame() {
+    using namespace Games;
+    const uint8_t* const icons[] = {RpsIcons::kScissors, RpsIcons::kRock, RpsIcons::kPaper};
+    const char* const names[] = {"剪刀", "石頭", "布"};
+    const auto outcomeText = [](RpsOutcome result) {
+        return result == RpsOutcome::Win ? "你贏了" :
+            result == RpsOutcome::Loss ? "你輸了" : "平手";
+    };
+    const auto hand = [&](int16_t x, int16_t y, RpsMove move) {
+        display_.drawGlyph(x, y, icons[static_cast<unsigned>(move)],
+                           RpsIcons::kWidth, RpsIcons::kHeight);
+    };
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick()) {
+        drawCenteredUiText(display_, 15, "猜拳");
+        display_.drawLine(6, 20, 121, 20);
+        drawCenteredUiText(display_, 38, pet_.isSick() ? "請先治療" : "等待孵化");
+        drawCenteredUiText(display_, 58, "長按返回");
+        return;
+    }
+    char text[32];
+    switch (game_.phase()) {
+        case RpsPhase::Ready:
+            drawCenteredUiText(display_, 15, "猜拳");
+            display_.drawLine(6, 20, 121, 20);
+            drawCenteredUiText(display_, 38, "共三回合");
+            drawCenteredUiText(display_, 58, "按下開始");
+            break;
+        case RpsPhase::Select:
+            display_.drawUiText(6, 15, "猜拳");
+            snprintf(text, sizeof(text), "%u/3", game_.round());
+            display_.drawText(102, 15, text);
+            for (uint8_t i = 0; i < 3; ++i) {
+                hand(12 + 40 * i, 26, static_cast<RpsMove>(i));
+                if (i == static_cast<uint8_t>(game_.player()))
+                    display_.drawFrame(8 + 40 * i, 23, 32, 24);
+            }
+            drawCenteredUiText(display_, 60, names[static_cast<unsigned>(game_.player())]);
+            break;
+        case RpsPhase::Countdown: {
+            display_.drawUiText(6, 15, "猜拳");
+            snprintf(text, sizeof(text), "%u/3", game_.round());
+            display_.drawText(102, 15, text);
+            // Large 3x5 digits, each cell 4x4; no extra font dependency.
+            const uint16_t digits[] = {0, 0x2C97, 0x73E7, 0x73CF};
+            const uint16_t bits = digits[game_.countdown()];
+            for (uint8_t row = 0; row < 5; ++row)
+                for (uint8_t col = 0; col < 3; ++col)
+                    if (bits & (1U << (14 - row * 3 - col)))
+                        for (uint8_t dy = 0; dy < 4; ++dy)
+                            display_.drawLine(58 + col * 4, 26 + row * 4 + dy,
+                                              61 + col * 4, 26 + row * 4 + dy);
+            break;
+        }
+        case RpsPhase::Reveal:
+            display_.drawUiText(23, 15, "你");
+            display_.drawText(94 - static_cast<int16_t>(strlen(pet_.name()) * 3), 15, pet_.name());
+            hand(17, 25, game_.player());
+            hand(82, 25, game_.opponent());
+            display_.drawText(58, 37, "VS");
+            drawCenteredUiText(display_, 60, outcomeText(game_.roundOutcome()));
+            break;
+        case RpsPhase::Summary:
+            drawCenteredUiText(display_, 15, outcomeText(game_.outcome()));
+            snprintf(text, sizeof(text), "%u:%u", game_.wins(), game_.losses());
+            drawCenteredUiText(display_, 36, text);
+            snprintf(text, sizeof(text), "心情 +%u", gameMoodGain_);
+            drawCenteredUiText(display_, 58, text);
+            break;
+        case RpsPhase::Replay:
+            drawCenteredUiText(display_, 15, "再玩？");
+            display_.drawLine(6, 20, 121, 20);
+            display_.drawUiText(48, 36, "再玩");
+            display_.drawUiText(48, 56, "返回");
+            display_.drawText(34, game_.replaySelected() ? 36 : 56, ">");
+            break;
+        case RpsPhase::Inactive: break;
+    }
+}
+
 void UiController::renderCare(const char* title, const char* stat, unsigned value) {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
@@ -779,7 +923,7 @@ void UiController::renderCare(const char* title, const char* stat, unsigned valu
     }
     const char* action = screen_ == ScreenId::FeedCare ? "按下執行 +20" :
         screen_ == ScreenId::CleanCare ? "按下執行 +30" :
-        screen_ == ScreenId::PlayCare ? "按下執行 +15" : "按下執行";
+        "按下執行";
     drawCenteredUiText(display_, 50, action);
     drawCenteredUiText(display_, 62, "長按返回");
 }

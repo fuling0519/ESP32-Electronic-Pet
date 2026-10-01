@@ -43,7 +43,7 @@ private:
     Pet::PetClock petClock;
     Storage::Memorials memorials;
     Ble::Link ble;
-    Ui::UiController ui{display, sound, pet, memorials};
+    Ui::UiController ui{display, sound, pet, memorials, esp_random};
     uint64_t lastEggCheckpointMinute = 0;
     bool memorialReady = false;
     bool appReady = false;
@@ -370,9 +370,15 @@ void Application::loop() {
         case Ui::UiAction::Clean:
             if (pet.clean()) sound.playSuccess(); else sound.playFailure();
             break;
-        case Ui::UiAction::Play:
-            if (pet.play()) sound.playSuccess(); else sound.playFailure();
+        case Ui::UiAction::FinishGame: {
+            const uint8_t reward = ui.takeGameReward();
+            const uint8_t before = pet.mood();
+            if (reward && !pet.isDead() && !pet.isSick() &&
+                pet.lifeStage() != Pet::LifeStage::Egg &&
+                pet.sleepMode() == Pet::SleepMode::Awake) pet.changeMood(reward);
+            ui.onGameRewardApplied(pet.mood() - before);
             break;
+        }
         case Ui::UiAction::Treat:
             if (pet.treat()) sound.playSuccess();
             else sound.playFailure();
