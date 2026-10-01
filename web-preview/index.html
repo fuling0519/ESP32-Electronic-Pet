@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小鳥的午後花園 · 互動展示</title><link rel="stylesheet" href="style.css"></head>
+<body><main id="aviary">
+<header><div><small>MY LITTLE AVIARY</small><h1>小鳥的午後花園</h1><p>陪牠吃飯、整理羽毛，一起度過小小的日常。</p></div><button id="connection">裝置連線說明</button></header>
+<div class="ribbon"><span>✿ 互動展示模式</span><span>未連接 ESP32 · 數值為模擬資料</span></div>
+<section class="scene" aria-label="像素花園與會動的小鳥"><img id="background" src="assets/garden-simple.png" alt="粉彩像素花園"><canvas id="bird" width="384" height="256" aria-label="Tamama 小鳥"></canvas><div id="illness-notice" hidden><strong>＋ 生病中</strong><span>需要休息與治療</span></div><div id="bubble" hidden></div><div class="scene-controls"><button id="day" aria-pressed="true">☀ 午後</button><button id="night" aria-pressed="false">☾ 星夜</button></div></section>
+<section class="preview-controls" aria-label="小鳥狀態展示"><label>背景 <select id="backdrop"><option value="simple">簡約藍天草地</option><option value="garden">原版花園</option></select></label><label>生命階段 <select id="stage"><option value="adult">成鳥</option><option value="baby">幼鳥</option></select></label><label>展示狀態 <select id="condition"><option value="awake">清醒</option><option value="sleep">睡眠</option><option value="sick">生病</option></select></label><span>可自由搭配幼鳥與不同狀態</span></section>
+<section class="details"><div><small>YOUR LITTLE COMPANION</small><h2>Tamama</h2><p id="pet-description">成鳥 · 健康 · 清醒</p><span>有效年齡：1 小時（展示）</span></div><div class="meters">
+<label>飽食度 <output id="satiety-value">60</output><progress id="satiety" max="100" value="60"></progress></label>
+<label>心情 <output id="mood-value">55</output><progress id="mood" max="100" value="55"></progress></label>
+<label>清潔度 <output id="cleanliness-value">45</output><progress id="cleanliness" max="100" value="45"></progress></label></div></section>
+<nav class="care" aria-label="展示照顧操作"><button data-action="feed"><span>✦</span>餵食</button><button data-action="clean"><span>❋</span>清潔</button><button data-action="play"><span>♡</span>陪玩</button></nav>
+<p id="status" role="status" aria-live="polite">牠正在棲架上等你。試著餵牠一點種子吧！</p>
+<footer><span>本頁互動只作用於展示小鳥。</span><button id="reset">重新試玩</button></footer>
+<dialog id="device-dialog"><h2>裝置連線</h2><p>這一版是可操作的美術與動畫展示，尚未連接硬體。</p><p>依 Web 計畫，下一階段先透過 Chrome 與 HTTPS／localhost 驗收 BLE 唯讀連線。餵食、清潔與治療的真實命令須等 W1、W3 與 BLE-S3 完成。</p><p>陪玩目前為展示互動；Web 首版正式命令範圍是餵食、清潔、治療。</p><form method="dialog"><button>回到花園</button></form></dialog>
+</main><script src="app.js"></script></body></html>
+
+
