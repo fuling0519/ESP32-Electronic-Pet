@@ -23,6 +23,8 @@
 
 ## 重跑
 
+2026-10-02 素材更新：改用使用者的 48×36 猜拳圖，依左上布／右上石頭／左下剪刀分割，不縮放。已重跑原生測試與 17 張實際 UI 預覽，新圖已檢查；正式韌體建置見 `.pio/rps-assets-build.log`。本次沒有燒錄，新素材的實機顯示仍待確認；2026-10-01 的操作與 BLE 驗收屬替換前版本。
+
 先完成一次 `pio run -e esp32dev` 取得 U8g2 依賴，再在專案根目錄使用有 `gcc`／`g++` 的 PowerShell 執行：
 
 ```powershell
@@ -30,7 +32,7 @@
 python tools/render_rps_preview.py
 ```
 
-第二行需要 Pillow。`tools/generate_rps_icons.py` 可重新產生目前手勢及單獨素材預覽；未來換圖時維持 24×18 單色及 Display::drawGlyph 的 row-major／MSB-first／0 為亮點約定。
+第二行需要 Pillow。`tools/generate_rps_icons.py` 讀取 `assets/GAME/Rock-Paper-Scissors.png` 產生手勢及單獨素材預覽；未來換圖時維持 48×36 四格排列、每格 24×18 單色及 Display::drawGlyph 的 row-major／MSB-first／0 為亮點約定。
 
 ## 上板驗收
 
