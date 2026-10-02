@@ -32,7 +32,9 @@
 python tools/render_rps_preview.py
 ```
 
-第二行需要 Pillow。`tools/generate_rps_icons.py` 讀取 `assets/GAME/Rock-Paper-Scissors.png` 產生手勢及單獨素材預覽；未來換圖時維持 48×36 四格排列、每格 24×18 單色及 Display::drawGlyph 的 row-major／MSB-first／0 為亮點約定。
+第二行需要 Pillow。`tools/generate_rps_icons.py` 從 `assets/GAME/Rock-Paper-Scissors.png` 讀取石頭及布，從 `assets/GAME/Rock-Paper-Scissors-2.png` 讀取剪刀，產生手勢及單獨素材預覽；未來換圖時維持 48×36 四格排列、每格 24×18 單色及 Display::drawGlyph 的 row-major／MSB-first／0 為亮點約定。
+
+2026-10-02 剪刀再次更新：僅替換第二版素材的左下格，已比對石頭及布的韌體圖像資料與更新前完全一致。原生測試及 17 張 UI 預覽已重跑並檢查；測試與建置紀錄分別為 `.pio/rps-scissors-tests.log`、`.pio/rps-scissors-build.log`。本次未燒錄，新剪刀仍待實機確認。
 
 ## 上板驗收
 
