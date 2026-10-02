@@ -2,17 +2,29 @@
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小鳥的午後花園 · 互動展示</title><link rel="stylesheet" href="style.css"></head>
 <body><main id="aviary">
 <header><div><small>MY LITTLE AVIARY</small><h1>小鳥的午後花園</h1><p>陪牠吃飯、整理羽毛，一起度過小小的日常。</p></div><button id="connection">裝置連線說明</button></header>
-<div class="ribbon"><span>✿ 互動展示模式</span><span>未連接 ESP32 · 數值為模擬資料</span></div>
-<section class="scene" aria-label="像素花園與會動的小鳥"><img id="background" src="assets/garden-simple.png" alt="粉彩像素花園"><canvas id="bird" width="384" height="256" aria-label="Tamama 小鳥"></canvas><div id="illness-notice" hidden><strong>＋ 生病中</strong><span>需要休息與治療</span></div><div id="bubble" hidden></div><div class="scene-controls"><button id="day" aria-pressed="true">☀ 午後</button><button id="night" aria-pressed="false">☾ 星夜</button></div></section>
-<section class="preview-controls" aria-label="小鳥狀態展示"><label>背景 <select id="backdrop"><option value="simple">簡約藍天草地</option><option value="garden">原版花園</option></select></label><label>生命階段 <select id="stage"><option value="adult">成鳥</option><option value="baby">幼鳥</option></select></label><label>展示狀態 <select id="condition"><option value="awake">清醒</option><option value="sleep">睡眠</option><option value="sick">生病</option></select></label><span>可自由搭配幼鳥與不同狀態</span></section>
-<section class="details"><div><small>YOUR LITTLE COMPANION</small><h2>Tamama</h2><p id="pet-description">成鳥 · 健康 · 清醒</p><span>有效年齡：1 小時（展示）</span></div><div class="meters">
+<div class="ribbon"><label>資料模式 <select id="mode"><option value="mock">展示模式</option><option value="ble">裝置模式</option></select></label><span id="mode-label">✿ 展示模式</span><span id="source-label">模擬資料 · 不會影響 ESP32</span></div>
+<section class="scene" aria-label="像素花園與會動的小鳥"><img id="background" src="assets/garden-simple.png" alt="粉彩像素花園"><canvas id="bird" width="384" height="256" aria-label="Tamama 小鳥"></canvas><div id="illness-notice" hidden><strong>＋ 生病中</strong><span>需要休息與治療</span></div><div id="bubble" hidden></div><div id="tombstone" hidden><strong>RIP</strong><span id="tomb-name"></span><small id="tomb-age"></small></div><div id="device-empty" hidden><strong>尚未連接裝置</strong><p>連線後才會顯示小鳥與真實數值。</p><p>目前 BLE 連線功能尚未接入。</p></div><div class="scene-controls"><button id="day" aria-pressed="true">☀ 午後</button><button id="night" aria-pressed="false">☾ 星夜</button></div></section>
+<section class="preview-controls" aria-label="小鳥狀態展示"><label>背景 <select id="backdrop"><option value="smooth">柔和立體花園</option><option value="garden">原版花園</option></select></label><label>生命階段 <select id="stage"><option value="egg">蛋</option><option value="adult">成鳥</option><option value="baby">幼鳥</option></select></label><label>展示狀態 <select id="condition"><option value="awake">清醒</option><option value="sleep">睡眠</option><option value="sick">生病</option><option value="dead">死亡告別</option></select></label><span>可自由搭配幼鳥與不同狀態</span></section>
+<section class="details"><div><small>YOUR LITTLE COMPANION</small><h2 id="pet-name">Tamama</h2><div id="health-badge" class="health-badge healthy" role="status" aria-live="polite"><span class="health-icons" aria-hidden="true"><span class="health-icon sick-icon">!</span><span class="health-icon healthy-icon">✓</span></span><span id="health-label">健康</span></div><p id="pet-description">成鳥 · 健康 · 清醒</p><span id="pet-age">有效年齡：1 小時（展示）</span></div><div class="meters">
 <label>飽食度 <output id="satiety-value">60</output><progress id="satiety" max="100" value="60"></progress></label>
 <label>心情 <output id="mood-value">55</output><progress id="mood" max="100" value="55"></progress></label>
 <label>清潔度 <output id="cleanliness-value">45</output><progress id="cleanliness" max="100" value="45"></progress></label></div></section>
-<nav class="care" aria-label="展示照顧操作"><button data-action="feed"><span>✦</span>餵食</button><button data-action="clean"><span>❋</span>清潔</button><button data-action="play"><span>♡</span>陪玩</button></nav>
+<section id="afterlife-menu" hidden aria-label="下一步"><p>謝謝你曾經陪伴牠。</p><button id="visit-graves">1、進入墓園</button><button id="adopt-egg">2、領養新蛋</button><p id="adoption-note"></p></section><nav class="care" aria-label="展示照顧操作"><button data-action="feed"><span>✦</span>餵食</button><button data-action="clean"><span>❋</span>清潔</button><button id="treat-button" data-action="treat" hidden disabled><span aria-hidden="true">💊</span>治療</button><button data-action="play"><span>♡</span>陪玩</button></nav>
 <p id="status" role="status" aria-live="polite">牠正在棲架上等你。試著餵牠一點種子吧！</p>
-<footer><span>本頁互動只作用於展示小鳥。</span><button id="reset">重新試玩</button></footer>
-<dialog id="device-dialog"><h2>裝置連線</h2><p>這一版是可操作的美術與動畫展示，尚未連接硬體。</p><p>依 Web 計畫，下一階段先透過 Chrome 與 HTTPS／localhost 驗收 BLE 唯讀連線。餵食、清潔與治療的真實命令須等 W1、W3 與 BLE-S3 完成。</p><p>陪玩目前為展示互動；Web 首版正式命令範圍是餵食、清潔、治療。</p><form method="dialog"><button>回到花園</button></form></dialog>
-</main><script src="app.js"></script></body></html>
+<p id="last-received" hidden></p><p id="storage-status" role="status" aria-live="polite"></p><footer><span id="mode-footer">本頁互動只作用於展示小鳥。</span><button id="open-cemetery">查看墓園</button><button id="reset">重新試玩</button></footer>
+<dialog id="device-dialog" aria-labelledby="connection-title"><h2 id="connection-title">裝置連線準備</h2><p id="ble-capability" role="status"></p><p id="ble-guidance"></p><ol><li>開啟 ESP32 電子寵物，放在電腦或手機附近。</li><li>開啟系統藍牙，再從網頁選擇 ESP32-PET。</li><li>連線後等待裝置回傳完整狀態，才顯示真實數值。</li></ol><p>本版只讀取裝置資訊與狀態，不發送餵食、清潔或治療命令。</p><p id="ble-state" role="status" aria-live="polite">尚未連接裝置</p><button id="ble-search" type="button">搜尋 ESP32-PET</button><button id="ble-disconnect" type="button" disabled>中止／斷線</button><p>取消授權可再試；斷線後資料應標為離線舊資料。餵食、清潔與治療須等實機驗收及命令協定完成才開放。</p><button id="check-ble" type="button">重新檢查瀏覽器</button><form method="dialog"><button>回到花園</button></form></dialog>
+<dialog id="cemetery-dialog" aria-labelledby="cemetery-title"><h2 id="cemetery-title">陪伴紀念花園</h2><label>選擇裝置 <select id="cemetery-device"></select></label><p>只顯示此瀏覽器曾收到並保存的紀錄，不代表裝置全部歷史。切換下列紀錄不會重新連接藍牙。</p><div id="memorial-list"></div><form method="dialog"><button>回到小鳥花園</button></form></dialog><dialog id="adopt-dialog"><h2>領養新的展示蛋？</h2><p>上一隻小鳥的紀錄會留在墓園。新蛋會在此頁面累計 5 分鐘後孵化，再累計 60 分鐘長成；關閉頁面不補算。</p><button id="confirm-adopt">領養新蛋</button><form method="dialog"><button>先留在這裡</button></form></dialog></main><script src="local-store.js"></script><script src="data-sources.js?v=abb-20261002"></script><script src="ble-source.js"></script><script src="ble-readiness.js"></script><script src="memorials.js"></script><script src="app.js"></script></body></html>
+
+
+
+
+
+
+
+
+
+
+
+
 
 

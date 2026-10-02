@@ -4,3 +4,44 @@
 
 #aviary.simple-background .scene img{filter:none}#aviary.simple-background.night .scene img{filter:brightness(.62) saturate(.65)}
 #illness-notice{position:absolute;left:12px;top:12px;padding:8px 12px;background:#fff5cf;border:2px solid #896448;color:#282523;display:flex;flex-direction:column;font-size:12px;box-shadow:3px 3px 0 #896448}#illness-notice[hidden]{display:none}#illness-notice strong{font-size:16px}.is-sick #bubble{border-color:#896448;color:#282523;background:#fffaf0}.is-sick #pet-description{font-weight:bold;color:#67432e}@media(max-width:650px){#illness-notice{left:6px;top:6px;padding:4px 7px;font-size:11px}#illness-notice strong{font-size:13px}.is-sick #bubble{top:27%;max-width:90%;font-size:12px}}
+
+/* Keep the vector character smooth at every responsive size. */
+.scene canvas{image-rendering:auto}
+
+.scene canvas{pointer-events:auto;cursor:grab}.scene canvas:active{cursor:grabbing}.scene canvas:focus-visible{outline:3px solid #665484;outline-offset:-3px}
+
+.scene canvas{pointer-events:none;cursor:default}
+
+#device-empty{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:85%;max-width:360px;padding:18px;text-align:center;background:var(--panel);border:2px solid var(--line)}#device-empty p{font-size:13px}.ribbon select{font:inherit;padding:6px;color:var(--ink)}button:disabled{cursor:not-allowed}
+
+#storage-status{font-size:12px;text-align:center;margin:12px 0;color:var(--ink)}
+
+#aviary.smooth-background .scene img{image-rendering:auto}
+
+.scene img{image-rendering:auto}
+
+/* Brighten the detailed garden while preserving its illustration contours. */
+#aviary:not(.simple-background) .scene img{filter:brightness(1.10) saturate(1.08)}
+
+.care{flex-wrap:wrap}.care button{flex:1 1 120px}@media(max-width:650px){.care button{flex:1 1 40%}}
+/* Health badge: layered icons cross-fade while the background changes color. */
+.health-badge{display:inline-flex;align-items:center;gap:8px;border-radius:20px;padding:5px 12px;margin:5px 0;background:#e1f1e5;color:#327447;border:1px solid #a6ccaf;transition:background-color .4s,color .4s,border-color .4s}
+.health-badge.sick{background:#fbe4e3;color:#b63f3e;border-color:#e6aaa6}
+.health-badge.unknown{background:#ece8e1;color:#786f65;border-color:#cec5b9}
+.health-icons{position:relative;width:18px;height:18px}
+.health-icon{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;color:white;font:bold 12px/1 sans-serif;transition:opacity .4s,transform .4s}
+.sick-icon{background:#cc514f;opacity:0;transform:scale(.7)}
+.healthy-icon{background:#438c59;opacity:1;transform:scale(1)}
+.sick .sick-icon{opacity:1;transform:scale(1);animation:health-pulse 1.8s ease-in-out infinite}
+.sick .healthy-icon,.unknown .health-icon{opacity:0;transform:scale(.7)}
+.healing .sick-icon{animation:heal-out .45s ease-out forwards}
+@keyframes health-pulse{0%,100%{box-shadow:0 0 0 0 #cc514f22;opacity:1}50%{box-shadow:0 0 0 5px #cc514f08;opacity:.65}}
+@keyframes heal-out{from{opacity:1;transform:scale(1)}to{opacity:.25;transform:scale(1.2)}}
+#treat-button{transition:opacity .4s,transform .4s,max-width .4s,padding .4s;max-width:220px}
+#treat-button.treatment-hidden{opacity:0;transform:scale(.9);pointer-events:none;flex:0 0 0;min-width:0;max-width:0;padding-left:0;padding-right:0;overflow:hidden}
+#treat-button[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.health-icon,.health-badge,#treat-button{transition:none}.sick .sick-icon,.healing .sick-icon{animation:none}}
+#tombstone{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:clamp(130px,30%,250px);padding:25px 14px 16px;border-radius:65px 65px 10px 10px;background:linear-gradient(135deg,#ece6dd,#bcb5ad);border:3px solid #8e857b;color:#564e48;box-shadow:0 8px 10px #40372b33;text-align:center}
+#tombstone[hidden],#afterlife-menu[hidden]{display:none}#tombstone strong{font-size:26px;letter-spacing:5px}#tomb-name{overflow-wrap:anywhere;font-size:12px}#tomb-age{font-size:11px}
+#afterlife-menu{text-align:center;margin:18px 0;padding:18px;background:#eee5d8;border:2px solid var(--line)}#afterlife-menu button{margin:6px}#adoption-note{font-size:12px}
+#cemetery-dialog{max-width:760px;max-height:85svh;overflow:auto}#cemetery-dialog select{font:inherit;max-width:100%;padding:8px}#memorial-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:20px 0}.memorial-card{padding:20px;background:#f6efdf;border:1px solid #c8baa8;border-radius:12px;overflow-wrap:anywhere}.memorial-card p,.memorial-card small{font-size:12px}.mini-stone{width:75px;padding:25px 6px 12px;border-radius:40px 40px 4px 4px;background:#d8d1c7;border:2px solid #a3988a;text-align:center;margin:auto}
