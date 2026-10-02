@@ -385,10 +385,13 @@ void Application::loop() {
             ui.onGameRewardApplied(pet.mood() - before, expGain, previousLevel);
             break;
         }
-        case Ui::UiAction::Treat:
-            if (pet.treat()) sound.playSuccess();
+        case Ui::UiAction::Treat: {
+            const bool success = pet.treat();
+            ui.onTreatResult(success, now);
+            if (success) sound.playSuccess();
             else sound.playFailure();
             break;
+        }
         case Ui::UiAction::StartNormalSleep:
             if (startNormalSleep(now)) {
                 sound.playConfirm();

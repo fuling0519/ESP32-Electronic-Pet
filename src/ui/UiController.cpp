@@ -10,6 +10,7 @@
 #include "storage/Memorials.h"
 #include "ui/PetIcons.h"
 #include "ui/RpsIcons.h"
+#include "ui/PotionSprite.h"
 
 namespace Ui {
 namespace {
@@ -24,6 +25,9 @@ constexpr uint32_t kSleepBirdFrameMs = 900;
 constexpr uint32_t kFeedingDurationMs = 3000;
 constexpr uint32_t kFeedingFrameMs = 250;
 constexpr uint32_t kSleepZFrameMs = 650;
+constexpr uint32_t kTreatmentPourDoneMs = 1200;
+constexpr uint32_t kTreatmentSparkleStartMs = 1400;
+constexpr uint32_t kTreatmentDurationMs = 3400;
 constexpr uint8_t kMenuItemCount = 7;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -53,6 +57,29 @@ void drawCenteredUiText(Hardware::Display& display, int16_t baseline,
                         const char* text) {
     display.drawUiText(64 - static_cast<int16_t>(display.uiTextWidth(text) / 2),
                        baseline, text);
+}
+
+void drawSparkles(Hardware::Display& display, uint8_t frame,
+                  int16_t leftX, int16_t rightX) {
+    // Each star fades to a point before reappearing at its other height.
+    // Their different phases and travel distances keep the sparkle irregular.
+    const uint8_t leftLight[]  = {0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 0};
+    const uint8_t rightLight[] = {0, 0, 1, 2, 3, 2, 1, 0, 0, 1, 2, 3, 2, 1, 0, 0};
+    const uint8_t step = frame % 16;
+    const auto star = [&](int16_t x, int16_t y, uint8_t light) {
+        if (!light) return;
+        display.drawLine(x, y, x, y);
+        if (light >= 2) {
+            display.drawLine(x - 1, y, x + 1, y);
+            display.drawLine(x, y - 1, x, y + 1);
+        }
+        if (light >= 3) {
+            display.drawLine(x - 2, y, x + 2, y);
+            display.drawLine(x, y - 2, x, y + 2);
+        }
+    };
+    star(leftX, step >= 7 && step <= 11 ? 39 : 23, leftLight[step]);
+    star(rightX, step >= 9 ? 25 : 37, rightLight[step]);
 }
 
 void formatAge(uint64_t age, char (&text)[14]) {
@@ -117,6 +144,8 @@ void UiController::init(uint32_t now) {
     deathAnimationFrame_ = 0;
     homeAnimationFrame_ = 0;
     feeding_ = false;
+    treating_ = treatmentActionQueued_ = treatmentSucceeded_ = false;
+    treatmentElapsedMs_ = 0;
     sleepStartedAtMs_ = 0;
     sleepAnimationFrame_ = 0;
     sleepZPhase_ = 0;
@@ -177,7 +206,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     }
 
     if (pet_.lifeStage() != observedLifeStage_ &&
-        screen_ != ScreenId::Sleeping) {
+        screen_ != ScreenId::Sleeping && !treating_) {
         const Pet::LifeStage previousStage = observedLifeStage_;
         observedLifeStage_ = pet_.lifeStage();
         if (previousStage == Pet::LifeStage::Egg &&
@@ -226,6 +255,27 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
         }
         return screen_ != previousScreen || dirty_;
+    }
+
+    // Keep care input locked through pouring and recovery. Only emit Treat once,
+    // after the liquid is gone; the application confirms the actual result.
+    if (treating_) {
+        if (pet_.sleepMode() != Pet::SleepMode::Awake) {
+            treating_ = false;
+            if (pendingAction_ == UiAction::Treat) pendingAction_ = UiAction::None;
+            dirty_ = true;
+        } else {
+            treatmentElapsedMs_ = now - treatmentStartedAt_;
+            if (!treatmentActionQueued_ && treatmentElapsedMs_ >= kTreatmentPourDoneMs) {
+                treatmentActionQueued_ = true;
+                pendingAction_ = UiAction::Treat;
+            }
+            if (treatmentSucceeded_ && treatmentElapsedMs_ >= kTreatmentDurationMs) {
+                treating_ = false;
+            }
+            dirty_ = true;
+            return true;
+        }
     }
 
     // Care celebrations wait for feeding/growth, and consume navigation while shown.
@@ -325,7 +375,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 switch (menuIndex_) {
                     case 0: setScreen(ScreenId::FeedCare); break;
                     case 1: setScreen(ScreenId::CleanCare); break;
-                    case 2: setScreen(ScreenId::TreatCare); break;
+                    case 2: beginTreatment(now); break;
                     case 3:
                         game_.begin(); gameMoodGain_ = 0;
                         setScreen(ScreenId::PlayCare); break;
@@ -351,9 +401,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 if (pet_.lifeStage() == Pet::LifeStage::Egg) {
                     sound_.playFailure();
                 } else {
-                    pendingAction_ = screen_ == ScreenId::FeedCare ? UiAction::Feed :
-                        screen_ == ScreenId::CleanCare ? UiAction::Clean :
-                        UiAction::Treat;
+                    if (screen_ == ScreenId::TreatCare) beginTreatment(now);
+                    else pendingAction_ = screen_ == ScreenId::FeedCare ?
+                        UiAction::Feed : UiAction::Clean;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
@@ -608,6 +658,36 @@ void UiController::onFeedSucceeded(uint32_t now) {
     dirty_ = true;
 }
 
+void UiController::beginTreatment(uint32_t now) {
+    if (pet_.isDead() || pet_.lifeStage() == Pet::LifeStage::Egg ||
+        !pet_.isSick() || pet_.sleepMode() != Pet::SleepMode::Awake) {
+        setScreen(ScreenId::TreatCare);
+        sound_.playFailure();
+        return;
+    }
+    setScreen(ScreenId::Home);
+    treating_ = true;
+    treatmentActionQueued_ = treatmentSucceeded_ = false;
+    treatmentStartedAt_ = now;
+    treatmentElapsedMs_ = 0;
+    treatmentVisualStage_ = pet_.lifeStage();
+    dirty_ = true;
+}
+
+void UiController::onTreatResult(bool success, uint32_t now) {
+    if (!treating_) return;
+    if (success) {
+        treatmentSucceeded_ = true;
+        // Anchor the empty bottle / recovery phases to the real settlement.
+        treatmentStartedAt_ = now - kTreatmentPourDoneMs;
+        treatmentElapsedMs_ = kTreatmentPourDoneMs;
+    } else {
+        treating_ = false;
+        setScreen(ScreenId::TreatCare);
+    }
+    dirty_ = true;
+}
+
 void UiController::onSleepStarted(uint32_t now) {
     sleepStartedAtMs_ = now;
     sleepAnimationFrame_ = 0;
@@ -679,6 +759,7 @@ void UiController::setScreen(ScreenId screen) {
     }
     screen_ = screen;
     feeding_ = false;
+    treating_ = false;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
     if (screen_ == ScreenId::DetailedStatus) statusPage_ = 0;
     dirty_ = true;
@@ -693,7 +774,8 @@ void UiController::renderBoot() {
 
 void UiController::renderHome() {
     display_.clear();
-    if (pet_.lifeStage() != Pet::LifeStage::Egg) {
+    // Dirt is hidden only for treatment; normal rendering reads live cleanliness.
+    if (!treating_ && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawDirt(display_, pet_.cleanlinessState());
     }
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
@@ -705,8 +787,9 @@ void UiController::renderHome() {
         PetIcons::drawEatingPet(display_, 32, 6, pet_.lifeStage(),
                                feedingFrame_, feedingBowlStage_);
     } else {
-        PetIcons::drawPet(display_, 32, 6, pet_.lifeStage(),
-                          eggCrackStage_, homeAnimationFrame_);
+        PetIcons::drawPet(display_, 32, 6,
+                          treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
+                          eggCrackStage_, treating_ ? 0 : homeAnimationFrame_);
     }
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
@@ -720,6 +803,18 @@ void UiController::renderHome() {
     }
 
     renderPetFooter();
+    if (treating_) {
+        if (treatmentElapsedMs_ < kTreatmentSparkleStartMs || !treatmentSucceeded_) {
+            const uint8_t frame = treatmentElapsedMs_ < 250 ? 0 :
+                treatmentElapsedMs_ < 500 ? 1 : treatmentElapsedMs_ < 850 ? 2 :
+                treatmentElapsedMs_ < kTreatmentPourDoneMs ? 3 : 4;
+            display_.drawGlyph(78, 1, PetIcons::kPotionFrames[frame],
+                               PetIcons::kPotionWidth, PetIcons::kPotionHeight);
+        } else {
+            const uint8_t frame = (treatmentElapsedMs_ - kTreatmentSparkleStartMs) / 125;
+            drawSparkles(display_, frame, 33, 94);
+        }
+    }
 }
 
 void UiController::renderPetFooter() {
@@ -1014,25 +1109,7 @@ void UiController::renderLevelUp() {
     const int16_t jump = phase == 2 || phase == 3 ? 2 :
                          phase == 1 || phase == 4 ? 1 : 0;
     PetIcons::drawPet(display_, 32, 7 - jump, pet_.lifeStage(), 0, phase / 4);
-    // Each star fades to a point before reappearing at its other height.
-    // Their different phases and travel distances keep the sparkle irregular.
-    const uint8_t leftLight[]  = {0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 0};
-    const uint8_t rightLight[] = {0, 0, 1, 2, 3, 2, 1, 0, 0, 1, 2, 3, 2, 1, 0, 0};
-    const uint8_t step = levelUpFrame_ % 16;
-    const auto star = [&](int16_t x, int16_t y, uint8_t light) {
-        if (!light) return;
-        display_.drawLine(x, y, x, y);
-        if (light >= 2) {
-            display_.drawLine(x - 1, y, x + 1, y);
-            display_.drawLine(x, y - 1, x, y + 1);
-        }
-        if (light >= 3) {
-            display_.drawLine(x - 2, y, x + 2, y);
-            display_.drawLine(x, y - 2, x, y + 2);
-        }
-    };
-    star(18, step >= 7 && step <= 11 ? 39 : 23, leftLight[step]);
-    star(109, step >= 9 ? 25 : 37, rightLight[step]);
+    drawSparkles(display_, levelUpFrame_, 18, 109);
     char left[8], right[8];
     snprintf(left, sizeof(left), "Lv%u", levelUpPreviousLevel_);
     snprintf(right, sizeof(right), "Lv%u", levelUpFinalLevel_);

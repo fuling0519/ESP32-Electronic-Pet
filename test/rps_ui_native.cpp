@@ -202,7 +202,7 @@ int main() {
     pet.setDead(true); input(E::None,1050);
     assert(ui.screen()==S::DeathAnimation && ui.takeGameReward()==0);
     // Real care actions award once; feeding completes before celebration.
-    for (unsigned care = 0; care < 3; ++care) {
+    for (unsigned care = 0; care < 2; ++care) {
         Pet::PetData p;
         p.setExp(49); p.setSatiety(99); p.setCleanliness(99);
         if (care == 2) p.setSick(true);
@@ -230,6 +230,94 @@ int main() {
         assert(view.takeAction()==A::None && p.exp()==(care==2 ? 4 : 2));
         view.update(E::None,start+2001); view.render();
         assert(pixels != celebration);
+    }
+    // Real treatment timing, input lock, both sprites, live dirt restoration,
+    // one-shot settlement and deferred upgrade/growth celebration.
+    for (unsigned baby = 0; baby < 2; ++baby) {
+        Pet::PetData p;
+        if (baby) { p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); }
+        p.setSick(true); p.setCleanliness(0); p.setExp(49);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.render();
+        assert(lit(25,13)); // Existing upper-left dirt glyph.
+        view.update(E::Press,1501); view.update(E::Down,1502); view.update(E::Down,1503);
+        view.update(E::Press,1510); view.render();
+        assert(view.screen()==S::Home && view.takeAction()==A::None && p.isSick());
+        assert(!lit(25,13) && p.cleanliness()==0);
+        const uint32_t offsets[]={0,250,500,850};
+        for (unsigned f=0;f<4;++f) {
+            view.update(E::Press,1510+offsets[f]);
+            assert(view.takeAction()==A::None && p.isSick() && p.exp()==49);
+            char name[64]; snprintf(name,sizeof(name),"treat-%s-pour-%u",baby?"baby":"adult",f);
+            capture(view,name); assert(!lit(25,13));
+        }
+        view.update(E::LongPress,2709); assert(view.takeAction()==A::None && p.isSick());
+        view.update(E::Press,2710); assert(view.takeAction()==A::Treat);
+        assert(view.takeAction()==A::None); // Only one action at the boundary.
+        const auto old=p.level(); assert(p.treat());
+        view.onTreatResult(true,2710); view.onCareRewardApplied(old,2710);
+        assert(!p.isSick() && p.level()==2 && p.exp()==4 && p.cleanliness()==0);
+        capture(view,baby?"treat-baby-empty":"treat-adult-empty");
+        assert(!lit(118,10)); // Sick cross disappears at settlement.
+        p.setCleanliness(baby?0:100); // Read the live value when animation finishes.
+        for (unsigned f=0;f<16;++f) {
+            view.update(f%2?E::LongPress:E::Press,2910+f*125);
+            assert(view.screen()==S::Home && view.takeAction()==A::None && p.exp()==4);
+            char name[64]; snprintf(name,sizeof(name),"treat-%s-sparkle-%u",baby?"baby":"adult",f);
+            capture(view,name); assert(!lit(25,13));
+            if(f==3) { assert(lit(33,23) && lit(94,37)); }
+        }
+        view.update(E::Press,4910); capture(view,baby?"treat-baby-restored":"treat-adult-restored");
+        assert(lit(25,13)==bool(baby) && p.cleanliness()==(baby?0:100));
+        assert(view.takeAction()==A::None && p.exp()==4);
+        view.update(E::None,4911); capture(view,"treat-following-level-up");
+        view.update(E::LongPress,4912); assert(view.screen()==S::MainMenu);
+    }
+    // Death while pouring aborts treatment and emits no cure; healthy/egg blocked.
+    {
+        Pet::PetData p; p.setSick(true);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
+        p.setDead(true); view.update(E::None,2704);
+        assert(view.screen()==S::DeathAnimation && view.takeAction()==A::None);
+        view.update(E::None,2705); assert(view.takeAction()==A::None);
+    }
+    for (unsigned egg=0;egg<2;++egg) {
+        Pet::PetData p; if(egg) p.startNewEgg();
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
+        assert(view.screen()==S::TreatCare);
+        view.update(E::Press,1505); view.update(E::None,5000);
+        assert(view.takeAction()==A::None && p.exp()==0);
+    }
+    // Revalidate at settlement: a failed cure returns to the care screen.
+    {
+        Pet::PetData p; p.setSick(true);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
+        p.setSick(false); view.update(E::None,2704); assert(view.takeAction()==A::Treat);
+        const bool success=p.treat(); assert(!success); view.onTreatResult(success,2704);
+        assert(view.screen()==S::TreatCare && p.exp()==0);
+    }
+    // Curing a baby past its growth deadline finishes recovery before growth.
+    {
+        Pet::PetData p; p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+        p.setSick(true); p.advanceSeconds(Pet::PetData::kAdultAgeSeconds); p.setExp(49);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
+        view.update(E::None,2704); assert(view.takeAction()==A::Treat);
+        const auto old=p.level(); assert(p.treat()); view.onTreatResult(true,2704);
+        view.onCareRewardApplied(old,2704); assert(p.lifeStage()==Pet::LifeStage::Adult);
+        view.update(E::None,2705); assert(view.screen()==S::Home);
+        view.update(E::None,4904); assert(view.screen()==S::Home);
+        view.update(E::None,4905); assert(view.screen()==S::GrowTransition);
+        view.update(E::None,7305); assert(view.screen()==S::Home);
+        view.update(E::None,7306); capture(view,"treat-growth-level-up");
+        assert(view.takeAction()==A::None && p.exp()==4);
     }
     // Death cancels a queued care celebration; it must never cover the death flow.
     {

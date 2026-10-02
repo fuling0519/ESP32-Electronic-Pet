@@ -6,7 +6,7 @@
 
 - `pets/bird/baby/`、`pets/bird/adult/`：小鳥幼寵、成寵的正式素材，目前各有 `idle.png`、`eating.png`。
 - `pets/wyvern/baby/`、`pets/wyvern/adult/`：第二種寵物「小飛龍」的預留位置，目前尚無圖檔；`.gitkeep` 用來保留空資料夾。
-- `shared/items/`：共用道具，目前有 `food_bowl.png`；治療藥水預定命名 `medicine.png`，尚未提供素材。
+- `shared/items/`：共用道具，目前有 `food_bowl.png` 與治療動畫圖集 `potion.png`。
 - `shared/effects/`：共用效果，目前有 `soul.png`、`dirt.png`。
 - `shared/egg/`：目前共用的蛋，`idle.png` 為一般狀態，`hatching.png` 為破殼狀態。未來若種類有專屬蛋，再放到 `pets/<species>/egg/`。
 - `ui/`：介面圖示的預留位置，目前尚無圖檔。
@@ -47,6 +47,7 @@
 - 小鳥、蛋圖集為 64×88，上下兩幀各 64×44；飼料碗為三幀 21×15。小飛龍主畫面也建議沿用每幀 64×44，新增種類仍需另行接入程式。
 - `tools/generate_dirty_sprite.ps1`：讀取 `shared/effects/dirt.png`，產生 `src/ui/DirtySprite.h`。
 - `tools/generate_rps_icons.py`：讀取 `games/rps/`，產生 `src/ui/RpsIcons.h` 和 `docs/rps-icons-preview.png`。
+- 治療藥水：`shared/items/potion.png` 為 42×63、每格 21×21 的 5 幀圖集，依左上、右上、左中、右中、左下播放；使用 `tools/generate_potion_sprite.py` 產生 `src/ui/PotionSprite.h`。
 - `shared/effects/soul.png` 為 30×56，上下兩幀各 30×28；目前點陣資料保存在 `src/ui/PetIcons.cpp`，尚無獨立生成工具。
 
 改動素材路徑時，要同步更新轉換工具及文件連結。`web-preview/assets/` 為網站展示自己的背景素材，與本目錄分開管理。
