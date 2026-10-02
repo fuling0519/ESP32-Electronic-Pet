@@ -373,10 +373,15 @@ void Application::loop() {
         case Ui::UiAction::FinishGame: {
             const uint8_t reward = ui.takeGameReward();
             const uint8_t before = pet.mood();
+            const uint8_t previousLevel = pet.level();
+            uint16_t expGain = 0;
             if (reward && !pet.isDead() && !pet.isSick() &&
                 pet.lifeStage() != Pet::LifeStage::Egg &&
-                pet.sleepMode() == Pet::SleepMode::Awake) pet.changeMood(reward);
-            ui.onGameRewardApplied(pet.mood() - before);
+                pet.sleepMode() == Pet::SleepMode::Awake) {
+                pet.changeMood(reward);
+                expGain = pet.gainExp(reward);
+            }
+            ui.onGameRewardApplied(pet.mood() - before, expGain, previousLevel);
             break;
         }
         case Ui::UiAction::Treat:

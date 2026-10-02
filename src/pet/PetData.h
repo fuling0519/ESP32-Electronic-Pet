@@ -83,6 +83,10 @@ public:
     uint8_t cleanliness() const;
     uint8_t level() const;
     uint16_t exp() const;
+    static constexpr uint8_t kMaxLevel = 20;
+    uint16_t expToNextLevel() const;
+    // Returns accepted EXP (limited by the remaining distance to max level).
+    uint16_t gainExp(uint16_t amount);
     bool isSick() const;
     bool isDead() const;
     uint64_t ageSeconds() const;

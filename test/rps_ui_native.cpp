@@ -78,6 +78,7 @@ uint16_t Display::statusTextWidth(const char* s) const {
 void Sound::playConfirm() {} void Sound::playCancel() {}
 void Sound::playSuccess() {} void Sound::playFailure() {}
 void Sound::playHatch() {} void Sound::playDeath() {}
+void Sound::playLevelUp() {}
 void Sound::playTone(uint16_t,uint32_t) {}
 }
 static void capture(Ui::UiController& ui, const char* name) {
@@ -89,6 +90,25 @@ static void capture(Ui::UiController& ui, const char* name) {
         fputc('\n',f);
     }
     fclose(f);
+}
+static bool lit(int x, int y) {
+    return (pixels[(y / 8) * 128 + x] >> (y % 8)) & 1;
+}
+static void checkStatusSpacing() {
+    int previousBottom = 18;
+    unsigned groups = 0;
+    for (int y = 19; y < 63;) {
+        const auto rowLit = [](int row) {
+            for (int x = 3; x <= 124; ++x) if (lit(x,row)) return true;
+            return false;
+        };
+        if (!rowLit(y)) { ++y; continue; }
+        assert(y - previousBottom - 1 == 5);
+        while (y < 63 && rowLit(y)) ++y;
+        previousBottom = y - 1;
+        ++groups;
+    }
+    assert(groups == 3); // Level, EXP and progress frame.
 }
 int main() {
     info.tile_width=16; info.tile_height=8; info.pixel_width=128; info.pixel_height=64;
@@ -107,6 +127,7 @@ int main() {
     input(E::Right); input(E::Right); capture(ui,"select-paper");
     input(E::Right); input(E::Left); // Clamp at Paper, then select Rock.
     pet.setMood(96);
+    pet.setExp(45);
     for(unsigned round=0;round<3;++round) {
         input(E::Press); capture(ui,"countdown-3");
         input(E::None,350); capture(ui,"countdown-2");
@@ -116,7 +137,11 @@ int main() {
         assert(ui.takeAction()==A::None);
         if(round==2) {
             const unsigned reward=ui.takeGameReward(); assert(reward==15);
-            pet.changeMood(reward); ui.onGameRewardApplied(4);
+            const auto previousLevel = pet.level();
+            pet.changeMood(reward);
+            const auto gain = pet.gainExp(reward);
+            ui.onGameRewardApplied(4, gain, previousLevel);
+            assert(pet.level() == 2 && pet.exp() == 10);
             assert(pet.mood()==100 && ui.takeGameReward()==0);
         }
         input(E::Press,799); // Too early: must not skip reveal or deal a round.
@@ -124,7 +149,21 @@ int main() {
         input(E::Press,1);
     }
     capture(ui,"summary-win-cap");
-    input(E::Press); capture(ui,"replay-return");
+    input(E::Press); capture(ui,"level-up-0");
+    for (unsigned frame=1;frame<16;++frame) {
+        input(E::Press,125); // Animation consumes presses; replay remains untouched.
+        char name[32]; snprintf(name,sizeof(name),"level-up-%u",frame); capture(ui,name);
+        if (frame == 3) {
+            assert(lit(18,23) && lit(109,37));
+            assert(!lit(18,39) && !lit(109,25));
+        }
+        if (frame == 9) {
+            assert(lit(18,39) && lit(109,25));
+            assert(!lit(18,23) && !lit(109,37));
+        }
+        assert(ui.takeGameReward()==0 && pet.exp()==10);
+    }
+    input(E::Press,125); capture(ui,"replay-return");
     input(E::Up); capture(ui,"replay-again");
     input(E::Press); assert(ui.takeGameReward()==0);
     input(E::LongPress); assert(ui.screen()==S::MainMenu && ui.menuIndex()==3);
@@ -162,5 +201,68 @@ int main() {
     input(E::None,2400); input(E::Press); input(E::Press); input(E::Press); input(E::Press);
     pet.setDead(true); input(E::None,1050);
     assert(ui.screen()==S::DeathAnimation && ui.takeGameReward()==0);
+    // Footer grows with the current level's EXP, resets after level-up,
+    // and remains full at MAX even though stored EXP is zero.
+    Pet::PetData footerPet;
+    Ui::UiController footer(display,sound,footerPet,memorials,randomMove);
+    footer.init(0); footer.update(E::None,1500); capture(footer,"home-exp-0");
+    assert(lit(3,59) && lit(3,60) && lit(3,61) && lit(101,60));
+    assert(!lit(4,60) && !lit(100,60));
+    footerPet.setExp(25); capture(footer,"home-exp-half");
+    assert(lit(4,60) && lit(50,60) && !lit(60,60) && lit(101,60));
+    footerPet.setExp(49); capture(footer,"home-exp-near");
+    assert(lit(98,60) && !lit(100,60));
+    assert(footerPet.gainExp(1)==1 && footerPet.level()==2 && footerPet.exp()==0);
+    capture(footer,"home-exp-level-reset"); assert(!lit(4,60) && lit(101,60));
+    footerPet.setLevel(Pet::PetData::kMaxLevel);
+    capture(footer,"home-exp-max"); assert(lit(4,60) && lit(100,60) && lit(101,60));
+    Pet::PetData eggPet; eggPet.startNewEgg();
+    Ui::UiController eggFooter(display,sound,eggPet,memorials,randomMove);
+    eggFooter.init(0); eggFooter.update(E::None,1500);
+    capture(eggFooter,"home-exp-egg"); assert(!lit(4,60) && lit(101,60));
+    // Exercise the same UI with baby sprites, a multi-level result and MAX.
+    for (unsigned variant=0;variant<2;++variant) {
+        Pet::PetData p;
+        if (!variant) {
+            p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+            p.setExp(45);
+        } else p.setLevel(Pet::PetData::kMaxLevel);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e, uint32_t delay=1) { t+=delay; view.update(e,t); view.render(); };
+        view.init(0); step(E::None);
+        step(E::Right); step(E::Press); step(E::Right);
+        capture(view,variant?"status-health-stage-adult":"status-health-stage-baby");
+        step(E::Right);
+        capture(view,variant?"exp-max":"exp-progress");
+        checkStatusSpacing();
+        step(E::Right); capture(view,"status-age-fourth");
+        step(E::LongPress); step(E::Press);
+        step(E::Down); step(E::Down); step(E::Down); step(E::Press); step(E::Press);
+        for(unsigned r=0;r<3;++r) {
+            step(E::Press); step(E::None,1050);
+            if (r==2) {
+                assert(view.takeAction()==A::FinishGame);
+                assert(view.takeGameReward()!=0);
+                const auto old=p.level(); const auto added=p.gainExp(200);
+                view.onGameRewardApplied(0,added,old);
+            }
+            step(E::Press,800);
+        }
+        capture(view,variant?"summary-max":"summary-multi-level"); step(E::Press);
+        if (!variant) {
+            assert(p.level()==4 && p.exp()==20);
+            capture(view,"baby-level-up-0");
+            for(unsigned f=1;f<16;++f) {
+                step(E::None,125);
+                char name[40]; snprintf(name,sizeof(name),"baby-level-up-%u",f); capture(view,name);
+            }
+            // Long press cancels just the display; awarded EXP remains.
+            step(E::LongPress); assert(view.screen()==S::MainMenu && p.exp()==20);
+        } else {
+            capture(view,"max-replay"); step(E::Press);
+            assert(view.screen()==S::MainMenu && p.exp()==0);
+        }
+    }
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
 }

@@ -133,7 +133,7 @@ void Link::result(uint32_t id, bool hasId, const char* code) {
     if (len && len<=kMaxJson) queue(json,false);
 }
 bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const {
-    StaticJsonDocument<512> d;
+    StaticJsonDocument<768> d;
     d["v"]=1; d["type"]="status"; d["device_id"]=deviceId_;
     JsonObject p=d.createNestedObject("pet");
     char id[21], age[21];
@@ -143,6 +143,9 @@ bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& 
     p["satiety"]=pet.satiety(); p["mood"]=pet.mood(); p["cleanliness"]=pet.cleanliness();
     p["age_seconds"]=age; p["health"]=health(pet.healthState());
     p["is_dead"]=pet.isDead(); p["sleep"]=sleep(pet.sleepMode());
+    p["level"]=pet.level(); p["exp"]=pet.exp();
+    p["exp_to_next_level"]=pet.expToNextLevel();
+    if (d.overflowed()) return false;
     size_t written=serializeJson(d,out,cap);
     if (!written || written>=cap || written>kMaxJson) return false;
     len=static_cast<uint16_t>(written); return true;

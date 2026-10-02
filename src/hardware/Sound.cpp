@@ -10,6 +10,7 @@ const ToneStep kCancel[] = {{392, 100}};
 const ToneStep kSuccess[] = {{784, 80}, {1047, 120}};
 const ToneStep kFailure[] = {{330, 120}, {262, 160}};
 const ToneStep kHatch[] = {{523, 70}, {659, 70}, {784, 110}};
+const ToneStep kLevelUp[] = {{659, 90}, {784, 90}, {1047, 90}, {1319, 180}};
 // User-selected D4, C#4, D4, B3 farewell. The rests separate each bell-like note.
 const ToneStep kDeath[] = {
     {294, 500}, {0, 50}, {277, 500}, {0, 50},
@@ -45,6 +46,7 @@ void Sound::playCancel() { playSequence(kCancel, 1); }
 void Sound::playSuccess() { playSequence(kSuccess, 2); }
 void Sound::playFailure() { playSequence(kFailure, 2); }
 void Sound::playHatch() { playSequence(kHatch, 3); }
+void Sound::playLevelUp() { playSequence(kLevelUp, 4); }
 void Sound::playDeath() { playSequence(kDeath, sizeof(kDeath) / sizeof(kDeath[0])); }
 void Sound::startCurrentStep() {
     ledcWriteTone(HardwareConfig::Sound::LedcChannel, sequence_[sequenceIndex_].frequency);

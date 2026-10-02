@@ -10,6 +10,42 @@
 #include "power/SleepSettlement.h"
 
 int main() {
+    Pet::PetData experience;
+    experience.setMood(100);
+    experience.setExp(45);
+    const auto expRevision = experience.displayRevision();
+    assert(experience.gainExp(15) == 15);
+    assert(experience.level() == 2 && experience.exp() == 10);
+    assert(experience.expToNextLevel() == 75 && experience.mood() == 100);
+    assert(experience.displayRevision() != expRevision);
+    assert(experience.gainExp(200) == 200);
+    assert(experience.level() == 4 && experience.exp() == 35);
+    Pet::PetData expRestored;
+    assert(expRestored.restore(experience.snapshot()));
+    assert(expRestored.level() == 4 && expRestored.exp() == 35);
+    assert(expRestored.beginDeepSleep());
+    expRestored.advanceSleepSeconds(600);
+    assert(expRestored.gainExp(15) == 0 && expRestored.exp() == 35);
+    assert(expRestored.wake());
+    expRestored.setSick(true);
+    assert(expRestored.gainExp(15) == 0);
+    expRestored.setDead(true);
+    assert(expRestored.gainExp(15) == 0);
+    assert(experience.startNewEgg(2, "Tamama"));
+    assert(experience.level() == 1 && experience.exp() == 0 && experience.gainExp(15) == 0);
+    experience.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+    assert(experience.gainExp(50) == 50 && experience.level() == 2);
+    experience.setLevel(19); experience.setExp(495);
+    assert(experience.gainExp(UINT16_MAX) == 5);
+    assert(experience.level() == 20 && experience.exp() == 0 && experience.expToNextLevel() == 0);
+    const auto maxRevision = experience.displayRevision();
+    assert(experience.gainExp(15) == 0 && experience.displayRevision() == maxRevision);
+    auto legacy = experience.snapshot(); legacy.level = 255; legacy.exp = UINT16_MAX;
+    assert(expRestored.restore(legacy) && expRestored.level() == 20 && expRestored.exp() == 0);
+    legacy.level = 1; legacy.exp = 125;
+    assert(expRestored.restore(legacy) && expRestored.level() == 3 && expRestored.exp() == 0);
+    Pet::PetData hugeReward;
+    assert(hugeReward.gainExp(UINT16_MAX) == 5225 && hugeReward.level() == 20);
     uint32_t settledSeconds = 0, settledRemainderMs = 0;
     const uint32_t cap = 48UL * 60 * 60;
     assert(Power::sleepSettlement(1000000LL, 62500000LL, cap, settledSeconds, settledRemainderMs));

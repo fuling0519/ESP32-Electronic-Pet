@@ -78,7 +78,8 @@ public:
     const char* selectedMenuItem() const;
     UiAction takeAction();
     uint8_t takeGameReward();
-    void onGameRewardApplied(uint8_t actualGain);
+    void onGameRewardApplied(uint8_t actualGain, uint16_t expGain = 0,
+                             uint8_t previousLevel = 0);
     uint8_t selectedMemorialIndex() const;
     void setMemorialReady(bool ready);
     void onSleepStarted(uint32_t now);
@@ -121,6 +122,12 @@ private:
     const Storage::Memorials& memorials_;
     Games::RpsGame game_;
     uint8_t gameMoodGain_ = 0;
+    uint16_t gameExpGain_ = 0;
+    uint8_t gamePreviousLevel_ = 0, gameFinalLevel_ = 0;
+    bool levelUpActive_ = false;
+    uint32_t levelUpStartedAt_ = 0;
+    uint8_t levelUpFrame_ = 0;
+    void renderLevelUp();
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;

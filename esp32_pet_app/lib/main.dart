@@ -1,3 +1,4 @@
+import 'pet_snapshot.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -22,57 +23,6 @@ class Esp32PetApp extends StatelessWidget {
       );
 }
 
-class _PetSnapshot {
-  const _PetSnapshot({
-    required this.id,
-    required this.name,
-    required this.stage,
-    required this.satiety,
-    required this.mood,
-    required this.cleanliness,
-    required this.ageSeconds,
-    required this.health,
-    required this.isDead,
-    required this.sleep,
-  });
-
-  final String id, name, stage, ageSeconds, health, sleep;
-  final int satiety, mood, cleanliness;
-  final bool isDead;
-
-  static _PetSnapshot? parse(Object? value) {
-    if (value is! Map<String, dynamic>) return null;
-    final id = value['id'];
-    final name = value['name'];
-    final stage = value['life_stage'];
-    final age = value['age_seconds'];
-    final health = value['health'];
-    final sleep = value['sleep'];
-    final dead = value['is_dead'];
-    final satiety = value['satiety'];
-    final mood = value['mood'];
-    final cleanliness = value['cleanliness'];
-    if (id is! String || !RegExp(r'^\d+$').hasMatch(id) ||
-        name is! String || name.isEmpty ||
-        !{'egg', 'baby', 'adult'}.contains(stage) ||
-        age is! String || !RegExp(r'^\d+$').hasMatch(age) ||
-        !{'healthy', 'sick', 'dead'}.contains(health) ||
-        dead is! bool || dead != (health == 'dead') ||
-        !{'awake', 'normal'}.contains(sleep) ||
-        satiety is! int || satiety < 0 || satiety > 100 ||
-        mood is! int || mood < 0 || mood > 100 ||
-        cleanliness is! int || cleanliness < 0 || cleanliness > 100) {
-      return null;
-    }
-    return _PetSnapshot(
-      id: id, name: name, stage: stage as String,
-      satiety: satiety, mood: mood, cleanliness: cleanliness,
-      ageSeconds: age, health: health as String, isDead: dead,
-      sleep: sleep as String,
-    );
-  }
-}
-
 class PetHomePage extends StatefulWidget {
   const PetHomePage({super.key});
   @override
@@ -94,7 +44,7 @@ class _PetHomePageState extends State<PetHomePage> {
   bool _scanning = false, _connecting = false, _waitingForData = false;
   String _status = '尚未連線';
   String? _deviceId;
-  _PetSnapshot? _pet;
+  PetSnapshot? _pet;
   DateTime? _lastReceived;
   int _nextRequestId = 0, _nextMessageId = 0;
   final Map<String, ScanResult> _found = {};
@@ -296,7 +246,7 @@ class _PetHomePageState extends State<PetHomePage> {
           _message('裝置 ID 無效或與目前連線不一致');
           return;
         }
-        final snapshot = _PetSnapshot.parse(data['pet']);
+        final snapshot = PetSnapshot.parse(data['pet']);
         if (snapshot == null) {
           if (mounted) _message('ESP32 狀態欄位不完整或值無效');
           return;
@@ -396,6 +346,8 @@ class _PetHomePageState extends State<PetHomePage> {
               const Text('尚未取得裝置 ID；舊版韌體僅供本機唯讀使用'),
             if (_found.isNotEmpty && _device == null) ...[
               const Divider(),
+              Text('等級：${pet?.level == null ? '--' : 'Lv${pet!.level}'}'),
+              Text('經驗：${pet?.exp == null ? '--' : pet!.expToNextLevel == 0 ? 'MAX' : '${pet.exp}/${pet.expToNextLevel}'}'),
               for (final result in _found.values)
                 ListTile(
                   dense: true, leading: const Icon(Icons.memory),

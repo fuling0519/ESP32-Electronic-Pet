@@ -130,6 +130,9 @@ void UiController::init(uint32_t now) {
     pendingAction_ = UiAction::None;
     game_.cancel();
     gameMoodGain_ = 0;
+    gameExpGain_ = 0;
+    gamePreviousLevel_ = gameFinalLevel_ = 0;
+    levelUpActive_ = false;
     lastRenderedPetRevision_ = pet_.displayRevision();
 }
 
@@ -368,7 +371,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                 sound_.playCancel();
                 setScreen(ScreenId::Home);
             } else if ((event == Hardware::InputEvent::Right ||
-                        event == Hardware::InputEvent::Down) && statusPage_ < 2) {
+                        event == Hardware::InputEvent::Down) && statusPage_ < 3) {
                 ++statusPage_;
                 dirty_ = true;
             } else if ((event == Hardware::InputEvent::Left ||
@@ -632,6 +635,7 @@ void UiController::beginDeathAnimation(uint32_t now) {
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
     if (screen_ == ScreenId::PlayCare) {
+        levelUpActive_ = false;
         game_.cancel();
         if (pendingAction_ == UiAction::FinishGame) pendingAction_ = UiAction::None;
     }
@@ -681,13 +685,23 @@ void UiController::renderHome() {
 }
 
 void UiController::renderPetFooter() {
-    // Reserve y=55 as whitespace. This line is not yet tied to EXP progress.
+    // A fixed 3px outline shows 100%; the 1px center line shows earned EXP.
     char levelText[6];  // "Lv255" plus terminator covers the uint8_t level.
     if (pet_.lifeStage() == Pet::LifeStage::Egg) strcpy(levelText, "EGG");
     else if (pet_.lifeStage() == Pet::LifeStage::Baby) strcpy(levelText, "BABY");
     else snprintf(levelText, sizeof(levelText), "Lv%u", static_cast<unsigned>(pet_.level()));
     const int16_t levelX = 128 - static_cast<int16_t>(strlen(levelText) * 5);
-    display_.drawLine(3, 60, levelX - 6, 60);
+    constexpr int16_t kFrameX = 3;
+    constexpr int16_t kFrameY = 59;
+    constexpr int16_t kFrameWidth = 99;  // Ends at x=101, 6px before "BABY"/"Lv20".
+    constexpr int16_t kFillWidth = kFrameWidth - 2;
+    const uint16_t threshold = pet_.expToNextLevel();
+    const int16_t filled = threshold == 0 ?
+        (pet_.lifeStage() == Pet::LifeStage::Egg ? 0 : kFillWidth) :
+        static_cast<uint32_t>(kFillWidth) * pet_.exp() / threshold;
+    display_.drawFrame(kFrameX, kFrameY, kFrameWidth, 3);
+    if (filled > 0) display_.drawLine(kFrameX + 1, kFrameY + 1,
+                                      kFrameX + filled, kFrameY + 1);
     display_.drawSmallText(levelX, 63, levelText);
 }
 
@@ -716,13 +730,29 @@ void UiController::renderDetailedStatus() {
     display_.drawText(64 - static_cast<int16_t>(strlen(pet_.name()) * 3),
                       14, pet_.name());
     char pageText[4];
-    snprintf(pageText, sizeof(pageText), "%u/3", static_cast<unsigned>(statusPage_ + 1));
+    snprintf(pageText, sizeof(pageText), "%u/4", static_cast<unsigned>(statusPage_ + 1));
     display_.drawText(99, 14, pageText);
     display_.drawLine(6, 18, 121, 18);
     if (statusPage_ == 0) {
         renderDetailedStatusPage1();
     } else if (statusPage_ == 1) {
         renderDetailedStatusPage2();
+    } else if (statusPage_ == 2) {
+        // Actual lit rows: divider 18, level 24..34, EXP 40..46,
+        // progress frame 52..58. Each adjacent pair has five blank rows.
+        display_.drawStatusText(kStatusLabelX, 34, "等級");
+        drawStatusNumber(display_, 34, static_cast<unsigned>(pet_.level()));
+        char progress[24];
+        display_.drawText(kStatusLabelX, 47, "EXP");
+        if (!pet_.expToNextLevel()) strcpy(progress, "MAX");
+        else snprintf(progress, sizeof(progress), "%u/%u", pet_.exp(), pet_.expToNextLevel());
+        display_.drawText(kStatusValueRight - static_cast<int16_t>(strlen(progress) * 6),
+                          47, progress);
+        display_.drawFrame(9, 52, 110, 7);
+        const uint16_t fill = pet_.expToNextLevel() ?
+            static_cast<uint32_t>(pet_.exp()) * 106 / pet_.expToNextLevel() : 106;
+        if (fill) for (int16_t y = 54; y <= 56; ++y)
+            display_.drawLine(11, y, 10 + fill, y);
     } else {
         // Chinese rows span y=24..35 and y=44..55; values end at x=118.
         const uint64_t age = pet_.ageSeconds();
@@ -752,16 +782,13 @@ void UiController::renderDetailedStatusPage1() {
 }
 
 void UiController::renderDetailedStatusPage2() {
-    display_.drawStatusText(kStatusLabelX, 30, "等級");
-    drawStatusNumber(display_, 30, static_cast<unsigned>(pet_.level()));
+    display_.drawStatusText(kStatusLabelX, 35, "健康");
+    drawStatusTextValue(display_, 35, pet_.isSick() ? "生病" : "正常");
 
-    display_.drawStatusText(kStatusLabelX, 45, "健康");
-    drawStatusTextValue(display_, 45, pet_.isSick() ? "生病" : "正常");
-
-    display_.drawUiText(kStatusLabelX, 60, "階段");
+    display_.drawUiText(kStatusLabelX, 55, "階段");
     const char* stage = pet_.lifeStage() == Pet::LifeStage::Egg ? "蛋" :
         pet_.lifeStage() == Pet::LifeStage::Baby ? "幼鳥" : "成鳥";
-    display_.drawUiText(kStatusValueRight - display_.uiTextWidth(stage), 60, stage);
+    display_.drawUiText(kStatusValueRight - display_.uiTextWidth(stage), 55, stage);
 }
 
 void UiController::renderPlaceholder(const char* title) {
@@ -775,8 +802,12 @@ void UiController::renderPlaceholder(const char* title) {
 
 uint8_t UiController::takeGameReward() { return game_.takeReward(); }
 
-void UiController::onGameRewardApplied(uint8_t actualGain) {
+void UiController::onGameRewardApplied(uint8_t actualGain, uint16_t expGain,
+                                       uint8_t previousLevel) {
     gameMoodGain_ = actualGain;
+    gameExpGain_ = expGain;
+    gamePreviousLevel_ = previousLevel;
+    gameFinalLevel_ = pet_.level();
     dirty_ = true;
 }
 
@@ -789,9 +820,17 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     }
     if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
         pet_.sleepMode() != Pet::SleepMode::Awake) {
+        levelUpActive_ = false;
         if (game_.phase() != RpsPhase::Ready) { game_.begin(); dirty_ = true; }
         if (event == Hardware::InputEvent::Press) sound_.playFailure();
         return;
+    }
+    if (levelUpActive_) {
+        const uint32_t elapsed = now - levelUpStartedAt_;
+        if (elapsed >= 2000) levelUpActive_ = false;
+        levelUpFrame_ = static_cast<uint8_t>(elapsed / 125);
+        dirty_ = true;
+        return; // Consume this event rather than selecting replay after the animation.
     }
     RpsInput input = RpsInput::None;
     switch (event) {
@@ -811,8 +850,18 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
         setScreen(ScreenId::MainMenu);
         return;
     }
-    if (current == RpsPhase::Select && previous != current && game_.round() == 1)
+    if (current == RpsPhase::Select && previous != current && game_.round() == 1) {
         gameMoodGain_ = 0;
+        gameExpGain_ = 0;
+        gamePreviousLevel_ = gameFinalLevel_ = 0;
+    }
+    if (previous == RpsPhase::Summary && current == RpsPhase::Replay &&
+        gamePreviousLevel_ && gameFinalLevel_ > gamePreviousLevel_) {
+        levelUpActive_ = true;
+        levelUpStartedAt_ = now;
+        levelUpFrame_ = 0;
+        sound_.playLevelUp();
+    }
     if (current == RpsPhase::Countdown &&
         (previous != current || previousDigit != game_.countdown())) sound_.playTone(1000, 45);
     if (current == RpsPhase::Reveal && previous != current) {
@@ -825,6 +874,7 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
 
 void UiController::renderGame() {
     using namespace Games;
+    if (levelUpActive_) { renderLevelUp(); return; }
     const uint8_t* const icons[] = {RpsIcons::kScissors, RpsIcons::kRock, RpsIcons::kPaper};
     const char* const names[] = {"剪刀", "石頭", "布"};
     const auto outcomeText = [](RpsOutcome result) {
@@ -889,9 +939,11 @@ void UiController::renderGame() {
         case RpsPhase::Summary:
             drawCenteredUiText(display_, 15, outcomeText(game_.outcome()));
             snprintf(text, sizeof(text), "%u:%u", game_.wins(), game_.losses());
-            drawCenteredUiText(display_, 36, text);
+            drawCenteredUiText(display_, 29, text);
             snprintf(text, sizeof(text), "心情 +%u", gameMoodGain_);
-            drawCenteredUiText(display_, 58, text);
+            drawCenteredUiText(display_, 45, text);
+            snprintf(text, sizeof(text), "EXP +%u", gameExpGain_);
+            drawCenteredUiText(display_, 60, text);
             break;
         case RpsPhase::Replay:
             drawCenteredUiText(display_, 15, "再玩？");
@@ -902,6 +954,44 @@ void UiController::renderGame() {
             break;
         case RpsPhase::Inactive: break;
     }
+}
+
+void UiController::renderLevelUp() {
+    display_.clear();
+    // Unframed celebration: title y=3..9, original sprite 64x44,
+    // Visible adult pixels y=13..50, footer y=53..60. No sprite rescaling.
+    display_.drawText(37, 10, "LEVEL UP!");
+    const uint8_t phase = levelUpFrame_ % 8;
+    const int16_t jump = phase == 2 || phase == 3 ? 2 :
+                         phase == 1 || phase == 4 ? 1 : 0;
+    PetIcons::drawPet(display_, 32, 7 - jump, pet_.lifeStage(), 0, phase / 4);
+    // Each star fades to a point before reappearing at its other height.
+    // Their different phases and travel distances keep the sparkle irregular.
+    const uint8_t leftLight[]  = {0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 0};
+    const uint8_t rightLight[] = {0, 0, 1, 2, 3, 2, 1, 0, 0, 1, 2, 3, 2, 1, 0, 0};
+    const uint8_t step = levelUpFrame_ % 16;
+    const auto star = [&](int16_t x, int16_t y, uint8_t light) {
+        if (!light) return;
+        display_.drawLine(x, y, x, y);
+        if (light >= 2) {
+            display_.drawLine(x - 1, y, x + 1, y);
+            display_.drawLine(x, y - 1, x, y + 1);
+        }
+        if (light >= 3) {
+            display_.drawLine(x - 2, y, x + 2, y);
+            display_.drawLine(x, y - 2, x, y + 2);
+        }
+    };
+    star(18, step >= 7 && step <= 11 ? 39 : 23, leftLight[step]);
+    star(109, step >= 9 ? 25 : 37, rightLight[step]);
+    char left[8], right[8];
+    snprintf(left, sizeof(left), "Lv%u", gamePreviousLevel_);
+    snprintf(right, sizeof(right), "Lv%u", gameFinalLevel_);
+    display_.drawText(25, 60, left);
+    display_.drawLine(58, 56, 69, 56);
+    display_.drawLine(66, 53, 69, 56);
+    display_.drawLine(66, 59, 69, 56);
+    display_.drawText(78, 60, right);
 }
 
 void UiController::renderCare(const char* title, const char* stat, unsigned value) {

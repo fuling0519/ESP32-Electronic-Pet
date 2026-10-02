@@ -42,6 +42,25 @@ uint8_t PetData::mood() const { return mood_; }
 uint8_t PetData::cleanliness() const { return cleanliness_; }
 uint8_t PetData::level() const { return level_; }
 uint16_t PetData::exp() const { return exp_; }
+uint16_t PetData::expToNextLevel() const {
+    return level_ >= kMaxLevel ? 0 : 50 + 25 * (level_ - 1);
+}
+uint16_t PetData::gainExp(uint16_t amount) {
+    if (!amount || isSick() || lifeStage_ == LifeStage::Egg ||
+        sleepMode_ != SleepMode::Awake || level_ >= kMaxLevel) return 0;
+    uint32_t remaining = 0;
+    for (uint8_t lv = level_; lv < kMaxLevel; ++lv) remaining += 50 + 25 * (lv - 1);
+    remaining -= exp_;
+    const uint16_t accepted = amount > remaining ? remaining : amount;
+    uint32_t progress = static_cast<uint32_t>(exp_) + accepted;
+    while (level_ < kMaxLevel && progress >= expToNextLevel()) {
+        progress -= expToNextLevel();
+        ++level_;
+    }
+    exp_ = level_ == kMaxLevel ? 0 : static_cast<uint16_t>(progress);
+    if (accepted) ++displayRevision_;
+    return accepted;
+}
 bool PetData::isSick() const { return healthState_ != HealthState::Healthy; }
 bool PetData::isDead() const { return healthState_ == HealthState::Dead; }
 uint64_t PetData::ageSeconds() const { return ageSeconds_; }
@@ -86,8 +105,14 @@ bool PetData::restore(const PetSnapshotV1& saved) {
     satiety_ = saved.satiety;
     mood_ = saved.mood;
     cleanliness_ = saved.cleanliness;
-    level_ = saved.level;
-    exp_ = saved.exp;
+    // Keep V1 files readable, including historical unrestricted setter values.
+    level_ = saved.level > kMaxLevel ? kMaxLevel : saved.level;
+    uint32_t progress = saved.exp;
+    while (level_ < kMaxLevel && progress >= expToNextLevel()) {
+        progress -= expToNextLevel();
+        ++level_;
+    }
+    exp_ = level_ == kMaxLevel ? 0 : static_cast<uint16_t>(progress);
     healthState_ = saved.healthState;
     ageSeconds_ = saved.ageSeconds;
     satietyRemainderSeconds_ = saved.satietyRemainderSeconds;
@@ -156,9 +181,15 @@ void PetData::changeCleanliness(int amount) {
 
 void PetData::setLevel(uint8_t value) {
     if (value == 0) value = 1;
+    if (value > kMaxLevel) value = kMaxLevel;
     if (level_ != value) { level_ = value; ++displayRevision_; }
+    setExp(exp_);
 }
-void PetData::setExp(uint16_t value) { exp_ = value; }
+void PetData::setExp(uint16_t value) {
+    const uint16_t bounded = level_ == kMaxLevel ? 0 :
+        (value >= expToNextLevel() ? expToNextLevel() - 1 : value);
+    if (exp_ != bounded) { exp_ = bounded; ++displayRevision_; }
+}
 void PetData::setSick(bool value) {
     if (isDead() || lifeStage_ == LifeStage::Egg) return;
     const HealthState next = value ? HealthState::Sick : HealthState::Healthy;
