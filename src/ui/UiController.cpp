@@ -134,6 +134,8 @@ void UiController::init(uint32_t now) {
     gamePreviousLevel_ = gameFinalLevel_ = 0;
     levelUpActive_ = false;
     lastRenderedPetRevision_ = pet_.displayRevision();
+    careLevelUpPending_ = false;
+    levelUpPreviousLevel_ = levelUpFinalLevel_ = 0;
 }
 
 uint8_t UiController::eggCrackStage(uint32_t now) const {
@@ -224,6 +226,38 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
         }
         return screen_ != previousScreen || dirty_;
+    }
+
+    // Care celebrations wait for feeding/growth, and consume navigation while shown.
+    if (screen_ != ScreenId::PlayCare &&
+        (careLevelUpPending_ || levelUpActive_)) {
+        if (pet_.isDead() || pet_.sleepMode() != Pet::SleepMode::Awake) {
+            careLevelUpPending_ = levelUpActive_ = false;
+        } else if (levelUpActive_) {
+            if (event == Hardware::InputEvent::LongPress) {
+                levelUpActive_ = false;
+                sound_.playCancel();
+                setScreen(ScreenId::MainMenu);
+            } else {
+                const uint32_t elapsed = now - levelUpStartedAt_;
+                levelUpFrame_ = static_cast<uint8_t>(elapsed / 125);
+                if (elapsed >= 2000) levelUpActive_ = false;
+            }
+            dirty_ = true;
+            return true;
+        } else if ((!feeding_ || now - feedingStartedAt_ >= kFeedingDurationMs) &&
+                   now - careRewardAt_ >= 400) {
+            feeding_ = false;
+            careLevelUpPending_ = false;
+            levelUpActive_ = true;
+            levelUpStartedAt_ = now;
+            levelUpFrame_ = 0;
+            sound_.playLevelUp();
+            dirty_ = true;
+            return true;
+        } else if (!feeding_) {
+            return true;
+        }
     }
 
     switch (screen_) {
@@ -496,7 +530,8 @@ void UiController::render() {
         pet_.displayRevision() != lastRenderedPetRevision_) dirty_ = true;
     if (!dirty_ || !display_.isInitialized()) return;
 
-    switch (screen_) {
+    if (levelUpActive_ && screen_ != ScreenId::PlayCare) renderLevelUp();
+    else switch (screen_) {
         case ScreenId::Boot: renderBoot(); break;
         case ScreenId::Home: renderHome(); break;
         case ScreenId::MainMenu: renderMainMenu(); break;
@@ -614,6 +649,8 @@ void UiController::onMemorialDeleteResult(bool success) {
 }
 
 void UiController::beginGrowthTransition(ScreenId screen, uint32_t now) {
+    if (levelUpActive_ && screen_ != ScreenId::PlayCare) careLevelUpPending_ = true;
+    levelUpActive_ = false;
     pendingAction_ = UiAction::None;
     growthTransitionStartedAt_ = now;
     growthTransitionElapsedMs_ = 0;
@@ -624,6 +661,7 @@ void UiController::beginGrowthTransition(ScreenId screen, uint32_t now) {
 }
 
 void UiController::beginDeathAnimation(uint32_t now) {
+    careLevelUpPending_ = levelUpActive_ = false;
     pendingAction_ = UiAction::None;
     deathStartedAt_ = now;
     deathAnimationElapsedMs_ = 0;
@@ -703,6 +741,15 @@ void UiController::renderPetFooter() {
     if (filled > 0) display_.drawLine(kFrameX + 1, kFrameY + 1,
                                       kFrameX + filled, kFrameY + 1);
     display_.drawSmallText(levelX, 63, levelText);
+}
+
+void UiController::onCareRewardApplied(uint8_t previousLevel, uint32_t now) {
+    if (pet_.level() <= previousLevel) return;
+    levelUpPreviousLevel_ = previousLevel;
+    levelUpFinalLevel_ = pet_.level();
+    careRewardAt_ = now;
+    careLevelUpPending_ = true;
+    dirty_ = true;
 }
 
 void UiController::renderMainMenu() {
@@ -860,6 +907,8 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
         levelUpActive_ = true;
         levelUpStartedAt_ = now;
         levelUpFrame_ = 0;
+        levelUpPreviousLevel_ = gamePreviousLevel_;
+        levelUpFinalLevel_ = gameFinalLevel_;
         sound_.playLevelUp();
     }
     if (current == RpsPhase::Countdown &&
@@ -985,8 +1034,8 @@ void UiController::renderLevelUp() {
     star(18, step >= 7 && step <= 11 ? 39 : 23, leftLight[step]);
     star(109, step >= 9 ? 25 : 37, rightLight[step]);
     char left[8], right[8];
-    snprintf(left, sizeof(left), "Lv%u", gamePreviousLevel_);
-    snprintf(right, sizeof(right), "Lv%u", gameFinalLevel_);
+    snprintf(left, sizeof(left), "Lv%u", levelUpPreviousLevel_);
+    snprintf(right, sizeof(right), "Lv%u", levelUpFinalLevel_);
     display_.drawText(25, 60, left);
     display_.drawLine(58, 56, 69, 56);
     display_.drawLine(66, 53, 69, 56);

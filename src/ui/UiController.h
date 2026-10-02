@@ -84,6 +84,7 @@ public:
     void setMemorialReady(bool ready);
     void onSleepStarted(uint32_t now);
     void onFeedSucceeded(uint32_t now);
+    void onCareRewardApplied(uint8_t previousLevel, uint32_t now);
     void onWakeSucceeded();
     void onDeepSleepPending(bool pending, bool failed = false);
     void onAdoptionSucceeded(uint32_t now);
@@ -127,6 +128,9 @@ private:
     bool levelUpActive_ = false;
     uint32_t levelUpStartedAt_ = 0;
     uint8_t levelUpFrame_ = 0;
+    uint8_t levelUpPreviousLevel_ = 0, levelUpFinalLevel_ = 0;
+    bool careLevelUpPending_ = false;
+    uint32_t careRewardAt_ = 0;
     void renderLevelUp();
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;

@@ -358,6 +358,7 @@ void Application::loop() {
     const bool changed = ui.update(event, now);
     const uint32_t revisionBeforeAction = pet.displayRevision();
     const Pet::LifeStage stageBeforeAction = pet.lifeStage();
+    const uint8_t levelBeforeAction = pet.level();
     const Ui::UiAction action = ui.takeAction();
     bool actionSavedImmediately = false;
     switch (action) {
@@ -416,6 +417,8 @@ void Application::loop() {
             break;
         case Ui::UiAction::None: break;
     }
+    if (action == Ui::UiAction::Feed || action == Ui::UiAction::Clean ||
+        action == Ui::UiAction::Treat) ui.onCareRewardApplied(levelBeforeAction, now);
     if (actionSavedImmediately) {
         // Entering and leaving sleep already wrote a verified checkpoint.
     } else if (pet.lifeStage() != stageBeforeAction) {

@@ -201,6 +201,62 @@ int main() {
     input(E::None,2400); input(E::Press); input(E::Press); input(E::Press); input(E::Press);
     pet.setDead(true); input(E::None,1050);
     assert(ui.screen()==S::DeathAnimation && ui.takeGameReward()==0);
+    // Real care actions award once; feeding completes before celebration.
+    for (unsigned care = 0; care < 3; ++care) {
+        Pet::PetData p;
+        p.setExp(49); p.setSatiety(99); p.setCleanliness(99);
+        if (care == 2) p.setSick(true);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        view.update(E::Press,1501);
+        for (unsigned i=0;i<care;++i) view.update(E::Down,1502+i);
+        view.update(E::Press,1510); view.update(E::Press,1511);
+        assert(view.takeAction() == (care==0 ? A::Feed : care==1 ? A::Clean : A::Treat));
+        const auto old = p.level();
+        assert(care==0 ? p.feed() : care==1 ? p.clean() : p.treat());
+        if (care==0) view.onFeedSucceeded(1511);
+        view.onCareRewardApplied(old,1511);
+        assert(p.level()==2 && p.exp()==(care==2 ? 4 : 2));
+        capture(view,care==0 ? "care-feed-before-up" : care==1 ? "care-clean-before-up" : "care-treat-before-up");
+        const auto before = pixels;
+        const uint32_t start = care==0 ? 4511 : 1911;
+        view.update(E::Press,start-1); assert(view.takeAction()==A::None);
+        view.update(E::Press,start); capture(view,"care-level-up");
+        assert(pixels != before && view.takeAction()==A::None);
+        const auto celebration = pixels;
+        view.update(E::Press,start+1); view.render();
+        assert(pixels==celebration && view.takeAction()==A::None);
+        view.update(E::Press,start+2000);
+        assert(view.takeAction()==A::None && p.exp()==(care==2 ? 4 : 2));
+        view.update(E::None,start+2001); view.render();
+        assert(pixels != celebration);
+    }
+    // Death cancels a queued care celebration; it must never cover the death flow.
+    {
+        Pet::PetData p; p.setExp(49); p.setSatiety(99);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        const auto old=p.level(); assert(p.feed());
+        view.onFeedSucceeded(1501); view.onCareRewardApplied(old,1501);
+        p.setDead(true); view.update(E::None,1502);
+        assert(view.screen()==S::DeathAnimation);
+        capture(view,"care-death-priority"); const auto death=pixels;
+        view.update(E::None,1503); view.render(); assert(pixels==death);
+    }
+    // A cure at the delayed growth boundary prioritizes growth, then celebrates.
+    {
+        Pet::PetData p; p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+        p.setSick(true); p.advanceSeconds(Pet::PetData::kAdultAgeSeconds);
+        assert(p.lifeStage()==Pet::LifeStage::Baby); p.setExp(49);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        const auto old=p.level(); assert(p.treat()); view.onCareRewardApplied(old,1501);
+        view.update(E::None,1502); assert(view.screen()==S::GrowTransition);
+        view.update(E::None,3902); assert(view.screen()==S::Home);
+        view.update(E::None,3903); capture(view,"care-growth-level-up");
+        view.update(E::LongPress,3904); assert(view.screen()==S::MainMenu && p.exp()==4);
+        view.update(E::None,6000); assert(view.screen()==S::MainMenu);
+    }
     // Footer grows with the current level's EXP, resets after level-up,
     // and remains full at MAX even though stored EXP is zero.
     Pet::PetData footerPet;

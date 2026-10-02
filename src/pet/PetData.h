@@ -35,6 +35,9 @@ class PetData {
 public:
     static constexpr uint8_t kMinNeedValue = 0;
     static constexpr uint8_t kMaxNeedValue = 100;
+    static constexpr uint8_t kFeedExpReward = 3;
+    static constexpr uint8_t kCleanExpReward = 3;
+    static constexpr uint8_t kTreatExpReward = 5;
     static constexpr uint32_t kSatietyDecaySeconds = 600;
     static constexpr uint32_t kCleanlinessDecaySeconds = 900;
     static constexpr uint32_t kMoodDecaySeconds = 1200;
@@ -136,6 +139,7 @@ public:
     bool treat();
 
 private:
+    uint16_t addExp(uint16_t amount);
     static uint8_t clampNeedValue(int64_t value);
     uint32_t advanceCareSeconds(uint32_t seconds, uint32_t satietyInterval,
                                 uint32_t cleanlinessInterval,

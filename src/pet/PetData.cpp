@@ -46,7 +46,11 @@ uint16_t PetData::expToNextLevel() const {
     return level_ >= kMaxLevel ? 0 : 50 + 25 * (level_ - 1);
 }
 uint16_t PetData::gainExp(uint16_t amount) {
-    if (!amount || isSick() || lifeStage_ == LifeStage::Egg ||
+    if (isSick()) return 0;
+    return addExp(amount);
+}
+uint16_t PetData::addExp(uint16_t amount) {
+    if (!amount || isDead() || lifeStage_ == LifeStage::Egg ||
         sleepMode_ != SleepMode::Awake || level_ >= kMaxLevel) return 0;
     uint32_t remaining = 0;
     for (uint8_t lv = level_; lv < kMaxLevel; ++lv) remaining += 50 + 25 * (lv - 1);
@@ -412,14 +416,18 @@ bool PetData::restoreSleepRecoveryRemainder(uint32_t seconds) {
 }
 
 bool PetData::feed() {
-    if (isDead() || lifeStage_ == LifeStage::Egg) return false;
+    if (isDead() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
+    const uint8_t before = satiety_;
     changeSatiety(kFeedAmount);
+    if (satiety_ > before) addExp(kFeedExpReward);
     return true;
 }
 
 bool PetData::clean() {
-    if (isDead() || lifeStage_ == LifeStage::Egg) return false;
+    if (isDead() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
+    const uint8_t before = cleanliness_;
     changeCleanliness(kCleanAmount);
+    if (cleanliness_ > before) addExp(kCleanExpReward);
     return true;
 }
 
@@ -430,9 +438,10 @@ bool PetData::play() {
 }
 
 bool PetData::treat() {
-    if (isDead() || lifeStage_ == LifeStage::Egg || !isSick()) return false;
+    if (isDead() || lifeStage_ == LifeStage::Egg || !isSick() || sleepMode_ != SleepMode::Awake) return false;
     setSick(false);
     growUpIfReady();
+    addExp(kTreatExpReward);
     return true;
 }
 

@@ -10,6 +10,29 @@
 #include "power/SleepSettlement.h"
 
 int main() {
+    // Care rewards depend on actual benefit, including care while sick.
+    Pet::PetData cared;
+    cared.setSatiety(99); cared.setCleanliness(99);
+    assert(cared.feed() && cared.exp() == 3 && cared.satiety() == 100);
+    assert(cared.feed() && cared.exp() == 3);
+    assert(cared.clean() && cared.exp() == 6 && cared.cleanliness() == 100);
+    assert(cared.clean() && cared.exp() == 6);
+    assert(!cared.treat() && cared.exp() == 6);
+    cared.setSick(true); cared.setSatiety(50); cared.setCleanliness(50);
+    assert(cared.feed() && cared.exp() == 9);
+    assert(cared.clean() && cared.exp() == 12);
+    assert(cared.treat() && cared.exp() == 17 && !cared.isSick());
+    assert(!cared.treat() && cared.exp() == 17);
+    cared.setExp(49); cared.setSatiety(99);
+    assert(cared.feed() && cared.level() == 2 && cared.exp() == 2);
+    Pet::PetData careRestored;
+    assert(careRestored.restore(cared.snapshot()) && careRestored.exp() == 2);
+    cared.setLevel(Pet::PetData::kMaxLevel); cared.setCleanliness(0);
+    assert(cared.clean() && cared.cleanliness() == 30 && cared.exp() == 0);
+    assert(cared.beginNormalSleep());
+    assert(!cared.feed() && !cared.clean() && !cared.treat() && cared.exp() == 0);
+    cared.wake(); cared.startNewEgg();
+    assert(!cared.feed() && !cared.clean() && !cared.treat() && cared.exp() == 0);
     Pet::PetData experience;
     experience.setMood(100);
     experience.setExp(45);
