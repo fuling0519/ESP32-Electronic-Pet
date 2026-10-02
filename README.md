@@ -13,6 +13,10 @@
 5. 完成工作後更新主企畫第 10 節的實作、驗證與下一步；建置或操作方法有變才改 README，介面有變才改共用協定。
 6. 修改畫面、字型或操作文案前必讀 [OLED 排版引導手冊](docs/ui-layout-guide.md)：先規劃元素範圍、留白與動態內容，再修改繪圖；編譯成功不能代替視覺檢查。
 
+## 小鳥 Web 展示入口
+
+下載本專案後，直接以瀏覽器開啟 [web-preview/index.html](web-preview/index.html)，同資料夾的 app.js、style.css 與 assets/ 必須一起保留。此入口是本機模擬展示，不需要安裝套件；裝置連線按鈕目前提供說明。正式 Web 進度與驗收只見主企畫第 10 節 W2。
+
 ## 開發環境與建置
 
 - 語言：C++。
@@ -141,3 +145,4 @@ Common choices:
 The project owner should choose based on the intended contribution and distribution model before the first public release.
 
 狀態頁共有三頁，可用右／下前進、左／上返回。第 3 頁顯示年齡，第一行「年齡　200 天」，第二行「15 時 30 分」，數值靠右對齊。包含已結算的睡眠時間，斷電時間不計入；不足一分鐘顯示 0 分，超過 999999 天顯示「>999999 天」。
+
