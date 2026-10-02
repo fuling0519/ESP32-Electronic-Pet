@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小鳥花園 · 首頁背景模板</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#fffdeb}canvas{display:block;width:100%;height:100vh;height:100svh;image-rendering:pixelated} 
+</style>
+</head>
+<body><canvas id="background" role="img" aria-label="奶油白與淺藍格紋的像素首頁背景，四周點綴花朵、星星，中央保留空白"></canvas>
+<script>
+(()=>{
+const canvas=document.getElementById('background'),ctx=canvas.getContext('2d');
+const colors={cream:'#fffdeb',blue:'#d9edf5',stripe:'#c2deed',mint:'#b5ece9',lavender:'#b9b9df',gold:'#f4dfa1',white:'#fffef6',leaf:'#c6d7a8'};
+function pixel(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),w,h);}
+function motif(map,x,y,size,color){map.forEach((row,j)=>[...row].forEach((c,i)=>{if(c!==' ')pixel(x+i*size,y+j*size,size,size,c==='o'?colors.white:c==='c'?colors.gold:color);}));}
+const flower=['   ooo   ','  oXXXo  ','ooXXXXXoo','oXXXcXXXo','oXXcccXXo','oXXXcXXXo','ooXXXXXoo','  oXXXo  ','   ooo   '];
+const star=['    o    ','   oXo   ','   oXo   ',' ooXXXoo ','oXXXXXXXo',' ooXXXoo ','   oXo   ','   oXo   ','    o    '];
+const leaf=['      XX','    XXXX','  XXXXXX',' XXXXXXX','XXXXXXX ',' XXXX   ',' XX     '];
+function render(){
+const w=Math.max(160,Math.ceil(innerWidth/4)),h=Math.ceil(innerHeight/4);canvas.width=w;canvas.height=h;
+pixel(0,0,w,h,colors.cream);
+const cell=19;
+for(let y=0;y<h;y+=cell)for(let x=0;x<w;x+=cell){const a=Math.floor(x/cell)%2,b=Math.floor(y/cell)%2;if(a&&b)pixel(x,y,cell,cell,colors.blue);else if(a||b){ctx.save();ctx.beginPath();ctx.rect(x,y,cell,cell);ctx.clip();for(let k=-cell;k<cell*2;k+=4)for(let j=0;j<cell;j++)pixel(x+k+j,y+j,2,1,colors.stripe);ctx.restore();}}
+// Keep the middle quiet so future homepage content remains legible.
+const margin=w<220?26:Math.round(w*.18),top=Math.round(h*.15),bottom=Math.round(h*.85);
+pixel(margin,top,w-margin*2,bottom-top,colors.cream);
+pixel(margin+3,top-2,w-margin*2-6,2,colors.white);pixel(margin+3,bottom,w-margin*2-6,2,colors.white);
+const positions=[[.07,.09,'f'],[.28,.05,'s'],[.76,.06,'f'],[.89,.16,'s'],[.06,.42,'s'],[.89,.48,'f'],[.08,.76,'f'],[.90,.81,'s'],[.26,.93,'f'],[.64,.94,'s']];
+positions.forEach(([x,y,type],i)=>{const map=type==='f'?flower:star;motif(map,Math.floor(w*x)-9,Math.floor(h*y)-9,2,[colors.mint,colors.lavender,colors.gold][i%3]);});
+motif(leaf,margin-10,top-6,1,colors.leaf);motif(leaf,w-margin-1,bottom-9,1,colors.leaf);
+}
+addEventListener('resize',render);render();
+})();
+</script></body></html>
