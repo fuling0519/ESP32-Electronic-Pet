@@ -1,9 +1,9 @@
 Add-Type -AssemblyName System.Drawing
 $root = Split-Path $PSScriptRoot -Parent
-$bitmap = [System.Drawing.Bitmap]::new((Join-Path $root 'assets/dirty/dirty.png'))
+$bitmap = [System.Drawing.Bitmap]::new((Join-Path $root 'assets/shared/effects/dirt.png'))
 try {
     if ($bitmap.Width -ne 38 -or $bitmap.Height -ne 48) { throw 'Expected a 38x48 sheet of 19x24 tiles.' }
-    $lines = @('#pragma once', '#include <stdint.h>', '// Generated from assets/dirty/dirty.png. Row-major, MSB-first; zero = white.', 'namespace Ui { namespace PetIcons {', 'constexpr uint8_t kDirtWidth = 19;', 'constexpr uint8_t kDirtHeight = 24;', 'const uint8_t kDirtFrames[3][72] PROGMEM = {')
+    $lines = @('#pragma once', '#include <stdint.h>', '// Generated from assets/shared/effects/dirt.png. Row-major, MSB-first; zero = white.', 'namespace Ui { namespace PetIcons {', 'constexpr uint8_t kDirtWidth = 19;', 'constexpr uint8_t kDirtHeight = 24;', 'const uint8_t kDirtFrames[3][72] PROGMEM = {')
     for ($frame = 0; $frame -lt 3; $frame++) {
         $bytes = @()
         for ($y = 0; $y -lt 24; $y++) {

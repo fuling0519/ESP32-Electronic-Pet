@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-// Generated from assets/dirty/dirty.png. Row-major, MSB-first; zero = white.
+// Generated from assets/shared/effects/dirt.png. Row-major, MSB-first; zero = white.
 namespace Ui { namespace PetIcons {
 constexpr uint8_t kDirtWidth = 19;
 constexpr uint8_t kDirtHeight = 24;

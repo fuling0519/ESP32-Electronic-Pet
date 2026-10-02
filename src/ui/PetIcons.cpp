@@ -196,7 +196,7 @@ void drawPetDissolve(Hardware::Display& d, int16_t x, int16_t y,
 }
 
 namespace {
-// Exact two 30 x 28 frames from assets/ghost/GHOST2.png, top to bottom.
+// Exact two 30 x 28 frames from assets/shared/effects/soul.png, top to bottom.
 // drawGlyph uses zero bits for white pixels; one bits stay transparent.
 const uint8_t kGhostBitmaps[2][112] PROGMEM = {
     {

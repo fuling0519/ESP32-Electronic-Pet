@@ -113,7 +113,9 @@ pio run -e esp32dev_deep_sleep_test -t upload
 - `include/HardwareConfig.h`：集中腳位及硬體參數。
 - `docs/project-plan.md`：需求、決策、進度與驗收；`docs/architecture.md`：早期架構說明。
 
-正式寵物的主畫面美術以 **64×44 單色像素**為標準畫布，放在 `(32, 6)`；主畫面中央安全區域約為 `x=20..108`、`y=0..54`。蛋、裂蛋、幼鳥與成鳥均使用上下兩格的 64×44 使用者手繪素材；目前幼鳥與成鳥分別取自 [BIRD-baby2.png](assets/BIRD/BIRD-baby2.png) 和 [BIRD-normal2.png](assets/BIRD/BIRD-normal2.png)，`tools/generate_bird_sprite.py` 逐像素產生韌體點陣資料及閉眼睡眠版本。成鳥第二格讓呆毛變化、身體略為下沉，畫面依序顯示 700／400 毫秒；幼鳥死亡時也會以其自身圖案溶解。畫面驗收範圍見主進度台帳。死亡動畫共用靈魂以 [GHOST2.png](assets/ghost/GHOST2.png) 為準：圖檔 30×56，從上到下是兩格 30×28 畫面，白色身體、X 眼、光環和兩種翅膀位置皆逐像素保留。兩格約每 300 毫秒交替，靈魂畫布從 `x=64` 開始（中心 `x≈79`)。
+素材分類、命名規則與舊檔對應見 [美術素材說明](assets/README.md)。
+
+正式寵物的主畫面美術以 **64×44 單色像素**為標準畫布，放在 `(32, 6)`；主畫面中央安全區域約為 `x=20..108`、`y=0..54`。蛋、裂蛋、幼鳥與成鳥均使用上下兩格的 64×44 使用者手繪素材；目前幼鳥與成鳥分別取自 [baby/idle.png](assets/pets/bird/baby/idle.png) 和 [adult/idle.png](assets/pets/bird/adult/idle.png)，`tools/generate_bird_sprite.py` 逐像素產生韌體點陣資料及閉眼睡眠版本。成鳥第二格讓呆毛變化、身體略為下沉，畫面依序顯示 700／400 毫秒；幼鳥死亡時也會以其自身圖案溶解。畫面驗收範圍見主進度台帳。死亡動畫共用靈魂以 [soul.png](assets/shared/effects/soul.png) 為準：圖檔 30×56，從上到下是兩格 30×28 畫面，白色身體、X 眼、光環和兩種翅膀位置皆逐像素保留。兩格約每 300 毫秒交替，靈魂畫布從 `x=64` 開始（中心 `x≈79`)。
 
 UI 不應直接操作硬體腳位。主迴圈目前以非阻塞方式更新輸入與音效；增加養成計時、保存與睡眠時維持這個方向。修改現有程式前先讀實際檔案，避免依據已過時的文件覆蓋工作目錄變更。
 

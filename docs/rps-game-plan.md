@@ -2,7 +2,7 @@
 
 更新日期：2026-10-02。狀態：首版在韌體 1.3.0 實作；目前 1.4.0 的 EXP／升級增量見 [規則及驗收](exp-level-plan.md)。首版基本操作及心情 BLE 即時同步已由使用者實機確認。特殊中斷與存檔邊界另行驗收，詳細進度見主台帳 A5-GAME。
 
-2026-10-02 已改用使用者提供的手勢圖；剪刀取自 `assets/GAME/Rock-Paper-Scissors-2.png`，石頭及布維持 `assets/GAME/Rock-Paper-Scissors.png`，均逐像素取出。以下記錄採用的回合、獎勵、版面及限制；進度仍統一記錄在 project-plan.md 的 A5-GAME。
+2026-10-02 已改用使用者提供的手勢圖；三種手勢統一取自已修改剪刀的 `assets/games/rps/gestures.png`，均逐像素取出。以下記錄採用的回合、獎勵、版面及限制；進度仍統一記錄在 project-plan.md 的 A5-GAME。
 
 ## 1. 遊戲定位
 
@@ -112,7 +112,7 @@
 
 ## 8. 素材與程式分工
 
-- 石頭及布來源為使用者的 `assets/GAME/Rock-Paper-Scissors.png`，剪刀來源為 `assets/GAME/Rock-Paper-Scissors-2.png`。48×36 圖檔的左上／右上／左下分別是布／石頭／剪刀，各 24×18；右下空白不使用。`tools/generate_rps_icons.py` 保留原像素與透明背景，不縮放或重繪；白色不透明像素轉為 OLED 亮點。圖像資料共 162 bytes，輸出至 `src/ui/RpsIcons.h`，原尺寸及四倍無平滑預覽為 `docs/rps-icons-preview.png`。
+- 三種手勢來源均為使用者已修改剪刀的 `assets/games/rps/gestures.png`。48×36 圖檔的左上／右上／左下分別是布／石頭／剪刀，各 24×18；右下空白不使用。`tools/generate_rps_icons.py` 保留原像素與透明背景，不縮放或重繪；白色不透明像素轉為 OLED 亮點。圖像資料共 162 bytes，輸出至 `src/ui/RpsIcons.h`，原尺寸及四倍無平滑預覽為 `docs/rps-icons-preview.png`。
 - 補足實際使用的中文字集，例如猜、拳、剪、刀、石、頭、布、贏、輸、回、合等；以最終文案差集為準。
 - `src/games/RpsGame` 維護招式、回合、比分、階段計時與待取出的單次結果；勝負規則獨立於硬體，方便原生測試。
 - UiController 負責選單、繪圖與輸入轉換；Application 負責領取一次性結果、驗證寵物狀態、發獎勵與保存。

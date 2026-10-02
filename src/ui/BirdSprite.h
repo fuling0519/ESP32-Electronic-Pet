@@ -7,7 +7,7 @@
 namespace Ui { namespace PetIcons {
 constexpr uint8_t kBirdFrameWidth = 64;
 constexpr uint8_t kBirdFrameHeight = 44;
-// assets/BIRD/BIRD-normal2.png
+// assets/pets/bird/adult/idle.png
 const uint8_t kBirdFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -102,7 +102,7 @@ const uint8_t kBirdFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFA, 0xBF, 0x57, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/BIRD/BIRD-baby2.png
+// assets/pets/bird/baby/idle.png
 const uint8_t kBabyBirdFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -197,7 +197,7 @@ const uint8_t kBabyBirdFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/BIRD/BIRD-normal2.png
+// assets/pets/bird/adult/idle.png
 const uint8_t kBirdSleepingFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -292,7 +292,7 @@ const uint8_t kBirdSleepingFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFA, 0xBF, 0x57, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/BIRD/BIRD-baby2.png
+// assets/pets/bird/baby/idle.png
 const uint8_t kBabyBirdSleepingFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -387,7 +387,7 @@ const uint8_t kBabyBirdSleepingFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/EGG/Egg-normal.png
+// assets/shared/egg/idle.png
 const uint8_t kEggFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -482,7 +482,7 @@ const uint8_t kEggFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/EGG/Egg-born.png
+// assets/shared/egg/hatching.png
 const uint8_t kCrackedEggFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -577,7 +577,7 @@ const uint8_t kCrackedEggFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/BIRD/BIRD-adult-eat.png
+// assets/pets/bird/adult/eating.png
 const uint8_t kBirdEatingFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -672,7 +672,7 @@ const uint8_t kBirdEatingFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFA, 0xBF, 0x57, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/BIRD/BIRD-baby-eat.png
+// assets/pets/bird/baby/eating.png
 const uint8_t kBabyBirdEatingFrames[2][352] PROGMEM = {
     {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -767,7 +767,7 @@ const uint8_t kBabyBirdEatingFrames[2][352] PROGMEM = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     },
 };
-// assets/FEED/bowl.png: three 21x15 frames, full to empty.
+// assets/shared/items/food_bowl.png: three 21x15 frames, full to empty.
 constexpr uint8_t kBowlWidth = 21;
 constexpr uint8_t kBowlHeight = 15;
 const uint8_t kBowlFrames[3][45] PROGMEM = {

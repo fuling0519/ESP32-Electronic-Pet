@@ -11,12 +11,12 @@ WIDTH = 64
 HEIGHT = 44
 FRAME_COUNT = 2
 SHEETS = (
-    ("kBirdFrames", ROOT / "assets" / "BIRD" / "BIRD-normal2.png"),
-    ("kBabyBirdFrames", ROOT / "assets" / "BIRD" / "BIRD-baby2.png"),
-    ("kEggFrames", ROOT / "assets" / "EGG" / "Egg-normal.png"),
-    ("kCrackedEggFrames", ROOT / "assets" / "EGG" / "Egg-born.png"),
-    ("kBirdEatingFrames", ROOT / "assets" / "BIRD" / "BIRD-adult-eat.png"),
-    ("kBabyBirdEatingFrames", ROOT / "assets" / "BIRD" / "BIRD-baby-eat.png"),
+    ("kBirdFrames", ROOT / "assets" / "pets" / "bird" / "adult" / "idle.png"),
+    ("kBabyBirdFrames", ROOT / "assets" / "pets" / "bird" / "baby" / "idle.png"),
+    ("kEggFrames", ROOT / "assets" / "shared" / "egg" / "idle.png"),
+    ("kCrackedEggFrames", ROOT / "assets" / "shared" / "egg" / "hatching.png"),
+    ("kBirdEatingFrames", ROOT / "assets" / "pets" / "bird" / "adult" / "eating.png"),
+    ("kBabyBirdEatingFrames", ROOT / "assets" / "pets" / "bird" / "baby" / "eating.png"),
 )
 
 
@@ -97,11 +97,11 @@ def main() -> None:
                 lines.append(f"        {values},")
             lines.append("    },")
         lines.append("};")
-    lines += ["// assets/FEED/bowl.png: three 21x15 frames, full to empty.",
+    lines += ["// assets/shared/items/food_bowl.png: three 21x15 frames, full to empty.",
               "constexpr uint8_t kBowlWidth = 21;",
               "constexpr uint8_t kBowlHeight = 15;",
               "const uint8_t kBowlFrames[3][45] PROGMEM = {"]
-    for data in read_frames(ROOT / "assets/FEED/bowl.png", "kBowlFrames", 21, 15, 3):
+    for data in read_frames(ROOT / "assets/shared/items/food_bowl.png", "kBowlFrames", 21, 15, 3):
         lines.append("    {" + ", ".join(f"0x{value:02X}" for value in data) + "},")
     lines += ["};", "} }  // namespace Ui::PetIcons", ""]
     OUTPUT.write_text("\n".join(lines), encoding="utf-8")
