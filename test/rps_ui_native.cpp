@@ -216,11 +216,12 @@ int main() {
         const auto old = p.level();
         assert(care==0 ? p.feed() : care==1 ? p.clean() : p.treat());
         if (care==0) view.onFeedSucceeded(1511);
+        else if (care==1) view.onCleanSucceeded(1511);
         view.onCareRewardApplied(old,1511);
         assert(p.level()==2 && p.exp()==(care==2 ? 4 : 2));
         capture(view,care==0 ? "care-feed-before-up" : care==1 ? "care-clean-before-up" : "care-treat-before-up");
         const auto before = pixels;
-        const uint32_t start = care==0 ? 4511 : 1911;
+        const uint32_t start = care==0 ? 4511 : 3912;
         view.update(E::Press,start-1); assert(view.takeAction()==A::None);
         view.update(E::Press,start); capture(view,"care-level-up");
         assert(pixels != before && view.takeAction()==A::None);
@@ -231,6 +232,91 @@ int main() {
         assert(view.takeAction()==A::None && p.exp()==(care==2 ? 4 : 2));
         view.update(E::None,start+2001); view.render();
         assert(pixels != celebration);
+    }
+    // Cleaning replaces only the center, preserves the live HUD/footer, locks
+    // all input until 2400ms, and restores dirt from the current (not saved) value.
+    for (unsigned baby=0; baby<2; ++baby) {
+        Pet::PetData p;
+        if (baby) { p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); }
+        p.setCleanliness(40); p.setExp(25); p.setSick(true);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        capture(view,baby?"clean-baby-before":"clean-adult-before");
+        view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Press,1503);
+        assert(view.screen()==S::CleanCare);
+        view.update(E::Press,1504); assert(view.takeAction()==A::Clean);
+        const auto old=p.level(); assert(p.clean());
+        view.onCleanSucceeded(1504); view.onCareRewardApplied(old,1504);
+        assert(view.screen()==S::Home && p.cleanliness()==70 && p.exp()==28);
+        assert(view.takeAction()==A::None);
+        capture(view,baby?"clean-baby-0":"clean-adult-0");
+        const auto initial=pixels;
+        for (unsigned frame=1; frame<4; ++frame) {
+            view.update(E::Press,1504+frame*400);
+            assert(view.screen()==S::Home && view.takeAction()==A::None);
+            char name[32]; snprintf(name,sizeof(name),"clean-%s-%u",baby?"baby":"adult",frame);
+            capture(view,name);
+            assert(p.cleanliness()==70 && p.exp()==28);
+            for(int y=0;y<64;++y) for(int x=0;x<128;++x) {
+                if(x<20 || x>=111 || y>=55) {
+                    const auto index=(y/8)*128+x;
+                    assert((pixels[index] & (1<<(y%8))) == (initial[index] & (1<<(y%8))));
+                }
+            }
+            if(frame==3) for(int y=3;y<=51;++y) for(int x=23;x<=106;++x) assert(lit(x,y));
+        }
+        const auto full=pixels;
+        for (E event : {E::Up,E::Down,E::Left,E::Right,E::Press,E::LongPress}) {
+            view.update(event,3903); view.render();
+            assert(view.screen()==S::Home && view.takeAction()==A::None && pixels==full);
+        }
+        view.update(E::Press,3904); assert(view.screen()==S::Home && view.takeAction()==A::None);
+        capture(view,baby?"clean-baby-restored":"clean-adult-restored");
+        assert(lit(25,13) && p.cleanliness()==70);
+        // Force a live change at the boundary: baby shows dirt, adult is clean.
+        p.setCleanliness(baby?0:100);
+        capture(view,baby?"clean-baby-live-dirt":"clean-adult-live-dirt");
+        assert(lit(25,13)==bool(baby) && lit(117,8)); // Sickness is never cured by cleaning.
+        view.update(E::Right,3905); view.update(E::Press,3906);
+        assert(view.screen()==S::DetailedStatus);
+    }
+    // At 100%, animation still plays but grants no extra EXP.
+    {
+        Pet::PetData p; p.setCleanliness(100); p.setExp(25);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Press,1503); view.update(E::Press,1504);
+        assert(view.takeAction()==A::Clean && p.clean()); view.onCleanSucceeded(1504);
+        assert(p.cleanliness()==100 && p.exp()==25);
+        view.update(E::Press,3904); view.update(E::None,3905);
+        assert(view.screen()==S::Home && view.takeAction()==A::None && p.exp()==25);
+        // Death has priority over the cleaning lock.
+        view.onCleanSucceeded(4000); p.setDead(true); view.update(E::Press,4001);
+        assert(view.screen()==S::DeathAnimation && view.takeAction()==A::None);
+    }
+    // Eggs and sleeping pets remain ineligible for the application action.
+    {
+        Pet::PetData p; p.startNewEgg();
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        view.update(E::Down,1502); view.update(E::Press,1503); view.update(E::Press,1504);
+        assert(view.screen()==S::CleanCare && view.takeAction()==A::None && !p.clean());
+        p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); assert(p.beginNormalSleep());
+        assert(!p.clean());
+    }
+    // Growth waits for cleaning to finish; unsigned clock wrap keeps the hold.
+    {
+        Pet::PetData p; p.startNewEgg(); p.advanceSeconds(Pet::PetData::kAdultAgeSeconds-1);
+        assert(p.lifeStage()==Pet::LifeStage::Baby);
+        p.setSick(false); p.setSatiety(100); p.setCleanliness(100);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        view.onCleanSucceeded(UINT32_MAX-1199);
+        p.advanceSeconds(1); assert(p.lifeStage()==Pet::LifeStage::Adult);
+        view.update(E::Press,1199); assert(view.screen()==S::Home);
+        view.update(E::Press,1200); assert(view.screen()==S::Home);
+        view.update(E::None,1201); assert(view.screen()==S::GrowTransition);
     }
     // Real treatment timing, input lock, both sprites, live dirt restoration,
     // one-shot settlement and deferred upgrade/growth celebration.

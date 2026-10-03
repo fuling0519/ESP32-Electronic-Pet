@@ -11,6 +11,7 @@
 #include "ui/PetIcons.h"
 #include "ui/RpsIcons.h"
 #include "ui/PotionSprite.h"
+#include "ui/CleaningSprite.h"
 
 namespace Ui {
 namespace {
@@ -29,6 +30,8 @@ constexpr uint32_t kTreatmentPourDoneMs = 1200;
 constexpr uint32_t kTreatmentSparkleStartMs = 1400;
 constexpr uint32_t kTreatmentDurationMs = 3400;
 constexpr uint32_t kTreatmentNoticeMs = 1200;
+constexpr uint32_t kCleaningFrameMs = 400;
+constexpr uint32_t kCleaningDurationMs = 2400;
 constexpr uint8_t kMenuItemCount = 7;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -146,6 +149,9 @@ void UiController::init(uint32_t now) {
     deathAnimationFrame_ = 0;
     homeAnimationFrame_ = 0;
     feeding_ = false;
+    cleaning_ = false;
+    cleaningStartedAt_ = 0;
+    cleaningFrame_ = 0;
     treating_ = treatmentActionQueued_ = treatmentSucceeded_ = false;
     treatmentElapsedMs_ = 0;
     sleepStartedAtMs_ = 0;
@@ -208,7 +214,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
     }
 
     if (pet_.lifeStage() != observedLifeStage_ &&
-        screen_ != ScreenId::Sleeping && !treating_) {
+        screen_ != ScreenId::Sleeping && !treating_ && !cleaning_) {
         const Pet::LifeStage previousStage = observedLifeStage_;
         observedLifeStage_ = pet_.lifeStage();
         if (previousStage == Pet::LifeStage::Egg &&
@@ -280,7 +286,26 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
         }
     }
 
-    // Care celebrations wait for feeding/growth, and consume navigation while shown.
+    // Keep the confirmed rising-water/full-white sequence on Home. Consume even
+    // the completion event so a held/repeated press cannot reopen the menu.
+    if (cleaning_) {
+        const uint32_t elapsed = now - cleaningStartedAt_;
+        if (elapsed >= kCleaningDurationMs ||
+            pet_.sleepMode() != Pet::SleepMode::Awake) {
+            cleaning_ = false;
+            dirty_ = true;
+        } else {
+            const uint8_t frame = elapsed >= 3 * kCleaningFrameMs ? 3 :
+                static_cast<uint8_t>(elapsed / kCleaningFrameMs);
+            if (frame != cleaningFrame_) {
+                cleaningFrame_ = frame;
+                dirty_ = true;
+            }
+        }
+        return dirty_;
+    }
+
+    // Care celebrations wait for feeding/cleaning/growth, and consume navigation while shown.
     if (screen_ != ScreenId::PlayCare &&
         (careLevelUpPending_ || levelUpActive_)) {
         if (pet_.isDead() || pet_.sleepMode() != Pet::SleepMode::Awake) {
@@ -675,6 +700,14 @@ void UiController::beginTreatment(uint32_t now) {
     dirty_ = true;
 }
 
+void UiController::onCleanSucceeded(uint32_t now) {
+    setScreen(ScreenId::Home);
+    cleaning_ = true;
+    cleaningStartedAt_ = now;
+    cleaningFrame_ = 0;
+    dirty_ = true;
+}
+
 void UiController::showTreatmentNotice(uint32_t now) {
     setScreen(ScreenId::MainMenu);
     menuIndex_ = 2;
@@ -769,6 +802,7 @@ void UiController::setScreen(ScreenId screen) {
     }
     screen_ = screen;
     feeding_ = false;
+    cleaning_ = false;
     treating_ = false;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
     if (screen_ == ScreenId::DetailedStatus) statusPage_ = 0;
@@ -788,8 +822,8 @@ void UiController::renderHome() {
         treatmentElapsedMs_ >= kTreatmentSparkleStartMs;
     // The cure settles before the sparkle starts; retain sad through that gap.
     const bool sad = treating_ ? !treatmentSparkling : pet_.isSick();
-    // Dirt is hidden only for treatment; normal rendering reads live cleanliness.
-    if (!treating_ && pet_.lifeStage() != Pet::LifeStage::Egg) {
+    // Care effects hide dirt temporarily; restore it from live cleanliness.
+    if (!treating_ && !cleaning_ && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawDirt(display_, pet_.cleanlinessState());
     }
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
@@ -797,7 +831,10 @@ void UiController::renderHome() {
         PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
     }
 
-    if (feeding_) {
+    if (cleaning_) {
+        display_.drawGlyph(23, 3, PetIcons::kCleaningFrames[cleaningFrame_],
+                           PetIcons::kCleaningWidth, PetIcons::kCleaningHeight);
+    } else if (feeding_) {
         PetIcons::drawEatingPet(display_, 32, 6, pet_.lifeStage(),
                                feedingFrame_, feedingBowlStage_);
     } else if (sad && pet_.lifeStage() != Pet::LifeStage::Egg) {

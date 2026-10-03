@@ -387,7 +387,10 @@ void Application::loop() {
             } else sound.playFailure();
             break;
         case Ui::UiAction::Clean:
-            if (pet.clean()) sound.playSuccess(); else sound.playFailure();
+            if (pet.clean()) {
+                sound.playSuccess();
+                ui.onCleanSucceeded(now);
+            } else sound.playFailure();
             break;
         case Ui::UiAction::FinishGame: {
             const uint8_t reward = ui.takeGameReward();

@@ -83,6 +83,7 @@ public:
     void setMemorialReady(bool ready);
     void onSleepStarted(uint32_t now);
     void onFeedSucceeded(uint32_t now);
+    void onCleanSucceeded(uint32_t now);
     void onTreatResult(bool success, uint32_t now);
     void onCareRewardApplied(uint8_t previousLevel, uint32_t now);
     void onWakeSucceeded();
@@ -153,6 +154,9 @@ private:
     uint32_t deathAnimationElapsedMs_ = 0;
     uint8_t deathAnimationFrame_ = 0;
     uint8_t homeAnimationFrame_ = 0;
+    bool cleaning_ = false;
+    uint32_t cleaningStartedAt_ = 0;
+    uint8_t cleaningFrame_ = 0;
     bool treating_ = false;
     bool treatmentActionQueued_ = false;
     bool treatmentSucceeded_ = false;
