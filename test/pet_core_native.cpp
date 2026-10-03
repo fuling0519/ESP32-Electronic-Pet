@@ -194,7 +194,7 @@ int main() {
     assert(sleeping.mood() == 50);
     sleeping.advanceSleepSeconds(1);
     assert(sleeping.mood() == 51);
-    assert(sleeping.satiety() == 78);
+    assert(sleeping.satiety() == 77);
     assert(sleeping.wake());
     assert(sleeping.sleepMode() == Pet::SleepMode::Awake);
     assert(Pet::isValidPetSnapshot(sleeping.snapshot()));
@@ -208,7 +208,7 @@ int main() {
     assert(sleepingBatch.beginNormalSleep());
     sleepingBatch.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds * 2);
     assert(sleepingBatch.mood() == 52);
-    assert(sleepingBatch.satiety() == 78);
+    assert(sleepingBatch.satiety() == 76);
     assert(sleepingBatch.ageSeconds() ==
            Pet::PetData::kSleepMoodRecoverySeconds * 2);
 
@@ -320,16 +320,16 @@ int main() {
     assert(deep.ageSeconds() == 0);
     deep.advanceSleepSeconds(Pet::PetData::kSleepMoodRecoverySeconds - 1);
     const auto deepSaved = deep.snapshot();
-    const auto recoveryRemainder = deep.sleepRecoveryRemainder();
+    const auto recoveryRemainder = deep.sleepRecoveryProgress();
     Pet::PetData deepRestored;
     assert(deepRestored.restore(deepSaved));
-    assert(!deepRestored.restoreSleepRecoveryRemainder(Pet::PetData::kSleepMoodRecoverySeconds));
-    assert(deepRestored.restoreSleepRecoveryRemainder(recoveryRemainder));
+    assert(!deepRestored.restoreSleepRecoveryProgress(Pet::PetData::kSleepMoodRecoveryProgress));
+    assert(deepRestored.restoreSleepRecoveryProgress(recoveryRemainder));
     deepRestored.advanceSleepSeconds(1);
     assert(deepRestored.mood() == 51);
     assert(deepRestored.ageSeconds() == Pet::PetData::kSleepMoodRecoverySeconds);
     assert(deepRestored.wake());
-    assert(!deepRestored.restoreSleepRecoveryRemainder(1));
+    assert(!deepRestored.restoreSleepRecoveryProgress(1));
     assert(!namedEgg.beginDeepSleep());
     Pet::PetData shortSleeps;
     shortSleeps.setMood(50);

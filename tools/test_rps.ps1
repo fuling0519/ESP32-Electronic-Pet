@@ -35,3 +35,10 @@ if ($LASTEXITCODE) { throw 'Pet test build failed.' }
 & "$outputPath/pet-core.exe"
 if ($LASTEXITCODE) { throw 'Pet regression tests failed.' }
 Write-Output 'PASS: pet core regression suite.'
+
+& g++ -std=c++11 -Wall -Wextra -Isrc test/mood_native.cpp src/pet/PetData.cpp `
+    src/pet/PetSnapshot.cpp -o "$outputPath/mood.exe"
+if ($LASTEXITCODE) { throw 'Mood test build failed.' }
+& "$outputPath/mood.exe"
+if ($LASTEXITCODE) { throw 'Mood tests failed.' }
+Write-Output 'PASS: mood thresholds, recovery progress and batch settlement.'

@@ -267,7 +267,7 @@ void Application::setup() {
     pet.setMood(50);
     if (!save.save(pet)) Serial.println("Failed to save initial sleep test state.");
     }
-    Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 10 seconds, sickness starts after 20 seconds, and death follows 30 seconds later.");
+    Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 20 seconds with one low need (paused with two), sickness starts after 20 seconds, and death follows 30 seconds later.");
 #endif
     ui.init(now);
     if (resumedFromDeep && !pet.isDead()) ui.onWakeSucceeded();

@@ -21,7 +21,7 @@ struct Retained {
     uint32_t checksum;
 };
 RTC_DATA_ATTR Retained state{};
-constexpr uint32_t kMagic = 0x44535031;
+constexpr uint32_t kMagic = 0x44535032; // Recovery remainder now stores progress units.
 int64_t nowUs() {
     timeval value{};
     gettimeofday(&value, nullptr);
@@ -41,7 +41,7 @@ bool valid() {
         state.magic == kMagic && state.timerSeconds == HardwareConfig::Sleep::TimerSeconds &&
         state.checksum == checksum() && Pet::isValidPetSnapshot(state.pet) &&
         state.pet.sleepMode == Pet::SleepMode::Deep &&
-        state.moodRemainder < Pet::PetData::kSleepMoodRecoverySeconds &&
+        state.moodRemainder < Pet::PetData::kSleepMoodRecoveryProgress &&
         state.centerX > 0 && state.centerX < 4095 && state.centerY > 0 && state.centerY < 4095;
 }
 }
@@ -69,7 +69,7 @@ bool resume(Pet::PetData& pet, uint32_t& remainderMs) {
         state.magic = 0;
         return false;
     }
-    if (!pet.restore(state.pet) || !pet.restoreSleepRecoveryRemainder(state.moodRemainder)) {
+    if (!pet.restore(state.pet) || !pet.restoreSleepRecoveryProgress(state.moodRemainder)) {
         state.magic = 0;
         return false;
     }
@@ -110,7 +110,7 @@ void retain(const Pet::PetData& pet, int x, int y, uint32_t remainderMs) {
     state.magic = kMagic;
     state.timerSeconds = HardwareConfig::Sleep::TimerSeconds;
     state.pet = pet.snapshot();
-    state.moodRemainder = pet.sleepRecoveryRemainder();
+    state.moodRemainder = pet.sleepRecoveryProgress();
     state.centerX = x; state.centerY = y;
     state.startedUs = nowUs() - static_cast<int64_t>(remainderMs) * 1000;
     state.checksum = checksum();

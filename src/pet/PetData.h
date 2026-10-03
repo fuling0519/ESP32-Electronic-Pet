@@ -41,6 +41,7 @@ public:
     static constexpr uint32_t kSatietyDecaySeconds = 600;
     static constexpr uint32_t kCleanlinessDecaySeconds = 900;
     static constexpr uint32_t kMoodDecaySeconds = 1200;
+    static constexpr uint8_t kLowNeedThreshold = 50;
 #if defined(PET_GROWTH_TEST_MODE)
     static constexpr uint32_t kEggSmallCrackAgeMilliseconds = 10UL * 1000;
     static constexpr uint32_t kEggLargeCrackAgeMilliseconds = 12500;
@@ -71,8 +72,10 @@ public:
 #if defined(PET_SLEEP_TEST_MODE) || defined(PET_DEEP_SLEEP_TEST_MODE)
     static constexpr uint32_t kSleepMoodRecoverySeconds = 10;
 #else
-    static constexpr uint32_t kSleepMoodRecoverySeconds = 10UL * 60;
+    static constexpr uint32_t kSleepMoodRecoverySeconds = 20UL * 60;
 #endif
+    // Normal sleep earns 2 units/second, one low need earns 1, two earn 0.
+    static constexpr uint32_t kSleepMoodRecoveryProgress = 2 * kSleepMoodRecoverySeconds;
 
     PetData();
 
@@ -130,8 +133,8 @@ public:
     void advanceSleepSeconds(uint32_t seconds);
     bool beginNormalSleep();
     bool beginDeepSleep();
-    uint32_t sleepRecoveryRemainder() const { return sleepMoodRecoveryRemainderSeconds_; }
-    bool restoreSleepRecoveryRemainder(uint32_t seconds);
+    uint32_t sleepRecoveryProgress() const { return sleepMoodRecoveryProgress_; }
+    bool restoreSleepRecoveryProgress(uint32_t progress);
     bool wake();
     bool feed();
     bool clean();
@@ -171,9 +174,9 @@ private:
     SavedTimestamp sleepStartedAt_;
     SavedTimestamp lastSleepSettledAt_;
     // Carries across sleep sessions while running and via the deep-sleep RTC
-    // checkpoint. A cold reset loses less than one recovery interval; NVS V1
-    // remains compatible.
-    uint32_t sleepMoodRecoveryRemainderSeconds_;
+    // checkpoint in half-speed seconds (2 units per normal second). Paused
+    // recovery retains earned progress. Cold resets clear it; NVS V1 is unchanged.
+    uint32_t sleepMoodRecoveryProgress_;
     uint32_t displayRevision_;
 };
 
