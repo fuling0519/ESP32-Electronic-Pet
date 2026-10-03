@@ -17,6 +17,8 @@ SHEETS = (
     ("kCrackedEggFrames", ROOT / "assets" / "shared" / "egg" / "hatching.png"),
     ("kBirdEatingFrames", ROOT / "assets" / "pets" / "bird" / "adult" / "eating.png"),
     ("kBabyBirdEatingFrames", ROOT / "assets" / "pets" / "bird" / "baby" / "eating.png"),
+    ("kBirdSadFrames", ROOT / "assets" / "pets" / "bird" / "adult" / "sad.png"),
+    ("kBabyBirdSadFrames", ROOT / "assets" / "pets" / "bird" / "baby" / "sad.png"),
 )
 
 

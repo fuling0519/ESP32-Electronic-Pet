@@ -184,7 +184,7 @@ void Application::setup() {
                 Serial.println("Memorial archive unavailable.");
                 break;
         }
-#if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE)
+#if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE) || defined(PET_TREATMENT_TEST_MODE)
         const bool ignoreTestSave = esp_reset_reason() != ESP_RST_DEEPSLEEP;
 #else
         const bool ignoreTestSave = false;
@@ -241,7 +241,25 @@ void Application::setup() {
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
     petClock.reset(now - resumedRemainderMs);
-#if defined(PET_DEATH_TEST_MODE)
+#if defined(PET_TREATMENT_TEST_MODE)
+    if (!resumedFromDeep) {
+        if (!prepareNewEgg(pet, memorials.highestPetId() + 1)) {
+            Serial.println("Failed to create treatment test pet.");
+            return;
+        }
+#if defined(PET_TREATMENT_TEST_BABY)
+        pet.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+#else
+        pet.advanceSeconds(Pet::PetData::kAdultAgeSeconds);
+#endif
+        pet.setSatiety(60);
+        pet.setMood(55);
+        pet.setCleanliness(0);
+        pet.setSick(true);
+        if (!save.save(pet)) Serial.println("Failed to save initial treatment test state.");
+    }
+    Serial.println("Treatment test: starts sick; reset to repeat. Normal death timing.");
+#elif defined(PET_DEATH_TEST_MODE)
     if (!resumedFromDeep) pet.setSick(true);
     Serial.println("Death test mode: pet starts sick and dies after 30 seconds.");
 #elif defined(PET_SLEEP_TEST_MODE)

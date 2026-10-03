@@ -25,7 +25,6 @@ enum class ScreenId {
     MainMenu,
     FeedCare,
     CleanCare,
-    TreatCare,
     PlayCare,
     Rest,
     Sleeping,
@@ -136,6 +135,9 @@ private:
     ScreenId screen_ = ScreenId::Boot;
     HomeFocus homeFocus_ = HomeFocus::None;
     uint8_t menuIndex_ = 0;
+    bool treatmentNotice_ = false;
+    uint32_t treatmentNoticeStartedAt_ = 0;
+    void showTreatmentNotice(uint32_t now);
     uint8_t statusPage_ = 0;
     uint8_t restOption_ = 0;
     bool deepSleepPending_ = false;

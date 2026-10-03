@@ -55,6 +55,8 @@ python -m pip install -r requirements.txt
 
 ESP32 韌體資料使用 Preferences／NVS。MySQL、SQLite 都不是目前韌體的必要依賴；`docs/database-erd.md` 與 SQL schema 是未來規劃資料，不屬於此建置流程。
 
+生病／治療動畫有專用快速測試版：`esp32dev_treatment_test`（成鳥）及 `esp32dev_treatment_baby_test`（幼鳥）。冷開機／按 RESET 直接建立生病小鳥，使用獨立測試存檔；死亡門檻維持正常 24 小時。燒錄與表情／閃光驗收見 [治療快速測試](docs/treatment-test.md)。
+
 死亡動畫可用專用測試環境在約 30 秒內驗收；此環境開機後直接把測試寵物設為生病，正式 `esp32dev` 環境仍使用六小時生病、24 小時清醒疾病死亡門檻：
 
 ```text

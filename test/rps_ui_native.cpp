@@ -18,6 +18,7 @@ static u8g2_t gfx{};
 static u8x8_display_info_t info{};
 static std::array<uint8_t, 1024> pixels{};
 static uint32_t opponent = 0;
+static unsigned failureSounds = 0;
 static uint32_t randomMove() { return opponent; }
 static void point(int x, int y) { assert(x >= 0 && x < 128 && y >= 0 && y < 64); }
 static unsigned decode(const char*& s) {
@@ -76,7 +77,7 @@ uint16_t Display::statusTextWidth(const char* s) const {
     u8g2_SetFont(&gfx,u8g2_font_6x10_tf); return w;
 }
 void Sound::playConfirm() {} void Sound::playCancel() {}
-void Sound::playSuccess() {} void Sound::playFailure() {}
+void Sound::playSuccess() {} void Sound::playFailure() { ++failureSounds; }
 void Sound::playHatch() {} void Sound::playDeath() {}
 void Sound::playLevelUp() {}
 void Sound::playTone(uint16_t,uint32_t) {}
@@ -287,9 +288,20 @@ int main() {
         Pet::PetData p; if(egg) p.startNewEgg();
         Ui::UiController view(display,sound,p,memorials,randomMove);
         view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
-        view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
-        assert(view.screen()==S::TreatCare);
-        view.update(E::Press,1505); view.update(E::None,5000);
+        view.update(E::Down,1502); view.update(E::Down,1503);
+        view.render(); const auto menu = pixels;
+        const unsigned failures = failureSounds;
+        view.update(E::Press,1504);
+        assert(view.screen()==S::MainMenu && view.menuIndex()==2);
+        capture(view,egg?"treat-egg-not-needed":"treat-healthy-not-needed");
+        assert(pixels != menu && failureSounds==failures);
+        view.update(E::Press,1505); view.render(); // Repeat refreshes the notice.
+        assert(pixels != menu && failureSounds==failures);
+        view.update(E::None,2704); view.render(); assert(pixels != menu);
+        view.update(E::None,2705); view.render(); assert(pixels == menu);
+        view.update(E::Press,2706); view.update(E::Down,2707);
+        assert(view.menuIndex()==3); // Navigation is never locked by the notice.
+        view.update(E::Up,2708); view.render(); assert(pixels == menu);
         assert(view.takeAction()==A::None && p.exp()==0);
     }
     // Revalidate at settlement: a failed cure returns to the care screen.
@@ -300,7 +312,8 @@ int main() {
         view.update(E::Down,1502); view.update(E::Down,1503); view.update(E::Press,1504);
         p.setSick(false); view.update(E::None,2704); assert(view.takeAction()==A::Treat);
         const bool success=p.treat(); assert(!success); view.onTreatResult(success,2704);
-        assert(view.screen()==S::TreatCare && p.exp()==0);
+        assert(view.screen()==S::MainMenu && view.menuIndex()==2 && p.exp()==0);
+        capture(view,"treat-failed-not-needed");
     }
     // Curing a baby past its growth deadline finishes recovery before growth.
     {

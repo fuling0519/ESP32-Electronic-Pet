@@ -155,6 +155,13 @@ void drawPet(Hardware::Display& d, int16_t x, int16_t y,
                 kBirdFrameWidth, kBirdFrameHeight);
 }
 
+void drawSadPet(Hardware::Display& d, int16_t x, int16_t y,
+                Pet::LifeStage lifeStage, uint8_t frame) {
+    const uint8_t* bitmap = lifeStage == Pet::LifeStage::Baby
+        ? kBabyBirdSadFrames[frame % 2] : kBirdSadFrames[frame % 2];
+    d.drawGlyph(x, y, bitmap, kBirdFrameWidth, kBirdFrameHeight);
+}
+
 void drawSleepingPet(Hardware::Display& d, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t frame) {
     const uint8_t index = frame % 2;
