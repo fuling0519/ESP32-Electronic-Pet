@@ -129,7 +129,7 @@ UiController::UiController(Hardware::Display& display, Hardware::Sound& sound,
                            const Pet::PetData& pet,
                            const Storage::Memorials& memorials,
                            Games::RpsGame::RandomSource random)
-    : display_(display), sound_(sound), pet_(pet), memorials_(memorials), game_(random) {}
+    : display_(display), sound_(sound), pet_(pet), memorials_(memorials), game_(random), memoryNotes_(random) {}
 
 void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
@@ -166,6 +166,8 @@ void UiController::init(uint32_t now) {
     dirty_ = true;
     pendingAction_ = UiAction::None;
     game_.cancel();
+    memoryNotes_.cancel();
+    selectedGame_ = 0;
     gameMoodGain_ = 0;
     gameExpGain_ = 0;
     gamePreviousLevel_ = gameFinalLevel_ = 0;
@@ -184,7 +186,7 @@ uint8_t UiController::eggCrackStage(uint32_t now) const {
     return 0;
 }
 
-bool UiController::update(Hardware::InputEvent event, uint32_t now) {
+bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directionNeutral) {
     const ScreenId previousScreen = screen_;
     const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
@@ -409,8 +411,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
                     case 1: setScreen(ScreenId::CleanCare); break;
                     case 2: beginTreatment(now); break;
                     case 3:
-                        game_.begin(); gameMoodGain_ = 0;
-                        setScreen(ScreenId::PlayCare); break;
+                        selectedGame_ = 0;
+                        setScreen(ScreenId::GameSelect); break;
                     case 4:
                         restOption_ = 0; deepSleepFailed_ = false;
                         setScreen(ScreenId::Rest); break;
@@ -441,8 +443,24 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now) {
             }
             break;
 
+        case ScreenId::GameSelect:
+            if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
+                selectedGame_ = 1 - selectedGame_;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Press) {
+                game_.begin(); memoryNotes_.begin();
+                gameMoodGain_ = 0; gameExpGain_ = 0;
+                gamePreviousLevel_ = gameFinalLevel_ = 0;
+                sound_.playConfirm();
+                setScreen(ScreenId::PlayCare);
+            } else if (event == Hardware::InputEvent::LongPress) {
+                sound_.playCancel();
+                setScreen(ScreenId::MainMenu);
+            }
+            break;
         case ScreenId::PlayCare:
-            updateGame(event, now);
+            if (selectedGame_ == 1) updateMemoryNotes(event, now, directionNeutral);
+            else updateGame(event, now);
             break;
 
         case ScreenId::Rest:
@@ -617,6 +635,7 @@ void UiController::render() {
         case ScreenId::MainMenu: renderMainMenu(); break;
         case ScreenId::FeedCare: renderCare("餵食", "飽食", pet_.satiety()); break;
         case ScreenId::CleanCare: renderCare("清潔", "清潔", pet_.cleanliness()); break;
+        case ScreenId::GameSelect: renderGameSelect(); break;
         case ScreenId::PlayCare: renderGame(); break;
         case ScreenId::Rest: renderRest(); break;
         case ScreenId::Sleeping: renderSleeping(); break;
@@ -644,6 +663,7 @@ const char* UiController::screenName() const {
         case ScreenId::MainMenu: return "MAIN_MENU";
         case ScreenId::FeedCare: return "FEED_CARE";
         case ScreenId::CleanCare: return "CLEAN_CARE";
+        case ScreenId::GameSelect: return "GAME_SELECT";
         case ScreenId::PlayCare: return "PLAY_CARE";
         case ScreenId::Rest: return "REST";
         case ScreenId::Sleeping: return "SLEEPING";
@@ -798,6 +818,7 @@ void UiController::setScreen(ScreenId screen) {
     if (screen_ == ScreenId::PlayCare) {
         levelUpActive_ = false;
         game_.cancel();
+        memoryNotes_.cancel();
         if (pendingAction_ == UiAction::FinishGame) pendingAction_ = UiAction::None;
     }
     screen_ = screen;
@@ -998,7 +1019,12 @@ void UiController::renderPlaceholder(const char* title) {
     drawCenteredUiText(display_, 59, "長按返回");
 }
 
-uint8_t UiController::takeGameReward() { return game_.takeReward(); }
+uint8_t UiController::takeGameReward() {
+    return selectedGame_ == 1 ? memoryNotes_.takeReward() : game_.takeReward();
+}
+uint8_t UiController::gameExpReward() const {
+    return selectedGame_ == 1 ? memoryNotes_.expReward() : game_.expReward();
+}
 
 void UiController::onGameRewardApplied(uint8_t actualGain, uint16_t expGain,
                                        uint8_t previousLevel) {
@@ -1012,8 +1038,8 @@ void UiController::onGameRewardApplied(uint8_t actualGain, uint16_t expGain,
 void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     using namespace Games;
     if (event == Hardware::InputEvent::LongPress) {
-        sound_.playCancel();
         setScreen(ScreenId::MainMenu);
+        sound_.playCancel();
         return;
     }
     if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
@@ -1044,8 +1070,8 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     if (game_.update(input, now)) dirty_ = true;
     const RpsPhase current = game_.phase();
     if (current == RpsPhase::Inactive) {
-        sound_.playCancel();
         setScreen(ScreenId::MainMenu);
+        sound_.playCancel();
         return;
     }
     if (current == RpsPhase::Select && previous != current && game_.round() == 1) {
@@ -1072,8 +1098,182 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     if (game_.rewardPending()) pendingAction_ = UiAction::FinishGame;
 }
 
+void UiController::renderGameSelect() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    drawCenteredUiText(display_, 15, "陪玩");
+    display_.drawLine(6, 20, 121, 20);
+    display_.drawUiText(40, 36, "猜拳");
+    display_.drawUiText(40, 56, "記憶音符");
+    display_.drawText(26, selectedGame_ ? 56 : 36, ">");
+}
+
+void UiController::updateMemoryNotes(Hardware::InputEvent event, uint32_t now, bool neutral) {
+    using namespace Games;
+    if (event == Hardware::InputEvent::LongPress) {
+        setScreen(ScreenId::MainMenu);
+        sound_.playCancel();
+        return;
+    }
+    if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
+        pet_.sleepMode() != Pet::SleepMode::Awake) {
+        if (memoryNotes_.phase() != NotesPhase::Ready) {
+            memoryNotes_.begin();
+            sound_.stopTone();
+            if (pendingAction_ == UiAction::FinishGame) pendingAction_ = UiAction::None;
+            dirty_ = true;
+        }
+        levelUpActive_ = false;
+        if (event == Hardware::InputEvent::Press) sound_.playFailure();
+        return;
+    }
+    if (levelUpActive_) {
+        const uint32_t elapsed = now - levelUpStartedAt_;
+        if (elapsed >= 2000) levelUpActive_ = false;
+        levelUpFrame_ = static_cast<uint8_t>(elapsed / 125);
+        dirty_ = true;
+        return;
+    }
+    NotesInput input = NotesInput::None;
+    switch (event) {
+        case Hardware::InputEvent::Left: input = NotesInput::Left; break;
+        case Hardware::InputEvent::Up: input = NotesInput::Up; break;
+        case Hardware::InputEvent::Right: input = NotesInput::Right; break;
+        case Hardware::InputEvent::Down: input = NotesInput::Down; break;
+        case Hardware::InputEvent::Press: input = NotesInput::Confirm; break;
+        default: break;
+    }
+    const NotesPhase previous = memoryNotes_.phase();
+    const NoteDirection previousActive = memoryNotes_.activeDirection();
+    const uint8_t previousProgress = memoryNotes_.progress();
+    if (memoryNotes_.update(input, now, neutral, !sound_.isPlaying())) dirty_ = true;
+    const NotesPhase current = memoryNotes_.phase();
+    if (current == NotesPhase::Inactive) {
+        setScreen(ScreenId::MainMenu);
+        sound_.playCancel();
+        return;
+    }
+    if (current == NotesPhase::Playback && previous != current && memoryNotes_.round() == 1) {
+        gameMoodGain_ = 0; gameExpGain_ = 0;
+        gamePreviousLevel_ = gameFinalLevel_ = 0;
+    }
+    if (previous == NotesPhase::Summary && current == NotesPhase::Replay &&
+        gamePreviousLevel_ && gameFinalLevel_ > gamePreviousLevel_) {
+        levelUpActive_ = true;
+        levelUpStartedAt_ = now;
+        levelUpFrame_ = 0;
+        levelUpPreviousLevel_ = gamePreviousLevel_;
+        levelUpFinalLevel_ = gameFinalLevel_;
+        sound_.playLevelUp();
+    }
+    const NoteDirection active = memoryNotes_.activeDirection();
+    if (active != NoteDirection::None &&
+        (active != previousActive || previousProgress != memoryNotes_.progress())) {
+        const uint16_t notes[] = {523, 587, 659, 784};
+        sound_.playTone(notes[static_cast<uint8_t>(active)],
+                        current == NotesPhase::Playback ? MemoryNotes::kToneMs : MemoryNotes::kAnswerFlashMs);
+    }
+    if (current == NotesPhase::Feedback && previous != current) {
+        if (memoryNotes_.roundSucceeded()) sound_.playSuccess();
+        else sound_.playFailure();
+    }
+    if (memoryNotes_.rewardPending()) pendingAction_ = UiAction::FinishGame;
+}
+
+void UiController::renderMemoryNotes() {
+    using namespace Games;
+    if (levelUpActive_) { renderLevelUp(); return; }
+    display_.clear();
+    const auto arrow = [&](int16_t cx, int16_t cy, NoteDirection direction, bool active) {
+        if (active) for (int16_t y = cy-6; y <= cy+6; ++y)
+            display_.drawLine(cx-8,y,cx+8,y);
+        // A nine-pixel filled arrow. Rotations preserve the approved geometry.
+        for (int16_t y=-4; y<=4; ++y) {
+            const int16_t half = y<=0 ? y+4 : 1;
+            for (int16_t x=-half; x<=half; ++x) {
+                int16_t xx=x, yy=y;
+                if (direction == NoteDirection::Down) { xx=-x; yy=-y; }
+                else if (direction == NoteDirection::Left) { xx=y; yy=-x; }
+                else if (direction == NoteDirection::Right) { xx=-y; yy=x; }
+                if (active) display_.clearArea(cx+xx,cy+yy,1,1);
+                else display_.drawLine(cx+xx,cy+yy,cx+xx,cy+yy);
+            }
+        }
+    };
+    char text[32];
+    if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick()) {
+        display_.drawFrame(0,0,128,64);
+        drawCenteredUiText(display_,15,"記憶音符");
+        display_.drawLine(6,20,121,20);
+        drawCenteredUiText(display_,38,pet_.isSick()?"請先治療":"等待孵化");
+        drawCenteredUiText(display_,58,"長按返回");
+        return;
+    }
+    const NotesPhase phase=memoryNotes_.phase();
+    if (phase == NotesPhase::Ready) {
+        display_.drawFrame(0,0,128,64);
+        drawCenteredUiText(display_,15,"記憶音符");
+        display_.drawLine(6,20,121,20);
+        drawCenteredUiText(display_,38,"記住箭頭順序");
+        drawCenteredUiText(display_,58,"按下開始");
+    } else if (phase == NotesPhase::Playback || phase == NotesPhase::Answer ||
+               phase == NotesPhase::AnswerComplete) {
+        display_.drawUiText(5,14,phase==NotesPhase::Playback?"記住旋律":"換你了");
+        snprintf(text,sizeof(text),"%u/5",memoryNotes_.round());
+        display_.drawText(104,14,text);
+        display_.drawLine(4,18,123,18);
+        const NoteDirection dirs[]={NoteDirection::Up,NoteDirection::Left,NoteDirection::Right,NoteDirection::Down};
+        const int16_t xs[]={64,44,84,64}, ys[]={27,39,39,49};
+        for (uint8_t i=0;i<4;++i) arrow(xs[i],ys[i],dirs[i],memoryNotes_.activeDirection()==dirs[i]);
+        const uint8_t count=memoryNotes_.length();
+        const int16_t start=64-(count*10-6)/2;
+        for (uint8_t i=0;i<count;++i) {
+            const int16_t x=start+i*10;
+            display_.drawFrame(x,59,4,4);
+            if (i<memoryNotes_.progress()) display_.drawFrame(x+1,60,2,2);
+        }
+    } else if (phase == NotesPhase::Feedback) {
+        display_.drawFrame(0,0,128,64);
+        drawCenteredUiText(display_,15,memoryNotes_.roundSucceeded()?"答對了":
+                            memoryNotes_.timedOut()?"超時了":"再試一次");
+        if (memoryNotes_.roundSucceeded()) {
+            snprintf(text,sizeof(text),"%u/%u",memoryNotes_.length(),memoryNotes_.length());
+            drawCenteredUiText(display_,37,text);
+        } else {
+            display_.drawUiText(14,38,"正確");
+            arrow(84,33,memoryNotes_.expectedDirection(),true);
+        }
+        drawCenteredUiText(display_,59,"按下繼續");
+    } else if (phase == NotesPhase::Summary) {
+        display_.drawFrame(0,0,128,64);
+        drawCenteredUiText(display_,14,"記憶音符");
+        const char* const labels[]={"答對","心情","EXP"};
+        const unsigned values[]={memoryNotes_.score(),gameMoodGain_,gameExpGain_};
+        // User-approved framebuffer: title plus three rows, no table grid.
+        const int16_t baselines[]={31,46,60};
+        for (uint8_t row=0;row<3;++row) {
+            const int16_t baseline=baselines[row];
+            if (row==2) {
+                display_.drawText(27,baseline,"E");
+                display_.drawText(35,baseline,"X");
+                display_.drawText(43,baseline,"P");
+            } else display_.drawUiText(26,baseline,labels[row]);
+            snprintf(text,sizeof(text),row==0?"%u/5":"+%u",values[row]);
+            display_.drawText(101-static_cast<int16_t>(strlen(text)*6),baseline,text);
+        }
+    } else if (phase == NotesPhase::Replay) {
+        display_.drawFrame(0,0,128,64);
+        drawCenteredUiText(display_,15,"再玩？");
+        display_.drawLine(6,20,121,20);
+        display_.drawUiText(48,36,"再玩");
+        display_.drawUiText(48,56,"返回");
+        display_.drawText(34,memoryNotes_.replaySelected()?36:56,">");
+    }
+}
+
 void UiController::renderGame() {
     using namespace Games;
+    if (selectedGame_ == 1) { renderMemoryNotes(); return; }
     if (levelUpActive_) { renderLevelUp(); return; }
     const uint8_t* const icons[] = {RpsIcons::kScissors, RpsIcons::kRock, RpsIcons::kPaper};
     const char* const names[] = {"剪刀", "石頭", "布"};

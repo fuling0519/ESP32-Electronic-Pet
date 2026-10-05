@@ -12,6 +12,7 @@ public:
     void playTone(uint16_t frequency, uint32_t durationMs);
     void playSequence(const ToneStep* steps, size_t count);
     void stopTone();
+    bool isPlaying() const { return playing_; }
     void playConfirm(); void playCancel(); void playSuccess(); void playFailure(); void playHatch();
     void playDeath();
     void playLevelUp();

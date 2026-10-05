@@ -29,8 +29,10 @@ public:
     RpsOutcome roundOutcome() const { return judge(player_, opponent_); }
     RpsOutcome outcome() const;
     bool rewardPending() const { return rewardPending_; }
-    // Consuming the completion token is independent of saving/display refresh.
+    // Returns the mood reward and consumes the completion token.
     uint8_t takeReward();
+    // Apply EXP only together with a nonzero, consumed completion reward.
+    uint8_t expReward() const;
 private:
     void selectRound();
     RandomSource random_;

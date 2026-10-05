@@ -10,6 +10,11 @@ if ($LASTEXITCODE) { throw 'Game test build failed.' }
 & "$outputPath/rps-game.exe"
 if ($LASTEXITCODE) { throw 'Game tests failed.' }
 
+& g++ -std=c++11 -Wall -Wextra -Isrc test/memory_notes_native.cpp src/games/MemoryNotes.cpp -o "$outputPath/memory-notes.exe"
+if ($LASTEXITCODE) { throw 'Memory notes test build failed.' }
+& "$outputPath/memory-notes.exe"
+if ($LASTEXITCODE) { throw 'Memory notes tests failed.' }
+
 $units = @('u8g2_box','u8g2_circle','u8g2_font','u8g2_fonts','u8g2_hvline',
     'u8g2_intersection','u8g2_kerning','u8g2_line','u8g2_ll_hvline','u8g2_setup',
     'u8x8_8x8','u8x8_byte','u8x8_cad','u8x8_display','u8x8_gpio','u8x8_setup')
@@ -21,7 +26,7 @@ foreach ($unit in $units) {
     $objects += $object
 }
 $sources = @('test/rps_ui_native.cpp','src/ui/UiController.cpp','src/ui/PetIcons.cpp',
-    'src/games/RpsGame.cpp','src/pet/PetData.cpp','src/pet/PetSnapshot.cpp','src/storage/Memorials.cpp')
+    'src/games/RpsGame.cpp','src/games/MemoryNotes.cpp','src/pet/PetData.cpp','src/pet/PetSnapshot.cpp','src/storage/Memorials.cpp')
 & g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
     -Itest/support -Isrc -Iinclude "-I$fontSource" @sources @objects -o "$outputPath/rps-ui.exe"
 if ($LASTEXITCODE) { throw 'UI test build failed.' }

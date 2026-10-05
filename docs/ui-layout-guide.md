@@ -160,3 +160,9 @@
 生成素材：`tools/generate_potion_sprite.py` → `src/ui/PotionSprite.h`。本機真實 UI framebuffer 檢查見 `test/rps_ui_native.cpp`；實機動畫與按鍵操作需另行上板驗證。
 
 實際 UI 預覽：[幼鳥／成鳥構圖](treatment-preview.png)、[成鳥動畫](treatment-adult-preview.gif)、[幼鳥動畫](treatment-baby-preview.gif)。執行 `tools/test_rps.ps1` 產生 framebuffer 後，以 `tools/render_treatment_preview.py` 重建預覽。
+
+### 記憶音符總結頁（2026-10-05 核准配置）
+
+最外圈保留 1px 框線 (0,0)..(127,63)，兩欄三列不畫表格框線。標題「記憶音符」x=40、baseline 14，實際亮點 y=4..14。答對／心情左欄 x=26，baseline 31／46；EXP 使用三個獨立 ASCII 字母 E／X／P，x=27／35／43、baseline 60。右欄答對回合數 n/5、實際心情 +n、EXP +n 以文字前進寬度右緣 x=101 對齊，與各自標籤共用 baseline。
+
+標籤亮點 y=21..31／36..46／53..59；標題後保留 6px 空白，後兩段空白 4px／6px，最下方亮點與框線之間保留 y=60..62 三列空白。這是使用者逐次預覽核准的配置，不再套用先前等間距或無外框方案。[實際總結頁](memory-notes-summary-preview.png) 與核准預覽全部 8192 像素相同。遊戲規則見 [記憶音符](memory-notes-plan.md)，實機驗收只在主台帳 A5-GAME 維護。

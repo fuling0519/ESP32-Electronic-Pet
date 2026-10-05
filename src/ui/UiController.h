@@ -4,6 +4,7 @@
 
 #include "hardware/Input.h"
 #include "games/RpsGame.h"
+#include "games/MemoryNotes.h"
 
 namespace Hardware {
 class Display;
@@ -25,6 +26,7 @@ enum class ScreenId {
     MainMenu,
     FeedCare,
     CleanCare,
+    GameSelect,
     PlayCare,
     Rest,
     Sleeping,
@@ -68,7 +70,7 @@ public:
 
     void init(uint32_t now);
     // Returns true when visible UI state has changed.
-    bool update(Hardware::InputEvent event, uint32_t now);
+    bool update(Hardware::InputEvent event, uint32_t now, bool directionNeutral = true);
     void render();
 
     ScreenId screen() const;
@@ -77,6 +79,7 @@ public:
     const char* selectedMenuItem() const;
     UiAction takeAction();
     uint8_t takeGameReward();
+    uint8_t gameExpReward() const;
     void onGameRewardApplied(uint8_t actualGain, uint16_t expGain = 0,
                              uint8_t previousLevel = 0);
     uint8_t selectedMemorialIndex() const;
@@ -103,6 +106,9 @@ private:
     void renderPlaceholder(const char* title);
     void renderCare(const char* title, const char* stat, unsigned value);
     void renderGame();
+    void renderGameSelect();
+    void renderMemoryNotes();
+    void updateMemoryNotes(Hardware::InputEvent event, uint32_t now, bool neutral);
     void updateGame(Hardware::InputEvent event, uint32_t now);
     void renderRest();
     void renderSleeping();
@@ -123,6 +129,8 @@ private:
     const Pet::PetData& pet_;
     const Storage::Memorials& memorials_;
     Games::RpsGame game_;
+    Games::MemoryNotes memoryNotes_;
+    uint8_t selectedGame_ = 0;
     uint8_t gameMoodGain_ = 0;
     uint16_t gameExpGain_ = 0;
     uint8_t gamePreviousLevel_ = 0, gameFinalLevel_ = 0;

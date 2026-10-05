@@ -37,6 +37,10 @@ RpsOutcome RpsGame::outcome() const {
 uint8_t RpsGame::takeReward() {
     if (!rewardPending_) return 0;
     rewardPending_ = false;
+    return outcome() == RpsOutcome::Win ? 10 : outcome() == RpsOutcome::Draw ? 6 : 3;
+}
+
+uint8_t RpsGame::expReward() const {
     return outcome() == RpsOutcome::Win ? 15 : outcome() == RpsOutcome::Draw ? 10 : 5;
 }
 

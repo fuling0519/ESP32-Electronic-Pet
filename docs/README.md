@@ -21,6 +21,7 @@
 - [cleaning-test.md](cleaning-test.md)：首頁清潔動畫的自動檢查、實際畫面預覽與實機操作步驟；進度及驗收回報仍在主台帳清潔動畫增量（A5-CARE／A5-VIS）。
 - [exp-level-plan.md](exp-level-plan.md)：EXP、升級、滿等與畫面規則，以及 1.4.0 驗證證據及上板步驟；進度仍在 A3-EXP。
 - [rps-game-plan.md](rps-game-plan.md)：猜拳規則、畫面座標及素材分工；[rps-game-test.md](rps-game-test.md) 保存可重跑的測試方法與本次證據，進度仍在 A5-GAME。
+- [memory-notes-plan.md](memory-notes-plan.md)：記憶音符五回合玩法、四方向／回中操作、獎勵、像素座標與上板驗收；進度仍在 A5-GAME。
 - [database-erd.md](database-erd.md)：邏輯模型提案，含未來 Session 模型；不能當作 NVS 格式或已部署雲端資料庫。SQL 草案亦只供參考。
 - [App 分工入口](../esp32_pet_app/docs/project-plan.md)：導向主台帳、Web 需求及協定，不複製另一套階段狀態。
 - [App 實作定位](../esp32_pet_app/docs/implementation-notes.md)：Flutter 程式閱讀指南，程式結構改變才更新。

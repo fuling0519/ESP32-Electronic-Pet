@@ -19,6 +19,10 @@ static u8x8_display_info_t info{};
 static std::array<uint8_t, 1024> pixels{};
 static uint32_t opponent = 0;
 static unsigned failureSounds = 0;
+static unsigned noteTones = 0;
+static uint16_t lastNoteTone = 0;
+static bool holdNotePlaying = false;
+static unsigned successSounds = 0;
 static uint32_t randomMove() { return opponent; }
 static void point(int x, int y) { assert(x >= 0 && x < 128 && y >= 0 && y < 64); }
 static unsigned decode(const char*& s) {
@@ -77,10 +81,13 @@ uint16_t Display::statusTextWidth(const char* s) const {
     u8g2_SetFont(&gfx,u8g2_font_6x10_tf); return w;
 }
 void Sound::playConfirm() {} void Sound::playCancel() {}
-void Sound::playSuccess() {} void Sound::playFailure() { ++failureSounds; }
+void Sound::playSuccess() { ++successSounds; } void Sound::playFailure() { ++failureSounds; }
 void Sound::playHatch() {} void Sound::playDeath() {}
 void Sound::playLevelUp() {}
-void Sound::playTone(uint16_t,uint32_t) {}
+void Sound::stopTone() { playing_=false; }
+void Sound::playTone(uint16_t frequency,uint32_t) {
+    ++noteTones; lastNoteTone=frequency; playing_=holdNotePlaying;
+}
 }
 static void capture(Ui::UiController& ui, const char* name) {
     ui.render();
@@ -122,6 +129,7 @@ int main() {
     uint32_t now=1500;
     auto input=[&](E e, uint32_t delay=1) { now+=delay; ui.update(e,now); ui.render(); };
     ui.init(0); input(E::None); input(E::Press); input(E::Down); input(E::Down); input(E::Down);
+    input(E::Press); assert(ui.screen()==S::GameSelect); capture(ui,"game-select");
     input(E::Press); assert(ui.screen()==S::PlayCare); capture(ui,"ready");
     input(E::Press); capture(ui,"select-rock");
     input(E::Left); capture(ui,"select-scissors");
@@ -137,10 +145,11 @@ int main() {
         assert(ui.takeAction()==(round==2?A::FinishGame:A::None));
         assert(ui.takeAction()==A::None);
         if(round==2) {
-            const unsigned reward=ui.takeGameReward(); assert(reward==15);
+            const unsigned reward=ui.takeGameReward(); assert(reward==10);
+            assert(ui.gameExpReward()==15);
             const auto previousLevel = pet.level();
             pet.changeMood(reward);
-            const auto gain = pet.gainExp(reward);
+            const auto gain = pet.gainExp(ui.gameExpReward());
             ui.onGameRewardApplied(4, gain, previousLevel);
             assert(pet.level() == 2 && pet.exp() == 10);
             assert(pet.mood()==100 && ui.takeGameReward()==0);
@@ -170,14 +179,19 @@ int main() {
     input(E::LongPress); assert(ui.screen()==S::MainMenu && ui.menuIndex()==3);
     // Full tie and loss sessions; completion at 100 mood displays +0.
     for(opponent=1;opponent<=2;++opponent) {
-        input(E::Press); input(E::Press);
+        input(E::Press); input(E::Press); input(E::Press);
         for(unsigned round=0;round<3;++round) {
             input(E::Press); input(E::None,1050);
             capture(ui,opponent==1?"reveal-draw":"reveal-loss");
             if(round==2) {
                 assert(ui.takeAction()==A::FinishGame);
-                assert(ui.takeGameReward()==(opponent==1?10:5));
-                ui.onGameRewardApplied(0);
+                assert(ui.takeGameReward()==(opponent==1?6:3));
+                assert(ui.gameExpReward()==(opponent==1?10:5));
+                const auto old=pet.level();
+                const auto gain=pet.gainExp(ui.gameExpReward());
+                assert(gain==(opponent==1?10:5));
+                ui.onGameRewardApplied(0,gain,old);
+                assert(ui.takeGameReward()==0);
             }
             input(E::Press,800);
         }
@@ -185,21 +199,21 @@ int main() {
         input(E::Press); input(E::Press); assert(ui.screen()==S::MainMenu);
     }
     // Sickness interrupts a countdown and cannot settle it later.
-    input(E::Press); input(E::Press); input(E::Press);
+    input(E::Press); input(E::Press); input(E::Press); input(E::Press);
     pet.setSick(true); input(E::None,1050); capture(ui,"blocked-sick");
     assert(ui.takeAction()==A::None && ui.takeGameReward()==0);
     input(E::LongPress); pet.setSick(false);
     // Eggs cannot enter selection, even after pressing start.
-    pet.startNewEgg(); input(E::None); input(E::Press); input(E::Press);
+    pet.startNewEgg(); input(E::None); input(E::Press); input(E::Press); input(E::Press);
     capture(ui,"blocked-egg"); assert(ui.takeGameReward()==0);
     input(E::LongPress);
     auto snapshot=pet.snapshot(); snapshot.lifeStage=Pet::LifeStage::Baby;
     snapshot.ageSeconds=Pet::PetData::kAdultAgeSeconds-1; assert(pet.restore(snapshot));
     input(E::None); input(E::None,2400); // Existing hatch transition.
-    input(E::Press); input(E::Press); input(E::Press); input(E::Press);
+    input(E::Press); input(E::Press); input(E::Press); input(E::Press); input(E::Press);
     pet.advanceSeconds(1); input(E::None,1050);
     assert(ui.screen()==S::GrowTransition && ui.takeGameReward()==0);
-    input(E::None,2400); input(E::Press); input(E::Press); input(E::Press); input(E::Press);
+    input(E::None,2400); input(E::Press); input(E::Press); input(E::Press); input(E::Press); input(E::Press);
     pet.setDead(true); input(E::None,1050);
     assert(ui.screen()==S::DeathAnimation && ui.takeGameReward()==0);
     // Real care actions award once; feeding completes before celebration.
@@ -481,7 +495,7 @@ int main() {
         checkStatusSpacing();
         step(E::Right); capture(view,"status-age-fourth");
         step(E::LongPress); step(E::Press);
-        step(E::Down); step(E::Down); step(E::Down); step(E::Press); step(E::Press);
+        step(E::Down); step(E::Down); step(E::Down); step(E::Press); step(E::Press); step(E::Press);
         for(unsigned r=0;r<3;++r) {
             step(E::Press); step(E::None,1050);
             if (r==2) {
@@ -507,5 +521,137 @@ int main() {
             assert(view.screen()==S::MainMenu && p.exp()==0);
         }
     }
+    // Play the real memory-note UI at every score tier. Same application reward
+    // gate as main.cpp, with actual fonts and framebuffer bounds checks above.
+    for(unsigned score=0;score<=5;++score) {
+        Pet::PetData p;
+        p.setMood(score==5?96:80); p.setExp(45);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e,uint32_t delay=1,bool neutral=true) {
+            t+=delay; view.update(e,t,neutral); view.render();
+        };
+        opponent=0;
+        view.init(0); step(E::None); step(E::Press);
+        step(E::Down); step(E::Down); step(E::Down); step(E::Press);
+        assert(view.screen()==S::GameSelect);
+        step(E::LongPress); assert(view.screen()==S::MainMenu && view.menuIndex()==3);
+        step(E::Press); step(E::Down); capture(view,"notes-select");
+        step(E::Press); capture(view,"notes-ready");
+        assert(view.screen()==S::PlayCare);
+        step(E::Press);
+        for(unsigned round=1;round<=5;++round) {
+            const E dirs[]={E::Left,E::Up,E::Right,E::Down};
+            const uint16_t frequencies[]={523,587,659,784};
+            const E correct=dirs[(round-1)%4];
+            assert(lastNoteTone==frequencies[(round-1)%4]);
+            char name[40];
+            if(round==5) snprintf(name,sizeof(name),"notes-play-six");
+            else snprintf(name,sizeof(name),"notes-play-%u",round-1);
+            capture(view,name);
+            for(unsigned i=0;i<round+1;++i) {
+                const auto tones=noteTones;
+                step(E::Right,250,false); // Playback ignores answers.
+                if(round==1 && i==0) capture(view,"notes-gap");
+                if(round==1 && i==1) capture(view,"notes-gap-last");
+                step(E::Press,450,false);
+                if(round==1 && i==0) capture(view,"notes-play-last");
+                assert(view.takeAction()==A::None);
+                assert(noteTones==tones+(i+1<round+1?1:0));
+            }
+            if(round==1) capture(view,"notes-answer");
+            step(correct,400,false); // Held from playback: not an answer.
+            assert(view.takeAction()==A::None);
+            step(E::None,1,true);
+            if(round<=score) {
+                for(unsigned i=0;i<round+1;++i) {
+                    const auto tones=noteTones, successes=successSounds;
+                    holdNotePlaying=i==round;
+                    step(correct,1,false);
+                    if(i==round) {
+                        assert(noteTones==tones+1 && lastNoteTone==frequencies[(round-1)%4]);
+                        assert(successSounds==successes && view.takeAction()==A::None);
+                        capture(view,"notes-final-answer");
+                        if(round==1) capture(view,"notes-final-answer-first");
+                        const auto finalPixels=pixels;
+                        step(E::Press,179);
+                        assert(pixels==finalPixels && successSounds==successes);
+                        step(E::Press,1); // Hardware tone still playing: keep waiting.
+                        assert(pixels==finalPixels && view.takeAction()==A::None);
+                        sound.stopTone(); holdNotePlaying=false;
+                        step(E::Press,1);
+                        assert(successSounds==successes+1 && pixels!=finalPixels);
+                    }
+                    if(i+1<round+1) {
+                        if(round==1 && i==0) {
+                            capture(view,"notes-answer-flash");
+                            assert(lit(36,33) && !lit(44,39));
+                        }
+                        step(correct,200,false); // Repeat is ignored.
+                        assert(view.takeAction()==A::None);
+                        step(E::None,1,true);
+                    }
+                }
+                capture(view,"notes-correct");
+                if(round==1) capture(view,"notes-correct-first");
+            } else if(score==0) {
+                step(E::None,5000,true); capture(view,"notes-timeout");
+            } else {
+                step(dirs[round%4],1,false); capture(view,"notes-wrong");
+            }
+            assert(view.takeAction()==(round==5?A::FinishGame:A::None));
+            assert(view.takeAction()==A::None);
+            if(round==5) {
+                const uint8_t reward=view.takeGameReward();
+                assert(reward==(score==5?10:score==4?8:score>=2?6:3));
+                const auto old=p.level(), before=p.mood();
+                p.changeMood(reward);
+                const auto gain=p.gainExp(view.gameExpReward());
+                assert(gain==(score>=4?15:score>=2?10:5));
+                view.onGameRewardApplied(p.mood()-before,gain,old);
+                assert(p.mood()==(score==5?100:80+reward));
+                assert(view.takeGameReward()==0);
+            }
+            opponent=round%4;
+            step(E::Press,799); assert(view.takeAction()==A::None);
+            step(E::Press,1);
+        }
+        char summary[40]; snprintf(summary,sizeof(summary),"notes-summary-%u",score);
+        capture(view,summary);
+        step(E::Press); capture(view,"notes-level-up");
+        step(E::Press,2000); assert(view.takeGameReward()==0);
+        capture(view,"notes-replay");
+        step(E::Up); step(E::Press); // Fresh game, no residual score/reward.
+        assert(view.takeGameReward()==0);
+        step(E::LongPress); assert(view.screen()==S::MainMenu && view.menuIndex()==3);
+        assert(p.exp()==(score>=4?10:score>=2?5:0));
+    }
+    // Health, growth and death interrupt memory playback without a reward.
+    for(unsigned interrupt=0;interrupt<4;++interrupt) {
+        Pet::PetData p;
+        if(interrupt==2) {
+            p.startNewEgg(); p.advanceSeconds(Pet::PetData::kAdultAgeSeconds-1);
+        }
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e,uint32_t delay=1) { t+=delay; view.update(e,t); view.render(); };
+        view.init(0); step(E::None); step(E::Press);
+        step(E::Down); step(E::Down); step(E::Down); step(E::Press); step(E::Down); step(E::Press);
+        if(interrupt==0) {
+            p.startNewEgg(); step(E::None); capture(view,"notes-blocked-egg");
+            step(E::Press); assert(view.takeGameReward()==0);
+        } else {
+            step(E::Press);
+            if(interrupt==1) p.setSick(true);
+            else if(interrupt==2) p.advanceSeconds(1);
+            else p.setDead(true);
+            step(E::None);
+            assert(view.takeAction()==A::None && view.takeGameReward()==0);
+            if(interrupt==1) capture(view,"notes-blocked-sick");
+            if(interrupt==2) assert(view.screen()==S::GrowTransition);
+            if(interrupt==3) assert(view.screen()==S::DeathAnimation);
+        }
+    }
+    puts("PASS: memory-note UI score tiers, notes/blank timing, neutral gate/repeats, timeout, reward/EXP/cap/level-up, replay and interruptions.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
 }

@@ -52,7 +52,8 @@ int main() {
             if (round != 3) assert(game.takeReward() == 0);
             now += 1850;
         }
-        assert(game.takeReward() == (wins > losses ? 15 : wins == losses ? 10 : 5));
+        assert(game.expReward() == (wins > losses ? 15 : wins == losses ? 10 : 5));
+        assert(game.takeReward() == (wins > losses ? 10 : wins == losses ? 6 : 3));
         assert(game.takeReward() == 0);
         game.update(RpsInput::Confirm, now);
         assert(game.phase() == RpsPhase::Summary);

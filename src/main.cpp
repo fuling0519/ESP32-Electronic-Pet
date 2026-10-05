@@ -373,7 +373,7 @@ void Application::loop() {
         Serial.print("Physical/Input event: ");
         Serial.println(inputEventName(event));
     }
-    const bool changed = ui.update(event, now);
+    const bool changed = ui.update(event, now, input.directionNeutral());
     const uint32_t revisionBeforeAction = pet.displayRevision();
     const Pet::LifeStage stageBeforeAction = pet.lifeStage();
     const uint8_t levelBeforeAction = pet.level();
@@ -401,7 +401,7 @@ void Application::loop() {
                 pet.lifeStage() != Pet::LifeStage::Egg &&
                 pet.sleepMode() == Pet::SleepMode::Awake) {
                 pet.changeMood(reward);
-                expGain = pet.gainExp(reward);
+                expGain = pet.gainExp(ui.gameExpReward());
             }
             ui.onGameRewardApplied(pet.mood() - before, expGain, previousLevel);
             break;

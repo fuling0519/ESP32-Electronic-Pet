@@ -9,6 +9,7 @@ class Input {
 public:
     void init(int savedCenterX = -1, int savedCenterY = -1);
     bool switchHeld() const;
+    bool directionNeutral() const;
     InputEvent update();
     int centerX() const;
     int centerY() const;
