@@ -73,6 +73,8 @@ struct PetSnapshotV1 {
     SleepMode sleepMode;
     SavedTimestamp sleepStartedAt;
     SavedTimestamp lastSleepSettledAt;
+    // V2 adds this flag; V1 decoding defaults to false. Health remains independent.
+    bool departed = false;
 };
 
 bool isValidPetName(const char* name);

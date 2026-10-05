@@ -9,6 +9,7 @@
 #include "pet/PetName.h"
 #include "pet/PetClock.h"
 #include "storage/Save.h"
+#include "storage/Farewell.h"
 #include "storage/Memorials.h"
 #include "ui/UiController.h"
 #include "ble/BleLink.h"
@@ -46,6 +47,7 @@ private:
     Ui::UiController ui{display, sound, pet, memorials, esp_random};
     uint64_t lastEggCheckpointMinute = 0;
     bool memorialReady = false;
+    uint32_t farewellRetryAt = 0;
     bool appReady = false;
     bool deepPending = false;
     uint32_t deepRequestedAt = 0;
@@ -88,12 +90,7 @@ bool Application::prepareNewEgg(Pet::PetData& target, uint64_t petId) {
 }
 
 bool Application::ensureCurrentMemorialSaved() {
-    if (!pet.isDead()) return false;
-    if (memorials.containsPet(pet.petId())) return true;
-    Storage::Memorials updated = memorials;
-    if (!updated.append(pet) || !save.saveMemorials(updated)) return false;
-    memorials = updated;
-    return true;
+    return Storage::finishFarewell(pet, memorials, save);
 }
 
 bool Application::startNormalSleep(uint32_t now) {
@@ -127,7 +124,7 @@ bool Application::wakeFromNormalSleep(uint32_t now) {
 }
 
 bool Application::adoptNewEgg(uint32_t now) {
-    if (!pet.isDead() || !memorialReady ||
+    if (!pet.isEnded() || !memorialReady ||
         memorials.count() > Storage::kMemorialLimit) return false;
     uint64_t highestId = memorials.highestPetId();
     if (pet.petId() > highestId) highestId = pet.petId();
@@ -147,11 +144,8 @@ bool Application::deleteSelectedMemorial() {
     const uint8_t index = ui.selectedMemorialIndex();
     const Storage::MemorialRecord* selected = memorials.at(index);
     if (selected == nullptr ||
-        (pet.isDead() && selected->petId == pet.petId())) return false;
-    Storage::Memorials updated = memorials;
-    if (!updated.remove(index) || !save.saveMemorials(updated)) return false;
-    memorials = updated;
-    return true;
+        (pet.isEnded() && selected->petId == pet.petId())) return false;
+    return save.removeMemorial(index, memorials);
 }
 
 void Application::setup() {
@@ -159,6 +153,7 @@ void Application::setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println("=== Electronic Pet Boot ===");
+    Serial.printf("Reset reason: %d\n", static_cast<int>(esp_reset_reason()));
     if (!display.init()) {
         Serial.println("Display init failed.");
         return;
@@ -237,7 +232,7 @@ void Application::setup() {
             }
         }
     }
-    if (pet.isDead()) memorialReady = ensureCurrentMemorialSaved();
+    if (pet.isEnded()) memorialReady = ensureCurrentMemorialSaved();
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
     petClock.reset(now - resumedRemainderMs);
@@ -270,7 +265,7 @@ void Application::setup() {
     Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 20 seconds with one low need (paused with two), sickness starts after 20 seconds, and death follows 30 seconds later.");
 #endif
     ui.init(now);
-    if (resumedFromDeep && !pet.isDead()) ui.onWakeSucceeded();
+    if (resumedFromDeep && !pet.isEnded()) ui.onWakeSucceeded();
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
         pet.ageSeconds() / 60 : 0;
     appReady = true;
@@ -280,7 +275,7 @@ void Application::setup() {
 }
 
 void Application::requestDeepSleep(uint32_t now) {
-    if (pet.isDead() || pet.lifeStage() == Pet::LifeStage::Egg ||
+    if (pet.isEnded() || pet.lifeStage() == Pet::LifeStage::Egg ||
         pet.sleepMode() != Pet::SleepMode::Awake) { sound.playFailure(); return; }
     deepPending = true;
     deepRequestedAt = now;
@@ -290,7 +285,7 @@ void Application::requestDeepSleep(uint32_t now) {
 
 void Application::serviceDeepSleep(Hardware::InputEvent event, uint32_t now) {
     if (!deepPending) return;
-    if (event == Hardware::InputEvent::LongPress || pet.isDead() ||
+    if (event == Hardware::InputEvent::LongPress || pet.isEnded() ||
         now - deepRequestedAt >= HardwareConfig::Sleep::ReleaseTimeoutMs) {
         deepPending = false; ui.onDeepSleepPending(false); sound.playCancel(); return;
     }
@@ -368,6 +363,11 @@ void Application::loop() {
         save.markDirty(now);
     }
     if (eggCheckpointDue) lastEggCheckpointMinute = eggAgeMinute;
+    if (pet.isEnded() && !memorialReady && now - farewellRetryAt >= 10000) {
+        farewellRetryAt = now;
+        memorialReady = ensureCurrentMemorialSaved();
+        ui.setMemorialReady(memorialReady);
+    }
     const Hardware::InputEvent event = input.update();
     if (kDebugUi && event != Hardware::InputEvent::None) {
         Serial.print("Physical/Input event: ");
@@ -397,7 +397,7 @@ void Application::loop() {
             const uint8_t before = pet.mood();
             const uint8_t previousLevel = pet.level();
             uint16_t expGain = 0;
-            if (reward && !pet.isDead() && !pet.isSick() &&
+            if (reward && !pet.isEnded() && !pet.isSick() &&
                 pet.lifeStage() != Pet::LifeStage::Egg &&
                 pet.sleepMode() == Pet::SleepMode::Awake) {
                 pet.changeMood(reward);
@@ -431,6 +431,20 @@ void Application::loop() {
             } else {
                 sound.playFailure();
             }
+            break;
+        case Ui::UiAction::SendOff:
+            memorialReady = Storage::beginFarewell(pet, memorials, save);
+            farewellRetryAt = now;
+            ui.setMemorialReady(memorialReady);
+            ui.onFarewellResult(memorialReady, now);
+            actionSavedImmediately = pet.isDeparted();
+            if (!memorialReady) sound.playFailure();
+            break;
+        case Ui::UiAction::RetryFarewell:
+            memorialReady = ensureCurrentMemorialSaved();
+            farewellRetryAt = now;
+            ui.setMemorialReady(memorialReady);
+            ui.onFarewellResult(memorialReady, now);
             break;
         case Ui::UiAction::AdoptNewEgg:
             if (adoptNewEgg(now)) sound.playSuccess();

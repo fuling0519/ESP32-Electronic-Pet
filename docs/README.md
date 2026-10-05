@@ -18,6 +18,7 @@
 - [architecture.md](architecture.md)：原始碼責任與資料流，模組邊界改變時更新。
 - [ui-layout-guide.md](ui-layout-guide.md)：OLED 排版規則與已接受的座標基準，版面規格改變時更新；驗收結果回主台帳。
 - [dirty-preview.md](dirty-preview.md)：髒污預覽操作與素材產生方法，操作或素材配置改變時更新。
+- [farewell-test.md](farewell-test.md)：送別、紀念冊、存檔升級及中斷恢復驗收；含實際 UI 動畫預覽。
 - [cleaning-test.md](cleaning-test.md)：首頁清潔動畫的自動檢查、實際畫面預覽與實機操作步驟；進度及驗收回報仍在主台帳清潔動畫增量（A5-CARE／A5-VIS）。
 - [exp-level-plan.md](exp-level-plan.md)：EXP、升級、滿等與畫面規則，以及 1.4.0 驗證證據及上板步驟；進度仍在 A3-EXP。
 - [rps-game-plan.md](rps-game-plan.md)：猜拳規則、畫面座標及素材分工；[rps-game-test.md](rps-game-test.md) 保存可重跑的測試方法與本次證據，進度仍在 A5-GAME。

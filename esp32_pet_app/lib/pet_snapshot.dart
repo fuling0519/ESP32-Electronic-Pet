@@ -9,6 +9,7 @@ class PetSnapshot {
     required this.ageSeconds,
     required this.health,
     required this.isDead,
+    this.isDeparted = false,
     required this.sleep,
     this.level, this.exp, this.expToNextLevel,
   });
@@ -16,7 +17,7 @@ class PetSnapshot {
   final String id, name, stage, ageSeconds, health, sleep;
   final int satiety, mood, cleanliness;
   final int? level, exp, expToNextLevel;
-  final bool isDead;
+  final bool isDead, isDeparted;
 
   static PetSnapshot? parse(Object? value) {
     if (value is! Map<String, dynamic>) return null;
@@ -27,6 +28,8 @@ class PetSnapshot {
     final health = value['health'];
     final sleep = value['sleep'];
     final dead = value['is_dead'];
+    final departed = value.containsKey('is_departed') ? value['is_departed'] : false;
+    if (departed is! bool || (departed && (dead == true || stage == 'egg' || sleep != 'awake'))) return null;
     final satiety = value['satiety'];
     final mood = value['mood'];
     final cleanliness = value['cleanliness'];
@@ -56,7 +59,7 @@ class PetSnapshot {
     return PetSnapshot(
       id: id, name: name, stage: stage as String,
       satiety: satiety, mood: mood, cleanliness: cleanliness,
-      ageSeconds: age, health: health as String, isDead: dead,
+      ageSeconds: age, health: health as String, isDead: dead, isDeparted: departed,
       sleep: sleep as String,
       level: level as int?, exp: exp as int?, expToNextLevel: next as int?,
     );

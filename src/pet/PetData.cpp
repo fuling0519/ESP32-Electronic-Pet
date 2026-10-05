@@ -50,7 +50,7 @@ uint16_t PetData::gainExp(uint16_t amount) {
     return addExp(amount);
 }
 uint16_t PetData::addExp(uint16_t amount) {
-    if (!amount || isDead() || lifeStage_ == LifeStage::Egg ||
+    if (!amount || isEnded() || lifeStage_ == LifeStage::Egg ||
         sleepMode_ != SleepMode::Awake || level_ >= kMaxLevel) return 0;
     uint32_t remaining = 0;
     for (uint8_t lv = level_; lv < kMaxLevel; ++lv) remaining += 50 + 25 * (lv - 1);
@@ -67,6 +67,13 @@ uint16_t PetData::addExp(uint16_t amount) {
 }
 bool PetData::isSick() const { return healthState_ != HealthState::Healthy; }
 bool PetData::isDead() const { return healthState_ == HealthState::Dead; }
+bool PetData::depart() {
+    if (isEnded() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
+    departed_ = true;
+    sleepMoodRecoveryProgress_ = 0;
+    ++displayRevision_;
+    return true;
+}
 uint64_t PetData::ageSeconds() const { return ageSeconds_; }
 uint32_t PetData::displayRevision() const { return displayRevision_; }
 uint32_t PetData::dangerSeconds() const { return dangerSeconds_; }
@@ -75,6 +82,7 @@ SleepMode PetData::sleepMode() const { return sleepMode_; }
 
 PetSnapshotV1 PetData::snapshot() const {
     PetSnapshotV1 result{};
+    result.departed = departed_;
     result.petId = petId_;
     memcpy(result.name, name_, sizeof(result.name));
     result.speciesId = speciesId_;
@@ -102,6 +110,7 @@ PetSnapshotV1 PetData::snapshot() const {
 
 bool PetData::restore(const PetSnapshotV1& saved) {
     if (!isValidPetSnapshot(saved)) return false;
+    departed_ = saved.departed;
     petId_ = saved.petId;
     memcpy(name_, saved.name, sizeof(name_));
     speciesId_ = saved.speciesId;
@@ -159,15 +168,18 @@ CleanlinessState PetData::cleanlinessState() const {
 }
 
 void PetData::setSatiety(int value) {
+    if (departed_) return;
     const uint8_t bounded = clampNeedValue(value);
     if (satiety_ != bounded) { satiety_ = bounded; ++displayRevision_; }
     if (satiety_ > 0 && cleanliness_ > 0 && !isSick()) dangerSeconds_ = 0;
 }
 void PetData::setMood(int value) {
+    if (departed_) return;
     const uint8_t bounded = clampNeedValue(value);
     if (mood_ != bounded) { mood_ = bounded; ++displayRevision_; }
 }
 void PetData::setCleanliness(int value) {
+    if (departed_) return;
     const uint8_t bounded = clampNeedValue(value);
     if (cleanliness_ != bounded) { cleanliness_ = bounded; ++displayRevision_; }
     if (satiety_ > 0 && cleanliness_ > 0 && !isSick()) dangerSeconds_ = 0;
@@ -184,26 +196,29 @@ void PetData::changeCleanliness(int amount) {
 }
 
 void PetData::setLevel(uint8_t value) {
+    if (departed_) return;
     if (value == 0) value = 1;
     if (value > kMaxLevel) value = kMaxLevel;
     if (level_ != value) { level_ = value; ++displayRevision_; }
     setExp(exp_);
 }
 void PetData::setExp(uint16_t value) {
+    if (departed_) return;
     const uint16_t bounded = level_ == kMaxLevel ? 0 :
         (value >= expToNextLevel() ? expToNextLevel() - 1 : value);
     if (exp_ != bounded) { exp_ = bounded; ++displayRevision_; }
 }
 void PetData::setSick(bool value) {
-    if (isDead() || lifeStage_ == LifeStage::Egg) return;
+    if (isEnded() || lifeStage_ == LifeStage::Egg) return;
     const HealthState next = value ? HealthState::Sick : HealthState::Healthy;
     if (healthState_ != next) { healthState_ = next; ++displayRevision_; }
     if (!value) { dangerSeconds_ = 0; sickAwakeSeconds_ = 0; }
 }
 void PetData::setDead(bool value) {
+    if (departed_) return;
     if (lifeStage_ == LifeStage::Egg) return;
-    if (isDead() && !value) return;
-    if (value && !isDead()) {
+    if (isEnded() && !value) return;
+    if (value && !isEnded()) {
         healthState_ = HealthState::Dead;
         deathCause_ = DeathCause::UntreatedSickness;
         sleepMode_ = SleepMode::Awake;
@@ -215,6 +230,7 @@ void PetData::setDead(bool value) {
 }
 
 void PetData::startNewEgg() {
+    departed_ = false;
     lifeStage_ = LifeStage::Egg;
     satiety_ = 80;
     mood_ = 80;
@@ -346,9 +362,9 @@ uint32_t PetData::advanceCareSeconds(uint32_t seconds,
 }
 
 void PetData::advanceSecondsForMode(uint32_t seconds, bool sleeping) {
-    if (isDead() || seconds == 0) return;
+    if (isEnded() || seconds == 0) return;
     uint32_t remaining = seconds;
-    while (remaining > 0 && !isDead()) {
+    while (remaining > 0 && !isEnded()) {
         if (lifeStage_ == LifeStage::Egg) {
             const uint32_t untilHatch = static_cast<uint32_t>(
                 kEggHatchAgeSeconds - ageSeconds_);
@@ -379,7 +395,7 @@ void PetData::advanceSecondsForMode(uint32_t seconds, bool sleeping) {
         const uint32_t consumed = advanceCareSeconds(
             elapsed, satietyInterval, cleanlinessInterval, moodInterval, sleeping);
         remaining -= consumed;
-        if (isDead() || consumed < elapsed) return;
+        if (isEnded() || consumed < elapsed) return;
         growUpIfReady();
     }
 }
@@ -395,7 +411,7 @@ void PetData::advanceSleepSeconds(uint32_t seconds) {
 }
 
 bool PetData::beginNormalSleep() {
-    if (isDead() || lifeStage_ == LifeStage::Egg ||
+    if (isEnded() || lifeStage_ == LifeStage::Egg ||
         sleepMode_ != SleepMode::Awake) return false;
     sleepMode_ = SleepMode::Normal;
     sleepStartedAt_ = {0, false};
@@ -406,7 +422,7 @@ bool PetData::beginNormalSleep() {
 }
 
 bool PetData::wake() {
-    if (isDead() || sleepMode_ == SleepMode::Awake) return false;
+    if (isEnded() || sleepMode_ == SleepMode::Awake) return false;
     sleepMode_ = SleepMode::Awake;
     sleepStartedAt_ = {0, false};
     lastSleepSettledAt_ = {0, false};
@@ -428,7 +444,7 @@ bool PetData::restoreSleepRecoveryProgress(uint32_t progress) {
 }
 
 bool PetData::feed() {
-    if (isDead() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
+    if (isEnded() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
     const uint8_t before = satiety_;
     changeSatiety(kFeedAmount);
     if (satiety_ > before) addExp(kFeedExpReward);
@@ -436,7 +452,7 @@ bool PetData::feed() {
 }
 
 bool PetData::clean() {
-    if (isDead() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
+    if (isEnded() || lifeStage_ == LifeStage::Egg || sleepMode_ != SleepMode::Awake) return false;
     const uint8_t before = cleanliness_;
     changeCleanliness(kCleanAmount);
     if (cleanliness_ > before) addExp(kCleanExpReward);
@@ -444,13 +460,13 @@ bool PetData::clean() {
 }
 
 bool PetData::play() {
-    if (isDead() || lifeStage_ == LifeStage::Egg) return false;
+    if (isEnded() || lifeStage_ == LifeStage::Egg) return false;
     changeMood(kPlayAmount);
     return true;
 }
 
 bool PetData::treat() {
-    if (isDead() || lifeStage_ == LifeStage::Egg || !isSick() || sleepMode_ != SleepMode::Awake) return false;
+    if (isEnded() || lifeStage_ == LifeStage::Egg || !isSick() || sleepMode_ != SleepMode::Awake) return false;
     setSick(false);
     growUpIfReady();
     addExp(kTreatExpReward);

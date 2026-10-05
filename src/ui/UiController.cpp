@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <stdio.h>
 #include <string.h>
+#include <initializer_list>
 
 #include "hardware/Display.h"
 #include "hardware/Sound.h"
@@ -16,6 +17,8 @@
 namespace Ui {
 namespace {
 constexpr uint32_t kBootDurationMs = 1500;
+constexpr uint32_t kFarewellPoseMs = 2600;
+constexpr uint32_t kFarewellFlashMs = 100;
 constexpr uint32_t kGrowthTransitionDurationMs = 2400;
 constexpr uint32_t kGrowthTransitionFrameMs = 200;
 constexpr uint32_t kDeathAnimationDurationMs = 3600;
@@ -32,13 +35,13 @@ constexpr uint32_t kTreatmentDurationMs = 3400;
 constexpr uint32_t kTreatmentNoticeMs = 1200;
 constexpr uint32_t kCleaningFrameMs = 400;
 constexpr uint32_t kCleaningDurationMs = 2400;
-constexpr uint8_t kMenuItemCount = 7;
+constexpr uint8_t kMenuItemCount = 8;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
-    "Feed", "Clean", "Treat", "Play", "Rest", "Status", "Records"
+    "Feed", "Clean", "Treat", "Play", "Rest", "Status", "Records", "Farewell"
 };
 const char* const kMenuLabels[kMenuItemCount] = {
-    "餵食", "清潔", "治療", "陪玩", "休息", "狀態", "紀錄"
+    "餵食", "清潔", "治療", "陪玩", "休息", "狀態", "紀念冊", "送別"
 };
 constexpr int16_t kStatusLabelX = 9;
 constexpr int16_t kStatusValueRight = 118;
@@ -135,6 +138,8 @@ void UiController::init(uint32_t now) {
     screen_ = ScreenId::Boot;
     homeFocus_ = HomeFocus::None;
     menuIndex_ = 0;
+    memorialFilter_ = 0;
+    farewellConfirmIndex_ = 0;
     treatmentNotice_ = false;
     statusPage_ = 0;
     deathOptionIndex_ = 0;
@@ -209,10 +214,18 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
 
     if (screen_ == ScreenId::Boot) {
         if (now - bootStartedAt_ >= kBootDurationMs) {
-            if (pet_.isDead()) beginDeathAnimation(now);
+            if (pet_.isDeparted()) setScreen(memorialReady_ ? ScreenId::FarewellDone : ScreenId::FarewellBlocked);
+            else if (pet_.isDead()) beginDeathAnimation(now);
             else setScreen(ScreenId::Home);
         }
         return screen_ != previousScreen;
+    }
+
+    if (screen_ == ScreenId::FarewellAnimation) {
+        farewellElapsedMs_ = now - farewellStartedAt_;
+        if (farewellElapsedMs_ >= kFarewellPoseMs + kFarewellFlashMs) setScreen(ScreenId::FarewellDone);
+        dirty_ = true;
+        return true; // Includes the completion event: no accidental adoption.
     }
 
     if (pet_.lifeStage() != observedLifeStage_ &&
@@ -417,7 +430,13 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         restOption_ = 0; deepSleepFailed_ = false;
                         setScreen(ScreenId::Rest); break;
                     case 5: setScreen(ScreenId::DetailedStatus); break;
+                    case 7:
+                        if (pet_.lifeStage() == Pet::LifeStage::Egg) sound_.playFailure();
+                        else if (memorials_.count() >= Storage::kMemorialLimit) setScreen(ScreenId::FarewellBlocked);
+                        else setScreen(ScreenId::FarewellInfo);
+                        break;
                     default:
+                        memorialFilter_ = 0;
                         memorialIndex_ = 0;
                         setScreen(ScreenId::Graveyard);
                         break;
@@ -513,6 +532,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
             break;
 
+        case ScreenId::FarewellDone:
         case ScreenId::DeathMemorial:
             if (event == Hardware::InputEvent::Press) {
                 sound_.playConfirm();
@@ -529,6 +549,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             } else if (event == Hardware::InputEvent::Press) {
                 if (deathOptionIndex_ == 0) {
                     sound_.playConfirm();
+                    memorialFilter_ = 0;
                     memorialIndex_ = 0;
                     setScreen(ScreenId::Graveyard);
                 } else if (!memorialReady_ ||
@@ -540,38 +561,60 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
-                setScreen(ScreenId::DeathMemorial);
+                setScreen(pet_.isDeparted() ? ScreenId::FarewellDone : ScreenId::DeathMemorial);
             }
             break;
 
         case ScreenId::Graveyard:
-            if (memorials_.count() > 0 &&
-                (event == Hardware::InputEvent::Up ||
-                 event == Hardware::InputEvent::Left)) {
-                memorialIndex_ = memorialIndex_ == 0 ?
-                    memorials_.count() - 1 : memorialIndex_ - 1;
-                dirty_ = true;
-            } else if (memorials_.count() > 0 &&
-                       (event == Hardware::InputEvent::Down ||
-                        event == Hardware::InputEvent::Right)) {
-                memorialIndex_ = (memorialIndex_ + 1) % memorials_.count();
-                dirty_ = true;
-            } else if (event == Hardware::InputEvent::Press &&
-                       memorials_.count() > 0) {
-                const Storage::MemorialRecord* selected = memorials_.at(memorialIndex_);
-                if (pet_.isDead() && selected != nullptr &&
-                    selected->petId == pet_.petId()) {
-                    sound_.playFailure();
-                } else {
-                    sound_.playConfirm();
-                    deleteConfirmIndex_ = 0;
+            if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Right) {
+                memorialFilter_ = (memorialFilter_ + (event == Hardware::InputEvent::Right ? 1 : 2)) % 3;
+                memorialIndex_ = 255;
+                selectMemorial(1);
+            } else if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
+                selectMemorial(event == Hardware::InputEvent::Down ? 1 : -1);
+            } else if (event == Hardware::InputEvent::Press && matchesMemorial(memorialIndex_)) {
+                const auto* selected = memorials_.at(memorialIndex_);
+                if (pet_.isEnded() && selected->petId == pet_.petId()) sound_.playFailure();
+                else {
+                    deleteConfirmIndex_ = 1; // Default to keeping the memory.
                     setScreen(ScreenId::DeleteMemorialConfirm);
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(pet_.isDead() ? ScreenId::DeathOptions :
-                          ScreenId::MainMenu);
+                setScreen(pet_.isEnded() ? ScreenId::DeathOptions : ScreenId::MainMenu);
             }
+            break;
+
+        case ScreenId::FarewellInfo:
+            if (event == Hardware::InputEvent::Press) {
+                farewellConfirmIndex_ = 0;
+                setScreen(ScreenId::FarewellConfirm);
+            } else if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MainMenu);
+            break;
+        case ScreenId::FarewellConfirm:
+            if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Up) {
+                farewellConfirmIndex_ = 0; dirty_ = true;
+            } else if (event == Hardware::InputEvent::Right || event == Hardware::InputEvent::Down) {
+                farewellConfirmIndex_ = 1; dirty_ = true;
+            } else if (event == Hardware::InputEvent::Press) {
+                if (farewellConfirmIndex_ == 0) setScreen(ScreenId::MainMenu);
+                else {
+                    pendingAction_ = UiAction::SendOff;
+                    setScreen(ScreenId::FarewellBlocked); // Lock duplicate input until result.
+                }
+            } else if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MainMenu);
+            break;
+        case ScreenId::FarewellBlocked:
+            if (pet_.isDeparted() && memorialReady_) setScreen(ScreenId::FarewellDone);
+            else if (event == Hardware::InputEvent::Press) {
+                if (pet_.isDeparted()) pendingAction_ = UiAction::RetryFarewell;
+                else if (memorials_.count() >= Storage::kMemorialLimit) {
+                    memorialFilter_ = 0; memorialIndex_ = 0;
+                    setScreen(ScreenId::Graveyard);
+                } else {
+                    farewellConfirmIndex_ = 0;
+                    setScreen(ScreenId::FarewellConfirm);
+                }
+            } else if (event == Hardware::InputEvent::LongPress && !pet_.isDeparted()) setScreen(ScreenId::MainMenu);
             break;
 
         case ScreenId::DeleteMemorialConfirm:
@@ -597,7 +640,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             break;
 
         case ScreenId::AdoptionBlocked:
-            if (event == Hardware::InputEvent::LongPress) {
+            if (event == Hardware::InputEvent::Press && !memorialReady_) pendingAction_ = UiAction::RetryFarewell;
+            else if (event == Hardware::InputEvent::LongPress) {
                 sound_.playCancel();
                 setScreen(ScreenId::DeathOptions);
             }
@@ -607,6 +651,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         case ScreenId::HatchTransition:
         case ScreenId::GrowTransition:
         case ScreenId::DeathAnimation:
+        case ScreenId::FarewellAnimation:
             break;
     }
 
@@ -630,6 +675,11 @@ void UiController::render() {
 
     if (levelUpActive_ && screen_ != ScreenId::PlayCare) renderLevelUp();
     else switch (screen_) {
+        case ScreenId::FarewellInfo:
+        case ScreenId::FarewellConfirm:
+        case ScreenId::FarewellAnimation:
+        case ScreenId::FarewellDone:
+        case ScreenId::FarewellBlocked: renderFarewell(); break;
         case ScreenId::Boot: renderBoot(); break;
         case ScreenId::Home: renderHome(); break;
         case ScreenId::MainMenu: renderMainMenu(); break;
@@ -658,6 +708,11 @@ ScreenId UiController::screen() const { return screen_; }
 
 const char* UiController::screenName() const {
     switch (screen_) {
+        case ScreenId::FarewellInfo: return "FAREWELL_INFO";
+        case ScreenId::FarewellConfirm: return "FAREWELL_CONFIRM";
+        case ScreenId::FarewellAnimation: return "FAREWELL_ANIMATION";
+        case ScreenId::FarewellDone: return "FAREWELL_DONE";
+        case ScreenId::FarewellBlocked: return "FAREWELL_BLOCKED";
         case ScreenId::Boot: return "BOOT";
         case ScreenId::Home: return "HOME";
         case ScreenId::MainMenu: return "MAIN_MENU";
@@ -784,9 +839,7 @@ void UiController::onMemorialDeleteResult(bool success) {
         return;
     }
     sound_.playSuccess();
-    if (memorialIndex_ >= memorials_.count() && memorialIndex_ > 0) {
-        --memorialIndex_;
-    }
+    if (!matchesMemorial(memorialIndex_)) selectMemorial(1);
     setScreen(ScreenId::Graveyard);
 }
 
@@ -1528,7 +1581,7 @@ void UiController::renderDeathOptions() {
     display_.drawFrame(0, 0, 128, 64);
     drawCenteredUiText(display_, 15, "接下來……？");
     display_.drawLine(6, 19, 121, 19);
-    const char* options[] = {"探望墓園", "領養新蛋"};
+    const char* options[] = {"查看紀念冊", "領養新蛋"};
     for (uint8_t i = 0; i < 2; ++i) {
         const int16_t baseline = 36 + i * 18;
         if (deathOptionIndex_ == i) display_.drawSmallText(9, baseline, ">");
@@ -1536,30 +1589,129 @@ void UiController::renderDeathOptions() {
     }
 }
 
+bool UiController::matchesMemorial(uint8_t index) const {
+    const auto* record = memorials_.at(index);
+    return record && (memorialFilter_ == 0 ||
+        (memorialFilter_ == 1 && record->kind == Storage::FarewellKind::Departed) ||
+        (memorialFilter_ == 2 && record->kind == Storage::FarewellKind::Resting));
+}
+
+void UiController::selectMemorial(int direction) {
+    int index = memorialIndex_ < memorials_.count() ? memorialIndex_ : (direction > 0 ? -1 : 0);
+    for (uint8_t n = 0; n < memorials_.count(); ++n) {
+        index = (index + direction + memorials_.count()) % memorials_.count();
+        if (matchesMemorial(index)) { memorialIndex_ = index; dirty_ = true; return; }
+    }
+    memorialIndex_ = 255;
+    dirty_ = true;
+}
+
 void UiController::renderGraveyard() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawUiText(8, 14, "墓碑群");
+    display_.drawUiText(5, 14, "紀念冊");
+    const char* filters[] = {"全部", "遠行", "長眠"};
+    display_.drawUiText(55, 14, filters[memorialFilter_]);
+    uint8_t count = 0, position = 0;
+    for (uint8_t i = 0; i < memorials_.count(); ++i) {
+        if (matchesMemorial(i)) { ++count; if (i == memorialIndex_) position = count; }
+    }
     char page[8];
-    snprintf(page, sizeof(page), "%u/%u",
-             static_cast<unsigned>(memorials_.count() == 0 ? 0 : memorialIndex_ + 1),
-             static_cast<unsigned>(memorials_.count()));
-    display_.drawText(94, 14, page);
+    snprintf(page, sizeof(page), "%u/%u", position, count);
+    display_.drawSmallText(98, 14, page);
     display_.drawLine(6, 18, 121, 18);
-    const Storage::MemorialRecord* memorial = memorials_.at(memorialIndex_);
-    if (memorial == nullptr) {
+    if (!matchesMemorial(memorialIndex_)) {
         drawCenteredUiText(display_, 40, "尚無紀錄");
         drawCenteredUiText(display_, 60, "長按返回");
         return;
     }
-    PetIcons::drawTombstone(display_, 7, 23, 37, 37);
-    display_.drawSmallText(18, 38, "RIP");
-    display_.drawText(53, 34, memorial->name);
+    const auto* memorial = memorials_.at(memorialIndex_);
+    const bool departed = memorial->kind == Storage::FarewellKind::Departed;
+    if (departed) {
+        PetIcons::drawMemorialPet(display_, static_cast<Pet::LifeStage>(memorial->stage));
+    } else {
+        PetIcons::drawTombstone(display_, 7, 23, 37, 37);
+        display_.drawSmallText(18, 38, "RIP");
+    }
+    const int16_t textX = departed ? 73 : 53;
+    display_.drawText(textX, 32, memorial->name);
+    // Short duration label keeps the 64-pixel portrait and text separate.
     char ageText[14];
     formatAge(memorial->ageSeconds, ageText);
-    display_.drawSmallText(53, 46, ageText);
-    if (!(pet_.isDead() && memorial->petId == pet_.petId())) {
-        display_.drawUiText(87, 60, "> 刪除");
+    display_.drawSmallText(textX, 44, ageText + 4);
+    display_.drawUiText(textX, 57, departed ? "遠行" : "長眠");
+    if (!(pet_.isEnded() && memorial->petId == pet_.petId())) display_.drawText(115, 60, ">");
+}
+
+void UiController::onFarewellResult(bool success, uint32_t now) {
+    if (!success) {
+        setScreen(pet_.isDead() ? ScreenId::AdoptionBlocked : ScreenId::FarewellBlocked);
+    } else if (pet_.isDeparted()) {
+        careLevelUpPending_ = levelUpActive_ = false;
+        farewellStartedAt_ = now;
+        farewellElapsedMs_ = 0;
+        setScreen(ScreenId::FarewellAnimation);
+    } else setScreen(ScreenId::DeathOptions);
+    dirty_ = true;
+}
+
+void UiController::renderFarewell() {
+    display_.clear();
+    if (screen_ == ScreenId::FarewellDone) {
+        PetIcons::drawCenteredPostcardPet(display_, pet_.lifeStage());
+        display_.drawFrame(2, 2, 124, 60);
+        display_.drawLine(64, 8, 64, 55);
+        display_.drawText(75, 35, pet_.name());
+        display_.drawLine(75, 38, 120, 38);
+        display_.drawUiText(75, 51, "遠行");
+        display_.drawLine(75, 55, 120, 55);
+        // Perforated 13x16 postage stamp, lowered four pixels from the first draft.
+        display_.drawFrame(108, 7, 13, 16);
+        for (int16_t x = 109; x < 120; x += 3) {
+            display_.clearArea(x, 7, 1, 1);
+            display_.clearArea(x, 22, 1, 1);
+        }
+        for (int16_t y = 8; y < 22; y += 3) {
+            display_.clearArea(108, y, 1, 1);
+            display_.clearArea(120, y, 1, 1);
+        }
+        display_.drawLine(114, 11, 114, 18);
+        display_.drawLine(111, 14, 117, 14);
+        for (int16_t x : {112, 116}) for (int16_t y : {12, 16}) display_.drawLine(x, y, x, y);
+        return; // The postcard remains until an explicit press.
+    }
+    if (screen_ == ScreenId::FarewellAnimation) {
+        if (farewellElapsedMs_ >= kFarewellPoseMs) {
+            for (int16_t y = 0; y < 64; ++y) display_.drawLine(0, y, 127, y);
+        } else {
+            PetIcons::drawPet(display_, 32, 0, pet_.lifeStage(), 0,
+                             farewellElapsedMs_ >= kBirdIdleSecondFrameAtMs ? 1 : 0);
+            display_.drawText(64 - static_cast<int16_t>(strlen(pet_.name()) * 3), 57, pet_.name());
+            for (int16_t x : {3, 124}) for (int16_t y : {3, 61}) {
+                display_.drawLine(x, y, x + (x == 3 ? 10 : -10), y);
+                display_.drawLine(x, y, x, y + (y == 3 ? 8 : -8));
+            }
+        }
+        return;
+    }
+    display_.drawFrame(0, 0, 128, 64);
+    if (screen_ == ScreenId::FarewellBlocked) {
+        const bool full = !pet_.isDeparted() && memorials_.count() >= Storage::kMemorialLimit;
+        drawCenteredUiText(display_, 22, full ? "紀錄已滿" : "保存未完成");
+        drawCenteredUiText(display_, 42, full ? "請先刪除" : "按下重試");
+        if (!pet_.isDeparted()) drawCenteredUiText(display_, 60, "長按返回");
+    } else if (screen_ == ScreenId::FarewellConfirm) {
+        drawCenteredUiText(display_, 20, "送別後無法召回");
+        display_.drawText(64 - strlen(pet_.name()) * 3, 37, pet_.name());
+        display_.drawUiText(22, 57, "留下");
+        display_.drawUiText(82, 57, "送別");
+        display_.drawText(farewellConfirmIndex_ == 0 ? 12 : 72, 57, ">");
+    } else {
+        drawCenteredUiText(display_, 16, "送牠出發旅行？");
+        display_.drawText(64 - strlen(pet_.name()) * 3, 32, pet_.name());
+        char age[14]; formatAge(pet_.ageSeconds(), age);
+        display_.drawSmallText(64 - strlen(age) * 5 / 2, 45, age);
+        drawCenteredUiText(display_, 61, "按下繼續");
     }
 }
 

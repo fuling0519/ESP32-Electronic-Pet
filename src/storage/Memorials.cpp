@@ -8,7 +8,11 @@ namespace Storage {
 
 bool isValidMemorial(const MemorialRecord& memorial) {
     return memorial.petId != 0 && Pet::isValidPetName(memorial.name) &&
-           memorial.speciesId == Pet::SpeciesId::Bird;
+           memorial.speciesId == Pet::SpeciesId::Bird &&
+           (memorial.kind == FarewellKind::Resting || memorial.kind == FarewellKind::Departed) &&
+           (memorial.stage == static_cast<uint8_t>(Pet::LifeStage::Baby) ||
+            memorial.stage == static_cast<uint8_t>(Pet::LifeStage::Adult) ||
+            (memorial.stage == kUnknownMemorialStage && memorial.kind == FarewellKind::Resting));
 }
 
 uint8_t Memorials::count() const { return count_; }
@@ -49,8 +53,11 @@ bool Memorials::append(const MemorialRecord& memorial) {
 }
 
 bool Memorials::append(const Pet::PetData& pet) {
-    if (!pet.isDead()) return false;
+    if (!pet.isEnded()) return false;
+    if (pet.isDeparted() && !containsPet(pet.petId()) && count_ >= kMemorialLimit) return false;
     MemorialRecord memorial{};
+    memorial.kind = pet.isDeparted() ? FarewellKind::Departed : FarewellKind::Resting;
+    memorial.stage = static_cast<uint8_t>(pet.lifeStage());
     memorial.petId = pet.petId();
     memcpy(memorial.name, pet.name(), sizeof(memorial.name));
     memorial.speciesId = pet.speciesId();
@@ -69,7 +76,7 @@ bool Memorials::remove(uint8_t index) {
 }
 
 void Memorials::clear() {
-    memset(records_, 0, sizeof(records_));
+    for (auto& record : records_) record = MemorialRecord{};
     count_ = 0;
 }
 

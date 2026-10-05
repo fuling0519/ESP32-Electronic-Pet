@@ -39,6 +39,11 @@ enum class ScreenId {
     Graveyard,
     DeleteMemorialConfirm,
     AdoptionBlocked,
+    FarewellInfo,
+    FarewellConfirm,
+    FarewellAnimation,
+    FarewellDone,
+    FarewellBlocked,
 };
 
 enum class UiAction : uint8_t {
@@ -52,6 +57,8 @@ enum class UiAction : uint8_t {
     Wake,
     AdoptNewEgg,
     DeleteMemorial,
+    SendOff,
+    RetryFarewell,
 };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
@@ -84,6 +91,7 @@ public:
                              uint8_t previousLevel = 0);
     uint8_t selectedMemorialIndex() const;
     void setMemorialReady(bool ready);
+    void onFarewellResult(bool success, uint32_t now);
     void onSleepStarted(uint32_t now);
     void onFeedSucceeded(uint32_t now);
     void onCleanSucceeded(uint32_t now);
@@ -120,6 +128,13 @@ private:
     void renderDeathMemorial();
     void renderDeathOptions();
     void renderGraveyard();
+    void renderFarewell();
+    bool matchesMemorial(uint8_t index) const;
+    void selectMemorial(int direction);
+    uint8_t memorialFilter_ = 0;
+    uint8_t farewellConfirmIndex_ = 0;
+    uint32_t farewellStartedAt_ = 0;
+    uint32_t farewellElapsedMs_ = 0;
     void renderDeleteMemorialConfirm();
     void renderAdoptionBlocked();
     uint8_t eggCrackStage(uint32_t now) const;

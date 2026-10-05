@@ -95,6 +95,9 @@ public:
     uint16_t gainExp(uint16_t amount);
     bool isSick() const;
     bool isDead() const;
+    bool isDeparted() const { return departed_; }
+    bool isEnded() const { return isDead() || departed_; }
+    bool depart();
     uint64_t ageSeconds() const;
     uint32_t displayRevision() const;
     uint32_t dangerSeconds() const;
@@ -161,6 +164,7 @@ private:
     uint8_t level_;
     uint16_t exp_;
     HealthState healthState_;
+    bool departed_ = false;
     uint64_t ageSeconds_;
     uint32_t satietyRemainderSeconds_;
     uint32_t cleanlinessRemainderSeconds_;

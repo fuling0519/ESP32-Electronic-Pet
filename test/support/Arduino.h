@@ -8,3 +8,4 @@ struct SerialStub {
     template <typename... T> void printf(T...) {}
 };
 extern SerialStub Serial;
+uint32_t millis();

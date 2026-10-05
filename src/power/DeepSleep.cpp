@@ -21,7 +21,7 @@ struct Retained {
     uint32_t checksum;
 };
 RTC_DATA_ATTR Retained state{};
-constexpr uint32_t kMagic = 0x44535032; // Recovery remainder now stores progress units.
+constexpr uint32_t kMagic = 0x44535033; // V2 snapshot includes independent departure state.
 int64_t nowUs() {
     timeval value{};
     gettimeofday(&value, nullptr);

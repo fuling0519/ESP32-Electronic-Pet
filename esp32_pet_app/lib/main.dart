@@ -307,6 +307,7 @@ class _PetHomePageState extends State<PetHomePage> {
   String get _stateLabel {
     if (_pet == null) return _waitingForData ? '等待裝置狀態' : '尚無狀態資料';
     final pet = _pet!;
+    if (pet.isDeparted) return '已遠行';
     if (pet.isDead) return '已死亡';
     if (pet.sleep == 'normal') return '睡眠中';
     if (pet.health == 'sick') return '生病';
@@ -367,7 +368,7 @@ class _PetHomePageState extends State<PetHomePage> {
               Container(width: double.infinity, padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: const Color(0xff9bbc0f), border: Border.all(color: const Color(0xff3b4b16), width: 3), borderRadius: BorderRadius.circular(14)),
                 child: Column(children: [
-                  Text(pet?.isDead == true ? '†' : pet?.stage == 'egg' ? '🥚' : pet?.stage == 'baby' ? '🐣' : pet?.stage == 'adult' ? '🐦' : '—', style: const TextStyle(fontSize: 48)),
+                  Text(pet?.isDeparted == true ? '👋' : pet?.isDead == true ? '†' : pet?.stage == 'egg' ? '🥚' : pet?.stage == 'baby' ? '🐣' : pet?.stage == 'adult' ? '🐦' : '—', style: const TextStyle(fontSize: 48)),
                   Text(pet?.name ?? '等待 ESP32 狀態'),
                   Text(_stateLabel),
                   if (pet != null) Text('寵物 ID：${pet.id}'),
@@ -389,7 +390,7 @@ class _PetHomePageState extends State<PetHomePage> {
               _meter('清潔度', pet?.cleanliness, Colors.cyan),
               const Divider(),
               Text('年齡：${pet == null ? '--' : _age(pet.ageSeconds)}'),
-              Text('健康：${pet == null ? '--' : pet.health == 'healthy' ? '健康' : pet.health == 'sick' ? '生病' : '死亡'}'),
+              Text('健康：${pet == null ? '--' : pet.isDeparted ? '已遠行' : pet.health == 'healthy' ? '健康' : pet.health == 'sick' ? '生病' : '死亡'}'),
               Text('睡眠：${pet == null ? '--' : pet.sleep == 'normal' ? '睡眠中' : '清醒'}'),
             ],
           ))),

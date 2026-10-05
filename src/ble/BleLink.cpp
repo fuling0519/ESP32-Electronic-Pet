@@ -142,7 +142,7 @@ bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& 
     p["id"]=id; p["name"]=pet.name(); p["life_stage"]=stage(pet.lifeStage());
     p["satiety"]=pet.satiety(); p["mood"]=pet.mood(); p["cleanliness"]=pet.cleanliness();
     p["age_seconds"]=age; p["health"]=health(pet.healthState());
-    p["is_dead"]=pet.isDead(); p["sleep"]=sleep(pet.sleepMode());
+    p["is_departed"]=pet.isDeparted(); p["is_dead"]=pet.isDead(); p["sleep"]=sleep(pet.sleepMode());
     p["level"]=pet.level(); p["exp"]=pet.exp();
     p["exp_to_next_level"]=pet.expToNextLevel();
     if (d.overflowed()) return false;

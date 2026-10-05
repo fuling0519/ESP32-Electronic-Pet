@@ -47,3 +47,10 @@ if ($LASTEXITCODE) { throw 'Mood test build failed.' }
 & "$outputPath/mood.exe"
 if ($LASTEXITCODE) { throw 'Mood tests failed.' }
 Write-Output 'PASS: mood thresholds, recovery progress and batch settlement.'
+
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc test/farewell_native.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp `
+    -o "$outputPath/farewell.exe"
+if ($LASTEXITCODE) { throw 'Farewell storage test build failed.' }
+& "$outputPath/farewell.exe"
+if ($LASTEXITCODE) { throw 'Farewell storage tests failed.' }

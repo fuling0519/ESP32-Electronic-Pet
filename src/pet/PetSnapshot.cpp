@@ -46,6 +46,8 @@ bool isValidPetName(const char* name) {
 }
 
 bool isValidPetSnapshot(const PetSnapshotV1& s) {
+    if (s.departed && (s.healthState == HealthState::Dead ||
+        s.lifeStage == LifeStage::Egg || s.sleepMode != SleepMode::Awake)) return false;
     if (s.petId == 0 || !isValidPetName(s.name) || !isKnownSpecies(s.speciesId) ||
         !isKnownLifeStage(s.lifeStage) || !isKnownHealthState(s.healthState) ||
         !isKnownSleepMode(s.sleepMode) || !isKnownDeathCause(s.deathCause)) {

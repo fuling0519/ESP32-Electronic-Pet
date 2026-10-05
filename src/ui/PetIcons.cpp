@@ -155,6 +155,39 @@ void drawPet(Hardware::Display& d, int16_t x, int16_t y,
                 kBirdFrameWidth, kBirdFrameHeight);
 }
 
+// Center the visible pixels; sprite sheets can contain asymmetric black padding.
+void drawCenteredPostcardPet(Hardware::Display& d, Pet::LifeStage stage) {
+    const auto* bits = petFrame(stage, 0, 0);
+    int top = 44, bottom = 0;
+    for (int row = 0; row < 44; ++row) for (int col = 0; col < 64; ++col) {
+        if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8)))) {
+            if (row < top) top = row;
+            if (row + 1 > bottom) bottom = row + 1;
+        }
+    }
+    if (top >= bottom) return;
+    d.drawGlyph(3, (64 - (bottom - top)) / 2 - top, bits, 64, 44);
+}
+
+// Memorial content lives below the title divider (19..60), with two clear
+// rows above the bottom border. Center visible art within that content region.
+void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage) {
+    const auto* bits = petFrame(stage, 0, 0);
+    int top = 44, bottom = 0;
+    for (int row = 0; row < 44; ++row) for (int col = 0; col < 64; ++col) {
+        if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8)))) {
+            if (row < top) top = row;
+            if (row + 1 > bottom) bottom = row + 1;
+        }
+    }
+    if (top >= bottom) return;
+    const int16_t y = 19 + (42 - (bottom - top)) / 2 - top;
+    for (int row = top; row < bottom; ++row) for (int col = 0; col < 64; ++col) {
+        if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8))))
+            d.drawLine(3 + col, y + row, 3 + col, y + row);
+    }
+}
+
 void drawSadPet(Hardware::Display& d, int16_t x, int16_t y,
                 Pet::LifeStage lifeStage, uint8_t frame) {
     const uint8_t* bitmap = lifeStage == Pet::LifeStage::Baby

@@ -38,13 +38,14 @@ static_assert(kHeaderSize + kPetSavePayloadSize + sizeof(uint32_t) ==
               kPetSaveRecordSize,
               "Save record constants do not describe the same byte layout");
 constexpr uint32_t kMemorialSaveMagic = 0x4D454D31UL;  // "MEM1"
-constexpr uint16_t kMemorialSaveVersion = 1;
+constexpr uint16_t kMemorialSaveVersion = 2;
 constexpr size_t kMemorialEntrySize = sizeof(uint64_t) +
-    (Pet::kPetNameMaxLength + 1) + sizeof(uint8_t) + sizeof(uint64_t);
+    (Pet::kPetNameMaxLength + 1) + 3 * sizeof(uint8_t) + sizeof(uint64_t);
 constexpr size_t kMemorialPayloadSize = 1 +
     Storage::kMemorialCapacity * kMemorialEntrySize;
 constexpr size_t kMemorialRecordSize = kHeaderSize + kMemorialPayloadSize +
     sizeof(uint32_t);
+static_assert(kMemorialRecordSize == kMemorialSaveRecordSize, "Memorial workspace size mismatch");
 constexpr size_t kMemorialCrcOffset = kMemorialRecordSize - sizeof(uint32_t);
 
 class ByteWriter {
@@ -152,10 +153,11 @@ bool writeMemorial(ByteWriter& writer, const MemorialRecord& memorial) {
     return writer.putU64(memorial.petId) &&
            writer.putBytes(memorial.name, sizeof(memorial.name)) &&
            writer.putU8(static_cast<uint8_t>(memorial.speciesId)) &&
-           writer.putU64(memorial.ageSeconds);
+           writer.putU64(memorial.ageSeconds) &&
+           writer.putU8(static_cast<uint8_t>(memorial.kind)) && writer.putU8(memorial.stage);
 }
 
-bool readMemorial(ByteReader& reader, MemorialRecord& memorial) {
+bool readMemorial(ByteReader& reader, MemorialRecord& memorial, uint16_t version) {
     uint8_t species = 0;
     if (!reader.getU64(memorial.petId) ||
         !reader.getBytes(memorial.name, sizeof(memorial.name)) ||
@@ -163,6 +165,11 @@ bool readMemorial(ByteReader& reader, MemorialRecord& memorial) {
         return false;
     }
     memorial.speciesId = static_cast<Pet::SpeciesId>(species);
+    if (version == 2) {
+        uint8_t kind = 0;
+        if (!reader.getU8(kind) || !reader.getU8(memorial.stage)) return false;
+        memorial.kind = static_cast<FarewellKind>(kind);
+    }
     return true;
 }
 
@@ -186,10 +193,10 @@ bool writeSnapshot(ByteWriter& writer, const Pet::PetSnapshotV1& snapshot) {
            writer.putU8(static_cast<uint8_t>(snapshot.deathCause)) &&
            writer.putU8(static_cast<uint8_t>(snapshot.sleepMode)) &&
            writeTimestamp(writer, snapshot.sleepStartedAt) &&
-           writeTimestamp(writer, snapshot.lastSleepSettledAt);
+           writeTimestamp(writer, snapshot.lastSleepSettledAt) && writer.putU8(snapshot.departed ? 1 : 0);
 }
 
-bool readSnapshot(ByteReader& reader, Pet::PetSnapshotV1& snapshot) {
+bool readSnapshot(ByteReader& reader, Pet::PetSnapshotV1& snapshot, uint16_t version) {
     uint8_t species = 0;
     uint8_t lifeStage = 0;
     uint8_t health = 0;
@@ -219,7 +226,13 @@ bool readSnapshot(ByteReader& reader, Pet::PetSnapshotV1& snapshot) {
     snapshot.healthState = static_cast<Pet::HealthState>(health);
     snapshot.deathCause = static_cast<Pet::DeathCause>(deathCause);
     snapshot.sleepMode = static_cast<Pet::SleepMode>(sleepMode);
-    return reader.position() == kHeaderSize + kPetSavePayloadSize;
+    snapshot.departed = false;
+    if (version == 2) {
+        uint8_t departed = 0;
+        if (!reader.getU8(departed) || departed > 1) return false;
+        snapshot.departed = departed != 0;
+    }
+    return reader.position() == kHeaderSize + (version == 1 ? 92 : kPetSavePayloadSize);
 }
 
 bool encodeRecord(const Pet::PetSnapshotV1& snapshot, uint32_t sequence,
@@ -237,18 +250,20 @@ bool encodeRecord(const Pet::PetSnapshotV1& snapshot, uint32_t sequence,
            writer.position() == sizeof(record);
 }
 
-bool decodeRecord(const uint8_t (&record)[kPetSaveRecordSize],
+bool decodeRecord(const uint8_t* record, size_t length,
                   Pet::PetSnapshotV1& snapshot, uint32_t& sequence) {
-    ByteReader reader(record, sizeof(record));
+    ByteReader reader(record, length);
     uint32_t magic = 0;
     uint16_t version = 0;
     uint16_t payloadSize = 0;
     uint32_t savedCrc = 0;
     if (!reader.getU32(magic) || !reader.getU16(version) ||
         !reader.getU16(payloadSize) || !reader.getU32(sequence) ||
-        magic != kPetSaveMagic || version != kPetSaveSchemaVersion ||
-        payloadSize != kPetSavePayloadSize || !readSnapshot(reader, snapshot) ||
-        !reader.getU32(savedCrc) || savedCrc != crc32(record, kCrcOffset)) {
+        magic != kPetSaveMagic || (version != 1 && version != kPetSaveSchemaVersion) ||
+        payloadSize != (version == 1 ? 92 : kPetSavePayloadSize) ||
+        length != kHeaderSize + payloadSize + sizeof(uint32_t) ||
+        !readSnapshot(reader, snapshot, version) ||
+        !reader.getU32(savedCrc) || savedCrc != crc32(record, length - sizeof(uint32_t))) {
         return false;
     }
     return Pet::isValidPetSnapshot(snapshot);
@@ -275,9 +290,9 @@ bool encodeMemorialRecord(const Memorials& memorials, uint32_t sequence,
            writer.position() == sizeof(record);
 }
 
-bool decodeMemorialRecord(const uint8_t (&record)[kMemorialRecordSize],
+bool decodeMemorialRecord(const uint8_t* record, size_t length,
                           Memorials& memorials, uint32_t& sequence) {
-    ByteReader reader(record, sizeof(record));
+    ByteReader reader(record, length);
     uint32_t magic = 0;
     uint16_t version = 0;
     uint16_t payloadSize = 0;
@@ -285,22 +300,22 @@ bool decodeMemorialRecord(const uint8_t (&record)[kMemorialRecordSize],
     if (!reader.getU32(magic) || !reader.getU16(version) ||
         !reader.getU16(payloadSize) || !reader.getU32(sequence) ||
         !reader.getU8(count) || magic != kMemorialSaveMagic ||
-        version != kMemorialSaveVersion ||
-        payloadSize != kMemorialPayloadSize || count > kMemorialCapacity) {
+        (version != 1 && version != kMemorialSaveVersion) ||
+        payloadSize != (version == 1 ? kMemorialPayloadSize - 2 * kMemorialCapacity : kMemorialPayloadSize) ||
+        length != kHeaderSize + payloadSize + sizeof(uint32_t) || count > kMemorialCapacity) {
         return false;
     }
-    Memorials decoded;
+    memorials.clear();
     for (uint8_t i = 0; i < kMemorialCapacity; ++i) {
         MemorialRecord item{};
-        if (!readMemorial(reader, item)) return false;
+        if (!readMemorial(reader, item, version)) return false;
         if (i < count && (!isValidMemorial(item) ||
-                          decoded.containsPet(item.petId) ||
-                          !decoded.append(item))) return false;
+                          memorials.containsPet(item.petId) ||
+                          !memorials.append(item))) return false;
     }
     uint32_t savedCrc = 0;
     if (!reader.getU32(savedCrc) ||
-        savedCrc != crc32(record, kMemorialCrcOffset)) return false;
-    memorials = decoded;
+        savedCrc != crc32(record, length - sizeof(uint32_t))) return false;
     return true;
 }
 
@@ -315,28 +330,28 @@ struct MemorialSlotRecord {
     bool present = false;
     bool valid = false;
     uint32_t sequence = 0;
-    Memorials memorials{};
 };
 
 SlotRecord readSlot(Preferences& preferences, const char* key) {
     SlotRecord slot;
     const size_t length = preferences.getBytesLength(key);
     slot.present = length > 0;
-    if (length != kPetSaveRecordSize) return slot;
+    if (length != 108 && length != kPetSaveRecordSize) return slot;
     uint8_t record[kPetSaveRecordSize]{};
-    if (preferences.getBytes(key, record, sizeof(record)) != sizeof(record)) return slot;
-    slot.valid = decodeRecord(record, slot.snapshot, slot.sequence);
+    if (preferences.getBytes(key, record, length) != length) return slot;
+    slot.valid = decodeRecord(record, length, slot.snapshot, slot.sequence);
     return slot;
 }
 
-MemorialSlotRecord readMemorialSlot(Preferences& preferences, const char* key) {
+MemorialSlotRecord readMemorialSlot(Preferences& preferences, const char* key,
+                                    Memorials& memorials,
+                                    uint8_t (&record)[kMemorialRecordSize]) {
     MemorialSlotRecord slot;
     const size_t length = preferences.getBytesLength(key);
     slot.present = length > 0;
-    if (length != kMemorialRecordSize) return slot;
-    uint8_t record[kMemorialRecordSize]{};
-    if (preferences.getBytes(key, record, sizeof(record)) != sizeof(record)) return slot;
-    slot.valid = decodeMemorialRecord(record, slot.memorials, slot.sequence);
+    if (length != kMemorialRecordSize - 2 * kMemorialCapacity && length != kMemorialRecordSize) return slot;
+    if (preferences.getBytes(key, record, length) != length) return slot;
+    slot.valid = decodeMemorialRecord(record, length, memorials, slot.sequence);
     return slot;
 }
 
@@ -399,8 +414,8 @@ bool Save::save(const Pet::PetData& pet) {
 
 LoadStatus Save::loadMemorials(Memorials& memorials) {
     if (!initialized_) return LoadStatus::Unavailable;
-    const MemorialSlotRecord slotA = readMemorialSlot(preferences_, kMemorialSlotAKey);
-    const MemorialSlotRecord slotB = readMemorialSlot(preferences_, kMemorialSlotBKey);
+    const MemorialSlotRecord slotA = readMemorialSlot(preferences_, kMemorialSlotAKey, memorialScratchA_, memorialBytes_);
+    const MemorialSlotRecord slotB = readMemorialSlot(preferences_, kMemorialSlotBKey, memorialScratchB_, memorialBytes_);
     if (!slotA.valid && !slotB.valid) {
         if (slotA.present || slotB.present) {
             memorialWritesBlocked_ = true;
@@ -412,7 +427,7 @@ LoadStatus Save::loadMemorials(Memorials& memorials) {
     const bool useA = slotA.valid &&
         (!slotB.valid || sequenceIsNewer(slotA.sequence, slotB.sequence));
     const MemorialSlotRecord& selected = useA ? slotA : slotB;
-    memorials = selected.memorials;
+    memorials = useA ? memorialScratchA_ : memorialScratchB_;
     activeMemorialSlotA_ = useA;
     hasActiveMemorialSlot_ = true;
     memorialSequence_ = selected.sequence;
@@ -422,16 +437,31 @@ LoadStatus Save::loadMemorials(Memorials& memorials) {
 bool Save::saveMemorials(const Memorials& memorials) {
     if (!initialized_ || memorialWritesBlocked_) return false;
     const uint32_t nextSequence = memorialSequence_ + 1;
-    uint8_t record[kMemorialRecordSize]{};
-    if (!encodeMemorialRecord(memorials, nextSequence, record)) return false;
+    if (!encodeMemorialRecord(memorials, nextSequence, memorialBytes_)) return false;
     const bool targetSlotA = !hasActiveMemorialSlot_ || !activeMemorialSlotA_;
     const char* targetKey = targetSlotA ? kMemorialSlotAKey : kMemorialSlotBKey;
-    if (preferences_.putBytes(targetKey, record, sizeof(record)) != sizeof(record)) return false;
-    const MemorialSlotRecord verified = readMemorialSlot(preferences_, targetKey);
+    if (preferences_.putBytes(targetKey, memorialBytes_, sizeof(memorialBytes_)) != sizeof(memorialBytes_)) return false;
+    const MemorialSlotRecord verified = readMemorialSlot(preferences_, targetKey, memorialScratchA_, memorialBytes_);
     if (!verified.valid || verified.sequence != nextSequence) return false;
     activeMemorialSlotA_ = targetSlotA;
     hasActiveMemorialSlot_ = true;
     memorialSequence_ = nextSequence;
+    return true;
+}
+
+bool Save::appendMemorial(const Pet::PetData& pet, Memorials& memorials) {
+    if (!pet.isEnded()) return false;
+    if (memorials.containsPet(pet.petId())) return true;
+    memorialScratchB_ = memorials;
+    if (!memorialScratchB_.append(pet) || !saveMemorials(memorialScratchB_)) return false;
+    memorials = memorialScratchB_;
+    return true;
+}
+
+bool Save::removeMemorial(uint8_t index, Memorials& memorials) {
+    memorialScratchB_ = memorials;
+    if (!memorialScratchB_.remove(index) || !saveMemorials(memorialScratchB_)) return false;
+    memorials = memorialScratchB_;
     return true;
 }
 

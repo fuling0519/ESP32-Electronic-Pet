@@ -13,11 +13,16 @@ constexpr uint8_t kMemorialLimit = 32;
 // the player explicitly deletes an older memorial to adopt again.
 constexpr uint8_t kMemorialCapacity = kMemorialLimit + 1;
 
+enum class FarewellKind : uint8_t { Resting = 0, Departed = 1 };
+constexpr uint8_t kUnknownMemorialStage = 255;
+
 struct MemorialRecord {
     uint64_t petId;
     char name[Pet::kPetNameMaxLength + 1];
     Pet::SpeciesId speciesId;
     uint64_t ageSeconds;
+    FarewellKind kind = FarewellKind::Resting;
+    uint8_t stage = kUnknownMemorialStage;
 };
 
 bool isValidMemorial(const MemorialRecord& memorial);

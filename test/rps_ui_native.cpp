@@ -65,6 +65,7 @@ void Display::drawUiText(int16_t x, int16_t y, const char* s) {
             const uint8_t* bits=nullptr;
             for(unsigned i=0;i<UiFont12::kGlyphCount;++i)
                 if(UiFont12::kGlyphs[i].codepoint==c) bits=UiFont12::kGlyphs[i].bitmap;
+            if (!bits) fprintf(stderr, "Missing UI glyph U+%04X\n", c);
             assert(bits); drawGlyph(x,y-11,bits,12,12); x+=12;
         }
     }
@@ -653,5 +654,115 @@ int main() {
         }
     }
     puts("PASS: memory-note UI score tiers, notes/blank timing, neutral gate/repeats, timeout, reward/EXP/cap/level-up, replay and interruptions.");
+    // Farewell uses the real UI and framebuffer: viewfinder, flash and postcard.
+    for (bool baby : {false, true}) for (bool sick : {false, true}) {
+        Pet::PetData p;
+        if (baby) { p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); }
+        p.setSick(sick);
+        Storage::Memorials album;
+        Ui::UiController view(display,sound,p,album,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e,uint32_t delay=1) { t+=delay; view.update(e,t); view.render(); };
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Press);
+        assert(view.screen()==S::FarewellInfo); capture(view,"farewell-info");
+        step(E::Press); assert(view.screen()==S::FarewellConfirm);
+        capture(view,"farewell-confirm-keep");
+        step(E::Press); assert(view.screen()==S::MainMenu && view.takeAction()==A::None);
+        step(E::Press); step(E::Press); step(E::Right);
+        capture(view,"farewell-confirm-send"); step(E::Press);
+        assert(view.takeAction()==A::SendOff);
+        assert(p.depart()); assert(album.append(p));
+        view.setMemorialReady(true); view.onFarewellResult(true,t);
+        view.render(); capture(view,baby?"farewell-baby-start":"farewell-adult-start");
+        for(unsigned elapsed=100;elapsed<=2700;elapsed+=100) {
+            step(E::Press,100);
+            assert(view.takeAction()==A::None);
+            char frameName[64];
+            snprintf(frameName,sizeof(frameName),"farewell-%s-%02u",baby?"baby":"adult",elapsed/100);
+            capture(view,frameName);
+            if(elapsed==2500) {
+                view.update(E::Press,t+99); view.render();
+                assert(view.screen()==S::FarewellAnimation && !lit(0,0));
+                assert(view.takeAction()==A::None); // 2599ms still poses.
+            }
+            if(elapsed==1600) capture(view,baby?"farewell-baby-blink":"farewell-adult-blink");
+            if(elapsed==2600) {
+                for(int y=0;y<64;++y) for(int x=0;x<128;++x) assert(lit(x,y));
+                capture(view,"farewell-flash");
+                view.update(E::Press,t+99); view.render();
+                assert(view.screen()==S::FarewellAnimation && view.takeAction()==A::None);
+                for(int y=0;y<64;++y) for(int x=0;x<128;++x) assert(lit(x,y));
+            }
+
+        }
+        assert(view.screen()==S::FarewellDone); capture(view,"farewell-done");
+        capture(view,baby?"farewell-baby-card":"farewell-adult-card");
+        for(int x=2;x<=125;++x) { assert(lit(x,2)); assert(lit(x,61)); }
+        assert(lit(64,8) && lit(64,55) && !lit(64,7) && !lit(64,56));
+        assert(lit(75,38) && lit(120,38) && lit(75,55));
+        assert(lit(120,7) && !lit(121,7)); // Narrowed stamp right edge.
+        const auto cardPixels = pixels;
+        step(E::None,5000); assert(view.screen()==S::FarewellDone && pixels==cardPixels);
+        step(E::LongPress); assert(view.screen()==S::FarewellDone && pixels==cardPixels);
+        step(E::Press); assert(view.screen()==S::DeathOptions);
+        step(E::Press); assert(view.screen()==S::Graveyard);
+        capture(view,baby?"album-baby":"album-adult");
+        // Portrait feet must be clear of the bottom border, for both stages.
+        for(int x=3;x<67;++x) { assert(!lit(x,61)); assert(!lit(x,62)); }
+        int portraitTop=64, portraitBottom=-1;
+        for(int y=19;y<=60;++y) for(int x=3;x<67;++x) if(lit(x,y)) {
+            if(y<portraitTop) portraitTop=y;
+            if(y>portraitBottom) portraitBottom=y;
+        }
+        assert(portraitBottom>=portraitTop && portraitTop+portraitBottom>=78 && portraitTop+portraitBottom<=80);
+        step(E::Press); assert(view.screen()==S::Graveyard); // Current record protected.
+        step(E::Right); assert(view.screen()==S::Graveyard); // Departed filter.
+        capture(view,baby?"album-baby-filter":"album-adult-filter");
+        step(E::Right); capture(view,"album-resting-empty");
+        step(E::Press); assert(view.screen()==S::Graveyard && view.takeAction()==A::None);
+        step(E::Left); assert(view.selectedMemorialIndex()==0);
+        step(E::LongPress); step(E::Down); step(E::Press);
+        assert(view.takeAction()==A::AdoptNewEgg);
+        assert(p.startNewEgg(2,"New")); view.onAdoptionSucceeded(t);
+        assert(view.screen()==S::Home);
+        // Reboot a departed pet enters the farewell result, never Home/death.
+        Pet::PetData away; assert(away.depart());
+        Ui::UiController reboot(display,sound,away,album,randomMove);
+        reboot.setMemorialReady(true); reboot.init(0); reboot.update(E::None,1500);
+        assert(reboot.screen()==S::FarewellDone);
+        reboot.setMemorialReady(false); reboot.init(0); reboot.update(E::None,1500);
+        assert(reboot.screen()==S::FarewellBlocked);
+        reboot.update(E::LongPress,1501); assert(reboot.screen()==S::FarewellBlocked);
+        reboot.update(E::Press,1502); assert(reboot.takeAction()==A::RetryFarewell);
+        reboot.setMemorialReady(true); reboot.update(E::None,1503);
+        assert(reboot.screen()==S::FarewellDone);
+    }
+    for (unsigned scenario=0;scenario<3;++scenario) {
+        Pet::PetData p; Storage::Memorials album;
+        if(scenario==0) p.startNewEgg();
+        if(scenario==1) for(unsigned i=0;i<Storage::kMemorialLimit;++i) {
+            Storage::MemorialRecord r{}; r.petId=i+10; strcpy(r.name,"Old");
+            r.speciesId=Pet::SpeciesId::Bird; assert(album.append(r));
+        }
+        Ui::UiController view(display,sound,p,album,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Press);
+        if(scenario==0) assert(view.screen()==S::MainMenu);
+        if(scenario==1) {
+            assert(view.screen()==S::FarewellBlocked); capture(view,"farewell-full");
+            step(E::Press); assert(view.screen()==S::Graveyard); capture(view,"album-resting");
+            step(E::Press); assert(view.screen()==S::DeleteMemorialConfirm);
+            step(E::Press); assert(view.screen()==S::Graveyard && view.takeAction()==A::None);
+            step(E::Press); step(E::Left); step(E::Press);
+            assert(view.takeAction()==A::DeleteMemorial);
+            assert(album.remove(view.selectedMemorialIndex())); view.onMemorialDeleteResult(true);
+        }
+        if(scenario==2) {
+            step(E::Press); p.setDead(true); step(E::Right);
+            assert(view.screen()==S::DeathAnimation && view.takeAction()==A::None);
+        }
+    }
+    puts("PASS: farewell confirm/cancel, healthy/sick/baby/adult frames, viewfinder/flash/postcard timing, filters, protected delete, capacity, reboot/retry and death interruption.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
 }

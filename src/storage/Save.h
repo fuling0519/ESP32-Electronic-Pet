@@ -5,6 +5,7 @@
 
 #include "pet/PetData.h"
 #include "storage/Memorials.h"
+#include "storage/SaveFormat.h"
 
 namespace Storage {
 
@@ -19,10 +20,13 @@ class Save {
 public:
     bool init();
     bool isInitialized() const;
+    bool canWriteMemorials() const { return initialized_ && !memorialWritesBlocked_ && !writesBlocked_; }
     LoadStatus load(Pet::PetData& pet);
     bool save(const Pet::PetData& pet);
     LoadStatus loadMemorials(Memorials& memorials);
     bool saveMemorials(const Memorials& memorials);
+    bool appendMemorial(const Pet::PetData& pet, Memorials& memorials);
+    bool removeMemorial(uint8_t index, Memorials& memorials);
     void markDirty(uint32_t nowMs);
     void update(const Pet::PetData& pet, uint32_t nowMs);
 
@@ -31,6 +35,11 @@ private:
     static constexpr uint32_t kMinimumSaveIntervalMs = 10000;
     static constexpr uint32_t kPeriodicSaveIntervalMs = 5UL * 60 * 1000;
 
+    // Owned by the application, outside the 8KB Arduino loop-task stack.
+    // All persistence runs sequentially on that task; BLE callbacks never write.
+    uint8_t memorialBytes_[kMemorialSaveRecordSize]{};
+    Memorials memorialScratchA_;
+    Memorials memorialScratchB_;
     Preferences preferences_;
     bool initialized_ = false;
     bool writesBlocked_ = false;

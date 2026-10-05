@@ -22,5 +22,16 @@ void main() {
     assert(PetSnapshot.parse({...progress, ...invalid}) == null);
   }
   assert(PetSnapshot.parse({...progress, 'health': 'dead'}) == null);
+  assert(PetSnapshot.parse(base)?.isDeparted == false);
+  assert(PetSnapshot.parse({...base, 'is_departed': true})?.isDeparted == true);
+  assert(PetSnapshot.parse({...base, 'is_departed': true, 'health': 'sick'})?.isDeparted == true);
+  for (final invalid in <Map<String, dynamic>>[
+    {'is_departed': null}, {'is_departed': 1},
+    {'is_departed': true, 'is_dead': true, 'health': 'dead'},
+    {'is_departed': true, 'life_stage': 'egg'},
+    {'is_departed': true, 'sleep': 'normal'},
+  ]) {
+    assert(PetSnapshot.parse({...base, ...invalid}) == null);
+  }
   stdout.writeln('PASS: old firmware, progress, MAX, partial groups and invalid BLE values.');
 }

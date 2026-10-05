@@ -15,7 +15,7 @@
 - `src/ui/` 管理畫面、選單、焦點、轉場、墓碑與確認操作。主畫面狀態卡可選取，與 Status 選單進入同一詳細頁；未選中狀態卡時短按進主選單。
 - `src/games/RpsGame` 管理猜拳的三回合、出拳、非阻塞倒數、比分與可領取一次的獎勵結果。Application 提供 ESP32 亂數；UiController 轉換輸入與繪製手勢，第三回合揭曉後回傳 FinishGame，由 Application 消耗結果、檢查健康／清醒條件並增加心情與 EXP；PetData 管理門檻／餘額／滿等，UI 在總結果之後播放兩秒升級動畫，沿用既有保存與 BLE 通知。
 - 角色採使用者的 64×44 蛋／幼鳥／成鳥素材；`PetIcons` 加上需求／病情圖示與清潔度四階髒污。排版來源見 [OLED 手冊](ui-layout-guide.md)，素材轉換入口見根 README。
-- `src/storage/Save` 逐欄位編碼、CRC32、序號及 NVS A／B 槽；寵物與墓碑分開保存。Memorials 管理 32 筆＋1 個死亡溢位槽，以 petId 去重。保存墓碑成功後才能領養。
+- `src/storage/Save` 逐欄位編碼、CRC32、序號及 NVS A／B 槽；寵物與墓碑分開保存。Memorials 管理遠行／長眠共 32 筆＋1 個死亡溢位槽，以 petId 去重。Farewell 先保存紀念冊備份與已告別寵物，再完成紀念紀錄；開機／定時重試完成後才能領養。V2 保留 V1 解碼，RTC magic 隨快照升級。
 - `src/ble/BleLink` 封裝 NimBLE，callback 收取分片與連線／訂閱事件，主迴圈組合 JSON、處理唯讀查詢及通知。BLE 不寫 NVS 或改養成規則。固定 device_id 取自 eFuse 工廠 MAC，與寵物存檔 ID 分開。
 - `esp32_pet_app/` 是獨立 Flutter 建置；前端重組、驗證與顯示裝置快照。正式欄位與相容性要求只看 [PROTOCOL](../esp32_pet_app/PROTOCOL.md)。
 
@@ -24,3 +24,5 @@
 主迴圈維持非阻塞更新。小遊戲應產生一次性結果交回領域／應用層。Deep Sleep 需協調保存、BLE 結束連線、外設停止、相對計時與喚醒重建；預留列舉與快照欄位不代表完整省電模組。
 
 新增雲端層須分開 BLE payload、Web domain、API 與資料庫模型；純 Web 的帳號與偏好不放進韌體。規劃見 [Web 計畫](web-phase-plan.md)。
+
+1.6.1：Save 固定持有紀念冊序列化／驗證／候選更新工作區，避免在 8KB loop task stack 上同時建立多份完整 archive。只有主迴圈呼叫保存，工作區不支援並行／重入；BLE callback 不使用它。
