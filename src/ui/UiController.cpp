@@ -109,6 +109,8 @@ bool isDeathFlowScreen(ScreenId screen) {
     return screen == ScreenId::DeathAnimation ||
            screen == ScreenId::DeathMemorial ||
            screen == ScreenId::DeathOptions ||
+           screen == ScreenId::MemorialCategories ||
+           screen == ScreenId::MemorialHelp ||
            screen == ScreenId::Graveyard ||
            screen == ScreenId::DeleteMemorialConfirm ||
            screen == ScreenId::AdoptionBlocked;
@@ -139,6 +141,7 @@ void UiController::init(uint32_t now) {
     homeFocus_ = HomeFocus::None;
     menuIndex_ = 0;
     memorialFilter_ = 0;
+    memorialCategoryIndex_ = 0;
     farewellConfirmIndex_ = 0;
     treatmentNotice_ = false;
     statusPage_ = 0;
@@ -198,6 +201,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
     const uint8_t previousStatusPage = statusPage_;
     const uint8_t previousDeathOptionIndex = deathOptionIndex_;
     const uint8_t previousMemorialIndex = memorialIndex_;
+    const uint8_t previousMemorialCategoryIndex = memorialCategoryIndex_;
     const uint8_t previousDeleteConfirmIndex = deleteConfirmIndex_;
     const uint8_t currentEggCrackStage = eggCrackStage(now);
     if (currentEggCrackStage != eggCrackStage_) {
@@ -418,6 +422,11 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 menuIndex_ -= 3;
                 dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
+                if (pet_.lifeStage() == Pet::LifeStage::Egg &&
+                    (menuIndex_ <= 4 || menuIndex_ == 7)) {
+                    sound_.playFailure();
+                    break;
+                }
                 sound_.playConfirm();
                 switch (menuIndex_) {
                     case 0: setScreen(ScreenId::FeedCare); break;
@@ -436,9 +445,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         else setScreen(ScreenId::FarewellInfo);
                         break;
                     default:
-                        memorialFilter_ = 0;
-                        memorialIndex_ = 0;
-                        setScreen(ScreenId::Graveyard);
+                        memorialCategoryIndex_ = 0;
+                        setScreen(ScreenId::MemorialCategories);
                         break;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
@@ -549,9 +557,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             } else if (event == Hardware::InputEvent::Press) {
                 if (deathOptionIndex_ == 0) {
                     sound_.playConfirm();
-                    memorialFilter_ = 0;
-                    memorialIndex_ = 0;
-                    setScreen(ScreenId::Graveyard);
+                    memorialCategoryIndex_ = 0;
+                    setScreen(ScreenId::MemorialCategories);
                 } else if (!memorialReady_ ||
                            memorials_.count() > Storage::kMemorialLimit) {
                     sound_.playFailure();
@@ -565,13 +572,30 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
             break;
 
+        case ScreenId::MemorialCategories:
+            if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
+                memorialCategoryIndex_ = (memorialCategoryIndex_ +
+                    (event == Hardware::InputEvent::Down ? 1 : 2)) % 3;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Press) {
+                sound_.playConfirm();
+                if (memorialCategoryIndex_ == 2) setScreen(ScreenId::MemorialHelp);
+                else {
+                    memorialFilter_ = memorialCategoryIndex_ + 1;
+                    memorialIndex_ = 255;
+                    selectMemorial(1);
+                    setScreen(ScreenId::Graveyard);
+                }
+            } else if (event == Hardware::InputEvent::LongPress) {
+                setScreen(pet_.isEnded() ? ScreenId::DeathOptions : ScreenId::MainMenu);
+            }
+            break;
+        case ScreenId::MemorialHelp:
+            if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MemorialCategories);
+            break;
         case ScreenId::Graveyard:
             if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Right) {
-                memorialFilter_ = (memorialFilter_ + (event == Hardware::InputEvent::Right ? 1 : 2)) % 3;
-                memorialIndex_ = 255;
-                selectMemorial(1);
-            } else if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
-                selectMemorial(event == Hardware::InputEvent::Down ? 1 : -1);
+                selectMemorial(event == Hardware::InputEvent::Right ? 1 : -1);
             } else if (event == Hardware::InputEvent::Press && matchesMemorial(memorialIndex_)) {
                 const auto* selected = memorials_.at(memorialIndex_);
                 if (pet_.isEnded() && selected->petId == pet_.petId()) sound_.playFailure();
@@ -580,7 +604,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     setScreen(ScreenId::DeleteMemorialConfirm);
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                setScreen(pet_.isEnded() ? ScreenId::DeathOptions : ScreenId::MainMenu);
+                setScreen(ScreenId::MemorialCategories);
             }
             break;
 
@@ -608,8 +632,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             else if (event == Hardware::InputEvent::Press) {
                 if (pet_.isDeparted()) pendingAction_ = UiAction::RetryFarewell;
                 else if (memorials_.count() >= Storage::kMemorialLimit) {
-                    memorialFilter_ = 0; memorialIndex_ = 0;
-                    setScreen(ScreenId::Graveyard);
+                    memorialCategoryIndex_ = 0;
+                    setScreen(ScreenId::MemorialCategories);
                 } else {
                     farewellConfirmIndex_ = 0;
                     setScreen(ScreenId::FarewellConfirm);
@@ -662,6 +686,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
            menuIndex_ != previousMenuIndex || statusPage_ != previousStatusPage ||
            deathOptionIndex_ != previousDeathOptionIndex ||
            memorialIndex_ != previousMemorialIndex ||
+           memorialCategoryIndex_ != previousMemorialCategoryIndex ||
            deleteConfirmIndex_ != previousDeleteConfirmIndex;
 }
 
@@ -695,6 +720,8 @@ void UiController::render() {
         case ScreenId::DeathAnimation: renderDeathAnimation(); break;
         case ScreenId::DeathMemorial: renderDeathMemorial(); break;
         case ScreenId::DeathOptions: renderDeathOptions(); break;
+        case ScreenId::MemorialCategories: renderMemorialCategories(); break;
+        case ScreenId::MemorialHelp: renderMemorialHelp(); break;
         case ScreenId::Graveyard: renderGraveyard(); break;
         case ScreenId::DeleteMemorialConfirm: renderDeleteMemorialConfirm(); break;
         case ScreenId::AdoptionBlocked: renderAdoptionBlocked(); break;
@@ -728,6 +755,8 @@ const char* UiController::screenName() const {
         case ScreenId::DeathAnimation: return "DEATH_ANIMATION";
         case ScreenId::DeathMemorial: return "DEATH_MEMORIAL";
         case ScreenId::DeathOptions: return "DEATH_OPTIONS";
+        case ScreenId::MemorialCategories: return "MEMORIAL_CATEGORIES";
+        case ScreenId::MemorialHelp: return "MEMORIAL_HELP";
         case ScreenId::Graveyard: return "GRAVEYARD";
         case ScreenId::DeleteMemorialConfirm: return "DELETE_MEMORIAL_CONFIRM";
         case ScreenId::AdoptionBlocked: return "ADOPTION_BLOCKED";
@@ -1606,6 +1635,38 @@ void UiController::selectMemorial(int direction) {
     dirty_ = true;
 }
 
+void UiController::renderMemorialCategories() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    const char* labels[] = {"遠行", "長眠", "說明"};
+    for (uint8_t row = 0; row < 3; ++row) {
+        const int16_t baseline = 18 + row * 18;
+        if (row == memorialCategoryIndex_) display_.drawText(7, baseline, ">");
+        display_.drawUiText(21, baseline, labels[row]);
+        if (row < 2) {
+            uint8_t count = 0;
+            for (uint8_t i = 0; i < memorials_.count(); ++i) {
+                const auto* record = memorials_.at(i);
+                if ((row == 0 && record->kind == Storage::FarewellKind::Departed) ||
+                    (row == 1 && record->kind == Storage::FarewellKind::Resting)) ++count;
+            }
+            char total[4];
+            snprintf(total, sizeof(total), "%u", count);
+            display_.drawSmallText(104, baseline, total);
+        }
+    }
+}
+
+void UiController::renderMemorialHelp() {
+    display_.clear();
+    display_.drawFrame(0, 0, 128, 64);
+    drawCenteredUiText(display_, 14, "說明");
+    display_.drawLine(6, 18, 121, 18);
+    display_.drawUiText(6, 32, "左右：切換紀錄");
+    display_.drawUiText(6, 46, "短按：刪除該筆");
+    display_.drawUiText(6, 60, "長按：返回上一頁");
+}
+
 void UiController::renderGraveyard() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
@@ -1627,20 +1688,25 @@ void UiController::renderGraveyard() {
     }
     const auto* memorial = memorials_.at(memorialIndex_);
     const bool departed = memorial->kind == Storage::FarewellKind::Departed;
-    if (departed) {
-        PetIcons::drawMemorialPet(display_, static_cast<Pet::LifeStage>(memorial->stage));
+    const bool hasPortrait = departed ||
+        memorial->stage == static_cast<uint8_t>(Pet::LifeStage::Baby) ||
+        memorial->stage == static_cast<uint8_t>(Pet::LifeStage::Adult);
+    if (hasPortrait) {
+        PetIcons::drawMemorialPet(display_, static_cast<Pet::LifeStage>(memorial->stage), !departed);
     } else {
         PetIcons::drawTombstone(display_, 7, 23, 37, 37);
         display_.drawSmallText(18, 38, "RIP");
     }
-    const int16_t textX = departed ? 73 : 53;
-    display_.drawText(textX, 32, memorial->name);
+    // Center two text rows in the space beside the portrait/tombstone.
+    const int16_t textLeft = hasPortrait ? 73 : 53;
+    const int16_t textWidth = 121 - textLeft;
+    const int16_t nameWidth = strlen(memorial->name) * 6;
+    display_.drawText(textLeft + (textWidth - nameWidth) / 2, 37, memorial->name);
     // Short duration label keeps the 64-pixel portrait and text separate.
     char ageText[14];
     formatAge(memorial->ageSeconds, ageText);
-    display_.drawSmallText(textX, 44, ageText + 4);
-    display_.drawUiText(textX, 57, departed ? "遠行" : "長眠");
-    if (!(pet_.isEnded() && memorial->petId == pet_.petId())) display_.drawText(115, 60, ">");
+    const int16_t ageWidth = strlen(ageText + 4) * 5;
+    display_.drawSmallText(textLeft + (textWidth - ageWidth) / 2, 51, ageText + 4);
 }
 
 void UiController::onFarewellResult(bool success, uint32_t now) {

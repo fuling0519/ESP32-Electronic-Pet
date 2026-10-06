@@ -36,6 +36,8 @@ enum class ScreenId {
     DeathAnimation,
     DeathMemorial,
     DeathOptions,
+    MemorialCategories,
+    MemorialHelp,
     Graveyard,
     DeleteMemorialConfirm,
     AdoptionBlocked,
@@ -128,10 +130,13 @@ private:
     void renderDeathMemorial();
     void renderDeathOptions();
     void renderGraveyard();
+    void renderMemorialCategories();
+    void renderMemorialHelp();
     void renderFarewell();
     bool matchesMemorial(uint8_t index) const;
     void selectMemorial(int direction);
     uint8_t memorialFilter_ = 0;
+    uint8_t memorialCategoryIndex_ = 0;
     uint8_t farewellConfirmIndex_ = 0;
     uint32_t farewellStartedAt_ = 0;
     uint32_t farewellElapsedMs_ = 0;

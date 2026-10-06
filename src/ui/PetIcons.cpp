@@ -171,8 +171,9 @@ void drawCenteredPostcardPet(Hardware::Display& d, Pet::LifeStage stage) {
 
 // Memorial content lives below the title divider (19..60), with two clear
 // rows above the bottom border. Center visible art within that content region.
-void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage) {
-    const auto* bits = petFrame(stage, 0, 0);
+void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage, bool resting) {
+    const auto* bits = resting ? (stage == Pet::LifeStage::Baby ?
+        kBabyBirdSleepingFrames[0] : kBirdSleepingFrames[0]) : petFrame(stage, 0, 0);
     int top = 44, bottom = 0;
     for (int row = 0; row < 44; ++row) for (int col = 0; col < 64; ++col) {
         if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8)))) {
@@ -182,9 +183,19 @@ void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage) {
     }
     if (top >= bottom) return;
     const int16_t y = 19 + (42 - (bottom - top)) / 2 - top;
+    if (resting) {
+        // Approved 13x14 filled stone and black cross, aligned with the feet.
+        static const uint8_t stone[28] PROGMEM = {
+            0xF0, 0x7F, 0xE0, 0x3F, 0xC0, 0x1F, 0xC2, 0x1F,
+            0xC2, 0x1F, 0xCF, 0x9F, 0xC2, 0x1F, 0xC2, 0x1F,
+            0xC2, 0x1F, 0xC2, 0x1F, 0xC0, 0x1F, 0xC0, 0x1F,
+            0x80, 0x0F, 0x00, 0x07
+        };
+        d.drawGlyph(53, y + bottom - 14, stone, 13, 14);
+    }
     for (int row = top; row < bottom; ++row) for (int col = 0; col < 64; ++col) {
         if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8))))
-            d.drawLine(3 + col, y + row, 3 + col, y + row);
+            d.drawLine(-3 + col, y + row, -3 + col, y + row);
     }
 }
 

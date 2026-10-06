@@ -11,6 +11,9 @@
 #include "storage/Save.h"
 #include "storage/Farewell.h"
 #include "storage/Memorials.h"
+#if defined(PET_MEMORIAL_SAMPLE_MODE)
+#include "storage/MemorialSample.h"
+#endif
 #include "ui/UiController.h"
 #include "ble/BleLink.h"
 #include "power/DeepSleep.h"
@@ -233,6 +236,10 @@ void Application::setup() {
         }
     }
     if (pet.isEnded()) memorialReady = ensureCurrentMemorialSaved();
+#if defined(PET_MEMORIAL_SAMPLE_MODE)
+    Serial.println(Storage::ensureMemorialSample(pet, memorials, save) ?
+        "TestRIP memorial sample ready." : "Could not save TestRIP memorial sample.");
+#endif
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
     petClock.reset(now - resumedRemainderMs);

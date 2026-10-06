@@ -316,7 +316,7 @@ int main() {
         Ui::UiController view(display,sound,p,memorials,randomMove);
         view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
         view.update(E::Down,1502); view.update(E::Press,1503); view.update(E::Press,1504);
-        assert(view.screen()==S::CleanCare && view.takeAction()==A::None && !p.clean());
+        assert(view.screen()==S::MainMenu && view.takeAction()==A::None && !p.clean());
         p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); assert(p.beginNormalSleep());
         assert(!p.clean());
     }
@@ -395,6 +395,11 @@ int main() {
         view.update(E::Press,1504);
         assert(view.screen()==S::MainMenu && view.menuIndex()==2);
         capture(view,egg?"treat-egg-not-needed":"treat-healthy-not-needed");
+        if (egg) {
+            assert(pixels == menu && failureSounds == failures + 1);
+            assert(view.takeAction()==A::None && p.exp()==0);
+            continue;
+        }
         assert(pixels != menu && failureSounds==failures);
         view.update(E::Press,1505); view.render(); // Repeat refreshes the notice.
         assert(pixels != menu && failureSounds==failures);
@@ -705,6 +710,8 @@ int main() {
         step(E::None,5000); assert(view.screen()==S::FarewellDone && pixels==cardPixels);
         step(E::LongPress); assert(view.screen()==S::FarewellDone && pixels==cardPixels);
         step(E::Press); assert(view.screen()==S::DeathOptions);
+        step(E::Press); assert(view.screen()==S::MemorialCategories);
+        capture(view,"album-categories");
         step(E::Press); assert(view.screen()==S::Graveyard);
         capture(view,baby?"album-baby":"album-adult");
         // Portrait feet must be clear of the bottom border, for both stages.
@@ -716,12 +723,13 @@ int main() {
         }
         assert(portraitBottom>=portraitTop && portraitTop+portraitBottom>=78 && portraitTop+portraitBottom<=80);
         step(E::Press); assert(view.screen()==S::Graveyard); // Current record protected.
-        step(E::Right); assert(view.screen()==S::Graveyard); // Departed filter.
+        step(E::LongPress); step(E::Press);
+        assert(view.screen()==S::Graveyard); // Departed filter.
         capture(view,baby?"album-baby-filter":"album-adult-filter");
-        step(E::Right); capture(view,"album-resting-empty");
+        step(E::LongPress); step(E::Down); step(E::Press); capture(view,"album-resting-empty");
         step(E::Press); assert(view.screen()==S::Graveyard && view.takeAction()==A::None);
-        step(E::Left); assert(view.selectedMemorialIndex()==0);
-        step(E::LongPress); step(E::Down); step(E::Press);
+        step(E::LongPress); step(E::Up); step(E::Press); assert(view.selectedMemorialIndex()==0);
+        step(E::LongPress); step(E::LongPress); step(E::Down); step(E::Press);
         assert(view.takeAction()==A::AdoptNewEgg);
         assert(p.startNewEgg(2,"New")); view.onAdoptionSucceeded(t);
         assert(view.screen()==S::Home);
@@ -751,7 +759,8 @@ int main() {
         if(scenario==0) assert(view.screen()==S::MainMenu);
         if(scenario==1) {
             assert(view.screen()==S::FarewellBlocked); capture(view,"farewell-full");
-            step(E::Press); assert(view.screen()==S::Graveyard); capture(view,"album-resting");
+            step(E::Press); assert(view.screen()==S::MemorialCategories);
+            step(E::Down); step(E::Press); assert(view.screen()==S::Graveyard); capture(view,"album-resting");
             step(E::Press); assert(view.screen()==S::DeleteMemorialConfirm);
             step(E::Press); assert(view.screen()==S::Graveyard && view.takeAction()==A::None);
             step(E::Press); step(E::Left); step(E::Press);
@@ -762,6 +771,81 @@ int main() {
             step(E::Press); p.setDead(true); step(E::Right);
             assert(view.screen()==S::DeathAnimation && view.takeAction()==A::None);
         }
+    }
+    // Egg menu rejects every unusable action without a page or notice.
+    for (unsigned item=0; item<8; ++item) {
+        Pet::PetData p; p.startNewEgg();
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.update(E::Press,1501);
+        for(unsigned n=0;n<item;++n) view.update(E::Down,1502+n);
+        view.render(); const auto menu=pixels; const unsigned failures=failureSounds;
+        view.update(E::Press,1520); view.render();
+        if(item<=4 || item==7) {
+            assert(view.screen()==S::MainMenu && view.menuIndex()==item && pixels==menu);
+            assert(failureSounds==failures+1 && view.takeAction()==A::None);
+        } else assert(view.screen()==(item==5?S::DetailedStatus:S::MemorialCategories));
+    }
+    // Mixed records: categories, help, horizontal paging, empty filter and deletion.
+    {
+        Pet::PetData p; Storage::Memorials album;
+        for(unsigned i=0;i<3;++i) {
+            Storage::MemorialRecord r{}; r.petId=100+i; strcpy(r.name,"Old");
+            r.speciesId=Pet::SpeciesId::Bird; r.stage=static_cast<uint8_t>(Pet::LifeStage::Adult);
+            r.kind=i==1?Storage::FarewellKind::Resting:Storage::FarewellKind::Departed;
+            if(i==1) { strcpy(r.name,"TestRIP"); r.ageSeconds=266400; }
+            assert(album.append(r));
+        }
+        Ui::UiController view(display,sound,p,album,randomMove);
+        uint32_t t=1500;
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Up); step(E::Press);
+        assert(view.screen()==S::MemorialCategories); capture(view,"album-categories-mixed");
+        step(E::Up); step(E::Press); assert(view.screen()==S::MemorialHelp);
+        capture(view,"album-help"); step(E::LongPress); assert(view.screen()==S::MemorialCategories);
+        step(E::Down); step(E::Press); assert(view.selectedMemorialIndex()==0);
+        step(E::Right); assert(view.selectedMemorialIndex()==2);
+        step(E::Right); assert(view.selectedMemorialIndex()==0);
+        step(E::Left); assert(view.selectedMemorialIndex()==2);
+        step(E::Down); assert(view.selectedMemorialIndex()==2);
+        step(E::Press); assert(view.screen()==S::DeleteMemorialConfirm);
+        capture(view,"album-delete-confirm"); step(E::Press);
+        assert(view.screen()==S::Graveyard && view.takeAction()==A::None);
+        step(E::LongPress); step(E::Press); // Departed only.
+        assert(view.selectedMemorialIndex()==0); step(E::Right); assert(view.selectedMemorialIndex()==2);
+        capture(view,"album-horizontal-record");
+        step(E::Press); step(E::Left); step(E::Press); assert(view.takeAction()==A::DeleteMemorial);
+        assert(album.remove(view.selectedMemorialIndex())); view.onMemorialDeleteResult(true);
+        assert(view.screen()==S::Graveyard && view.selectedMemorialIndex()==0);
+        step(E::LongPress); step(E::Down); step(E::Press); assert(view.selectedMemorialIndex()==1);
+        capture(view,"album-resting-sample");
+        step(E::Press); step(E::Left); step(E::Press); assert(view.takeAction()==A::DeleteMemorial);
+        assert(album.remove(view.selectedMemorialIndex())); view.onMemorialDeleteResult(true);
+        capture(view,"album-empty-after-delete"); assert(view.screen()==S::Graveyard);
+        step(E::Press); assert(view.takeAction()==A::None);
+        step(E::LongPress); step(E::LongPress); assert(view.screen()==S::MainMenu);
+    }
+    puts("PASS: egg menu restrictions, memorial categories/help/horizontal paging and delete confirmation.");
+    // Full UI renders for pixel comparison with all four approved compositions.
+    for(bool baby : {false,true}) for(bool resting : {false,true}) {
+        Pet::PetData p; Storage::Memorials album;
+        if(baby) { p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); }
+        if(resting) {
+            Storage::MemorialRecord r{}; r.petId=100; strcpy(r.name,"TestRIP");
+            r.speciesId=Pet::SpeciesId::Bird; r.kind=Storage::FarewellKind::Resting;
+            r.stage=static_cast<uint8_t>(baby?Pet::LifeStage::Baby:Pet::LifeStage::Adult);
+            r.ageSeconds=266400; assert(album.append(r));
+        } else { assert(p.depart()); assert(album.append(p)); }
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.setMemorialReady(true); view.init(0); uint32_t t=1500;
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        step(E::None); step(E::Press);
+        if(!resting) step(E::Press); // FarewellDone -> options -> categories.
+        else { step(E::Up); step(E::Up); step(E::Press); } // Home -> menu -> categories.
+        assert(view.screen()==S::MemorialCategories);
+        if(resting) step(E::Down);
+        step(E::Press); assert(view.screen()==S::Graveyard);
+        char name[64]; snprintf(name,sizeof(name),"memorial-composite-%s-%s",resting?"resting":"departed",baby?"baby":"adult");
+        capture(view,name);
     }
     puts("PASS: farewell confirm/cancel, healthy/sick/baby/adult frames, viewfinder/flash/postcard timing, filters, protected delete, capacity, reboot/retry and death interruption.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");

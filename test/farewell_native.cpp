@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include "storage/Farewell.h"
+#include "storage/MemorialSample.h"
 // Exercise the actual byte codec as well as public save/recovery APIs.
 #include "../src/storage/Save.cpp"
 
@@ -151,5 +152,33 @@ int main() {
     Save deletionReboot; deletionReboot.init(); Memorials kept;
     assert(deletionReboot.loadMemorials(kept) == LoadStatus::Loaded);
     assert(kept.count() == 32 && kept.at(0)->petId == 2);
+    // One-off sample preserves the current pet, existing records and death reserve.
+    nvs = {};
+    Save sampleStore; assert(sampleStore.init());
+    Memorials samples; Pet::PetData live;
+    assert(live.startNewEgg(90,"Live")); assert(sampleStore.save(live));
+    MemorialRecord sampleOld{}; sampleOld.petId=120; strcpy(sampleOld.name,"Old"); sampleOld.speciesId=Pet::SpeciesId::Bird;
+    assert(samples.append(sampleOld)); assert(sampleStore.saveMemorials(samples));
+    const auto petBytesA=nvs.bytes["slot_a"], petBytesB=nvs.bytes["slot_b"];
+    nvs.failWrite=nvs.writes+1;
+    assert(!ensureMemorialSample(live,samples,sampleStore) && samples.count()==1);
+    nvs.failWrite=0;
+    assert(ensureMemorialSample(live,samples,sampleStore) && samples.count()==2);
+    assert(samples.at(0)->petId==120 && samples.at(1)->petId==121);
+    assert(strcmp(samples.at(1)->name,"TestRIP")==0);
+    assert(samples.at(1)->kind==FarewellKind::Resting && samples.at(1)->ageSeconds==266400);
+    assert(live.petId()==90 && live.lifeStage()==Pet::LifeStage::Egg && !live.isEnded());
+    assert(nvs.bytes["slot_a"]==petBytesA && nvs.bytes["slot_b"]==petBytesB);
+    Save sampleReboot; assert(sampleReboot.init()); Memorials sampleReload;
+    assert(sampleReboot.loadMemorials(sampleReload)==LoadStatus::Loaded);
+    const unsigned writesBefore=nvs.writes;
+    assert(ensureMemorialSample(live,sampleReload,sampleReboot));
+    assert(sampleReload.count()==2 && nvs.writes==writesBefore);
+    while(sampleReload.count()<kMemorialLimit) {
+        sampleOld.petId=sampleReload.highestPetId()+1; assert(sampleReload.append(sampleOld));
+    }
+    assert(sampleReload.remove(1)); sampleOld.petId=sampleReload.highestPetId()+1; assert(sampleReload.append(sampleOld));
+    assert(!ensureMemorialSample(live,sampleReload,sampleReboot) && sampleReload.count()==32);
+    puts("PASS: memorial sample persistence, deduplication, failed write, pet preservation and capacity.");
     puts("PASS: farewell domain, V1 migration, restart/fault injection, adoption and capacity.");
 }
