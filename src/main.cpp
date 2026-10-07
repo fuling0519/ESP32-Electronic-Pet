@@ -18,6 +18,9 @@
 #include "ble/BleLink.h"
 #include "power/DeepSleep.h"
 #include "HardwareConfig.h"
+#if defined(PET_SAD_TEST_MODE)
+#include "pet/SadQuickTest.h"
+#endif
 
 namespace {
 constexpr bool kDebugUi = true;
@@ -58,6 +61,11 @@ private:
     bool releaseObserved = false;
     uint32_t resumedRemainderMs = 0;
     bool resumedFromDeep = false;
+#if defined(PET_SAD_TEST_MODE)
+    uint32_t sadTestStartedAt = 0;
+    bool sadTestAutoPending = false;
+    void serviceSadTest(uint32_t now);
+#endif
 };
 
 const char* inputEventName(Hardware::InputEvent event) {
@@ -182,7 +190,7 @@ void Application::setup() {
                 Serial.println("Memorial archive unavailable.");
                 break;
         }
-#if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE) || defined(PET_TREATMENT_TEST_MODE)
+#if defined(PET_DEATH_TEST_MODE) || defined(PET_SLEEP_TEST_MODE) || defined(PET_TREATMENT_TEST_MODE) || defined(PET_SAD_TEST_MODE)
         const bool ignoreTestSave = esp_reset_reason() != ESP_RST_DEEPSLEEP;
 #else
         const bool ignoreTestSave = false;
@@ -243,7 +251,25 @@ void Application::setup() {
     ui.setMemorialReady(memorialReady);
     const uint32_t now = millis();
     petClock.reset(now - resumedRemainderMs);
-#if defined(PET_TREATMENT_TEST_MODE)
+#if defined(PET_SAD_TEST_MODE)
+    if (!resumedFromDeep) {
+        if (!prepareNewEgg(pet, memorials.highestPetId() + 1)) {
+            Serial.println("Failed to create sadness test pet.");
+            return;
+        }
+#if defined(PET_SAD_TEST_BABY)
+        pet.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds);
+#else
+        pet.advanceSeconds(Pet::PetData::kAdultAgeSeconds);
+#endif
+        Pet::applySadTestPreset(pet, '0');
+        if (!save.save(pet)) Serial.println("Failed to save initial sadness test state.");
+    }
+    sadTestStartedAt = now;
+    sadTestAutoPending = !resumedFromDeep;
+    Serial.println("Sad test: normal start, low mood after 8s on Home; cooldown=10s.");
+    Serial.println("Commands: 0 normal, 1 mood40, 2 satiety25, 3 clean25, 4 sick, 5 multiple, 6 mood44, 7 mood45, 8 needs29, 9 needs30.");
+#elif defined(PET_TREATMENT_TEST_MODE)
     if (!resumedFromDeep) {
         if (!prepareNewEgg(pet, memorials.highestPetId() + 1)) {
             Serial.println("Failed to create treatment test pet.");
@@ -322,10 +348,35 @@ void Application::serviceDeepSleep(Hardware::InputEvent event, uint32_t now) {
     Power::enter();
 }
 
+#if defined(PET_SAD_TEST_MODE)
+void Application::serviceSadTest(uint32_t now) {
+    while (Serial.available() > 0) {
+        const char command = static_cast<char>(Serial.read());
+        if (command < '0' || command > '9') continue;
+        if (Pet::applySadTestPreset(pet, command)) {
+            sadTestAutoPending = false;
+            save.markDirty(now);
+            Serial.printf("Sad test preset %c: mood=%u satiety=%u clean=%u sick=%u\n",
+                command, pet.mood(), pet.satiety(), pet.cleanliness(), pet.isSick());
+        } else Serial.println("Sad test preset ignored: requires a living awake bird.");
+    }
+    if (sadTestAutoPending && now - sadTestStartedAt >= 8000 &&
+        ui.screen() == Ui::ScreenId::Home && !sound.isPlaying() &&
+        Pet::applySadTestPreset(pet, '1')) {
+        sadTestAutoPending = false;
+        save.markDirty(now);
+        Serial.println("Sad test automatic low mood: care reminder should sound once.");
+    }
+}
+#endif
+
 void Application::loop() {
     if (!appReady) return;
 
     const uint32_t now = millis();
+#if defined(PET_SAD_TEST_MODE)
+    serviceSadTest(now);
+#endif
     const Pet::HealthState healthBeforeAdvance = pet.healthState();
     const Pet::LifeStage stageBeforeAdvance = pet.lifeStage();
     const uint64_t ageBeforeAdvanceMs = pet.ageSeconds() * 1000ULL;

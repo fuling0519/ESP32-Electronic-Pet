@@ -7,7 +7,7 @@
 - `pets/bird/baby/`、`pets/bird/adult/`：小鳥幼寵、成寵的正式素材，目前各有 `idle.png`、`eating.png`。
 - `pets/wyvern/baby/`、`pets/wyvern/adult/`：第二種寵物「小飛龍」的預留位置，目前尚無圖檔；`.gitkeep` 用來保留空資料夾。
 - `shared/items/`：共用道具，目前有 `food_bowl.png` 與治療動畫圖集 `potion.png`。
-- `shared/effects/`：共用效果，目前有 `soul.png`、`dirt.png`、`cleaning.png`。
+- `shared/effects/`：共用效果，目前有 `soul.png`、`dirt.png`、`cleaning.png`、`sad_lines.png`。
 - `shared/egg/`：目前共用的蛋，`idle.png` 為一般狀態，`hatching.png` 為破殼狀態。未來若種類有專屬蛋，再放到 `pets/<species>/egg/`。
 - `ui/`：介面圖示的預留位置，目前尚無圖檔。
 - `games/rps/`：猜拳正式圖集 `gestures.png`，三種手勢統一讀取這張已修改剪刀的圖；舊圖保留於 `archive/games/rps/gestures_v1.png`。
@@ -50,5 +50,6 @@
 - `tools/generate_rps_icons.py`：讀取 `games/rps/`，產生 `src/ui/RpsIcons.h` 和 `docs/rps-icons-preview.png`。
 - 治療藥水：`shared/items/potion.png` 為 42×63、每格 21×21 的 5 幀圖集，依左上、右上、左中、右中、左下播放；使用 `tools/generate_potion_sprite.py` 產生 `src/ui/PotionSprite.h`。
 - `shared/effects/soul.png` 為 30×56，上下兩幀各 30×28；目前點陣資料保存在 `src/ui/PetIcons.cpp`，尚無獨立生成工具。
+- `shared/effects/sad_lines.png` 為透明背景的 5×6 共用傷心效果，三條線各寬 1 像素、間隔 1 像素，長度由左到右為 5、5、6。依參考圖量測，疊加在 64×44 傷心幀的幼鳥座標 `(40,14)`、成鳥座標 `(39,9)`；兩幀使用相同位置。`tools/render_sad_effect_preview.py` 產生此圖示與 `previews/pets/bird/sad_lines_*` 預覽，保留原始鳥圖；`tools/generate_sad_effect.py` 由正式 PNG 生成 `src/ui/SadEffect.h`，由共用 `drawSadLines()` 繪製。`tools/render_sad_ui_preview.py` 檢查原生測試輸出的真實 UI 並產生 `docs/sad-state-preview.png`。
 
 改動素材路徑時，要同步更新轉換工具及文件連結。`web-preview/assets/` 為網站展示自己的背景素材，與本目錄分開管理。

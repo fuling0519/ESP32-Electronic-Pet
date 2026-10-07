@@ -23,6 +23,7 @@ static unsigned noteTones = 0;
 static uint16_t lastNoteTone = 0;
 static bool holdNotePlaying = false;
 static unsigned successSounds = 0;
+static unsigned careReminders = 0;
 static uint32_t randomMove() { return opponent; }
 static void point(int x, int y) { assert(x >= 0 && x < 128 && y >= 0 && y < 64); }
 static unsigned decode(const char*& s) {
@@ -85,6 +86,7 @@ void Sound::playConfirm() {} void Sound::playCancel() {}
 void Sound::playSuccess() { ++successSounds; } void Sound::playFailure() { ++failureSounds; }
 void Sound::playHatch() {} void Sound::playDeath() {}
 void Sound::playLevelUp() {}
+void Sound::playCareReminder() { ++careReminders; }
 void Sound::stopTone() { playing_=false; }
 void Sound::playTone(uint16_t frequency,uint32_t) {
     ++noteTones; lastNoteTone=frequency; playing_=holdNotePlaying;
@@ -847,6 +849,99 @@ int main() {
         char name[64]; snprintf(name,sizeof(name),"memorial-composite-%s-%s",resting?"resting":"departed",baby?"baby":"adult");
         capture(view,name);
     }
+    // Full UI tests exercise reminder delivery, cancellation and visible hysteresis.
+    for (bool baby : {false, true}) {
+        Pet::PetData p; Storage::Memorials album;
+        if (baby) { p.startNewEgg(); p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); }
+        p.setMood(80); p.setSatiety(80); p.setCleanliness(100);
+        Ui::UiController view(display,sound,p,album,randomMove);
+        uint32_t t=1500; view.init(0);
+        auto tick=[&](uint32_t dt=1) { t+=dt; view.update(E::None,t); view.render(); };
+        auto effect=[&](bool visible) {
+            const int x=32+(baby?40:39), y=6+(baby?14:9);
+            for(int dy=0;dy<6;++dy) for(int dx=0;dx<5;++dx) {
+                const bool expected=visible && dx%2==0 && (dy<5 || dx==4);
+                assert(lit(x+dx,y+dy)==expected);
+            }
+        };
+        tick(); effect(false);
+        unsigned n=careReminders;
+        p.setMood(40); tick(); assert(careReminders==n+1); effect(true);
+        capture(view,baby?"sad-baby-frame-0":"sad-adult-frame-0");
+        tick(100); effect(true);
+        capture(view,baby?"sad-baby-frame-1":"sad-adult-frame-1");
+        p.setMood(44); tick(); effect(true);
+        p.setMood(45); tick(); effect(false);
+        p.setSatiety(25); tick(); effect(true); assert(careReminders==n+1);
+        p.setSatiety(29); tick(); effect(true);
+        p.setSatiety(30); tick(); effect(false);
+        tick(300000); assert(careReminders==n+1); // Cancel queued reminder after care.
+        p.setCleanliness(25); tick(); assert(careReminders==n+2); effect(true);
+        p.setCleanliness(29); tick(); effect(true);
+        p.setCleanliness(30); tick(); effect(false);
+        p.setMood(40); tick(); effect(true);
+        tick(300000); assert(careReminders==n+3);
+        tick(300000); assert(careReminders==n+3); // No periodic nagging.
+        p.setSick(true); tick(); assert(careReminders==n+4); // New illness while already sad.
+        p.setSick(false); p.setMood(80); p.setCleanliness(100); tick(); effect(false);
+        holdNotePlaying=true; sound.playTone(440,100); p.setMood(40); tick(300000);
+        assert(careReminders==n+4); // Other sound defers the reminder.
+        p.setMood(45); sound.stopTone(); holdNotePlaying=false; tick();
+        assert(careReminders==n+4); // Resolved while waiting, no stale sound.
+        p.setMood(40); tick(); assert(careReminders==n+5);
+        assert(p.beginNormalSleep()); view.onSleepStarted(t); tick(300000);
+        assert(careReminders==n+5);
+        assert(p.wake()); view.onWakeSucceeded(); tick(); assert(careReminders==n+6);
+        p.setMood(80); tick();
+        // Unsigned elapsed time handles millis rollover.
+        t=UINT32_MAX-1000; p.setMood(40); tick(); assert(careReminders==n+7);
+        p.setMood(45); tick(); p.setMood(40); tick();
+        tick(299999); assert(careReminders==n+8);
+        // A loaded sad pet stays silent, even beyond the cooldown.
+        view.init(t); unsigned loaded=careReminders; tick(1500); tick(300000);
+        assert(careReminders==loaded); effect(true);
+        p.setDead(true); tick(); assert(careReminders==loaded);
+    }
+    {
+        Pet::PetData p; Storage::Memorials album;
+        Ui::UiController view(display,sound,p,album,randomMove);
+        uint32_t t=1500; view.init(0); view.update(E::None,t);
+        unsigned n=careReminders;
+        p.setMood(40); p.setSatiety(25); view.onFeedSucceeded(t);
+        view.update(E::None,++t); assert(careReminders==n);
+        p.setMood(45); t+=3000; view.update(E::None,t);
+        assert(careReminders==n+1); // Another unmet need survives the feeding animation.
+        p.setSatiety(30); view.update(E::None,++t);
+        t+=300000; p.setCleanliness(25); view.onCleanSucceeded(t);
+        view.update(E::None,++t); assert(careReminders==n+1);
+        p.setCleanliness(30); t+=2400; view.update(E::None,t);
+        view.update(E::None,++t); assert(careReminders==n+1);
+        // Menu/game sounds defer a pending reminder until idle Home.
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        step(E::Press); step(E::Down); step(E::Down); step(E::Down);
+        step(E::Press); step(E::Press); assert(view.screen()==S::PlayCare);
+        p.setMood(40); step(E::None); assert(careReminders==n+1);
+        step(E::LongPress); assert(view.screen()==S::MainMenu);
+        step(E::None); assert(careReminders==n+1);
+        step(E::LongPress); step(E::None); assert(careReminders==n+2);
+    }
+    {
+        Pet::PetData p; Storage::Memorials album;
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.init(0); view.update(E::None,1500);
+        unsigned n=careReminders;
+        p.setMood(40); view.update(E::None,1501); assert(careReminders==n+1);
+        p.setMood(45); view.update(E::None,1502);
+        p.setMood(40); view.update(E::None,1503); assert(careReminders==n+1);
+#if defined(PET_SAD_TEST_MODE)
+        const uint32_t cooldown=10000;
+#else
+        const uint32_t cooldown=300000;
+#endif
+        view.update(E::None,1501+cooldown-1); assert(careReminders==n+1);
+        view.update(E::None,1501+cooldown); assert(careReminders==n+2);
+    }
+    puts("PASS: sadness thresholds/recovery, shared mark, exact cooldown/rollover, cancellation, sound/care/game deferral, sleep/wake, illness and silent boot.");
     puts("PASS: farewell confirm/cancel, healthy/sick/baby/adult frames, viewfinder/flash/postcard timing, filters, protected delete, capacity, reboot/retry and death interruption.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
 }

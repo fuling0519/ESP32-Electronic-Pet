@@ -105,6 +105,12 @@ public:
     void onMemorialDeleteResult(bool success);
 
 private:
+    void updateSadState();
+    bool sadMood_ = false, sadSatiety_ = false, sadCleanliness_ = false;
+    bool sad_ = false, observedSick_ = false, observedSleeping_ = false;
+    bool careReminderPending_ = false, careReminderPlayed_ = false;
+    uint32_t lastCareReminderAt_ = 0;
+    uint64_t observedPetId_ = 0;
     void setScreen(ScreenId screen);
     void renderBoot();
     void renderHome();

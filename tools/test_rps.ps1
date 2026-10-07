@@ -2,6 +2,14 @@
 $ErrorActionPreference = 'Stop'
 $outputPath = Join-Path (Get-Location) '.pio/rps-preview'
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -Iinclude test/sound_native.cpp src/hardware/Sound.cpp -o "$outputPath/sound.exe"
+if ($LASTEXITCODE) { throw 'Sound test build failed.' }
+& "$outputPath/sound.exe"
+if ($LASTEXITCODE) { throw 'Sound tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -DPET_SAD_TEST_MODE=1 -Isrc test/sad_quick_native.cpp src/pet/PetData.cpp src/pet/PetSnapshot.cpp -o "$outputPath/sad-quick.exe"
+if ($LASTEXITCODE) { throw 'Sad quick test build failed.' }
+& "$outputPath/sad-quick.exe"
+if ($LASTEXITCODE) { throw 'Sad quick tests failed.' }
 $fontSource = '.pio/libdeps/esp32dev/U8g2/src/clib'
 if (-not (Test-Path "$fontSource/u8g2.h")) { throw 'Build esp32dev first to install U8g2.' }
 
@@ -32,6 +40,11 @@ $sources = @('test/rps_ui_native.cpp','src/ui/UiController.cpp','src/ui/PetIcons
 if ($LASTEXITCODE) { throw 'UI test build failed.' }
 & "$outputPath/rps-ui.exe"
 if ($LASTEXITCODE) { throw 'UI tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -DPET_SAD_TEST_MODE=1 -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" @sources @objects -o "$outputPath/sad-ui.exe"
+if ($LASTEXITCODE) { throw 'Sad quick UI test build failed.' }
+& "$outputPath/sad-ui.exe"
+if ($LASTEXITCODE) { throw 'Sad quick UI tests failed.' }
 
 & g++ -std=c++11 -Wall -Wextra -Isrc test/pet_core_native.cpp src/pet/PetData.cpp `
     src/pet/PetSnapshot.cpp src/pet/PetClock.cpp src/pet/PetName.cpp src/storage/Memorials.cpp `

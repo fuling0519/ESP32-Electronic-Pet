@@ -16,6 +16,7 @@ public:
     void playConfirm(); void playCancel(); void playSuccess(); void playFailure(); void playHatch();
     void playDeath();
     void playLevelUp();
+    void playCareReminder();
 private:
     void startCurrentStep();
     const ToneStep* sequence_ = nullptr;

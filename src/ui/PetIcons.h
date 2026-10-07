@@ -33,6 +33,8 @@ void drawMemorialPet(Hardware::Display& display, Pet::LifeStage stage, bool rest
 void drawCenteredPostcardPet(Hardware::Display& display, Pet::LifeStage stage);
 void drawSadPet(Hardware::Display& display, int16_t x, int16_t y,
                 Pet::LifeStage lifeStage, uint8_t frame);
+// Shared effect; origin is independent of species and sprite bounds.
+void drawSadLines(Hardware::Display& display, int16_t x, int16_t y);
 // Draws a frame generated from the current bird with its eyes closed.
 void drawSleepingPet(Hardware::Display& display, int16_t x, int16_t y,
                      Pet::LifeStage lifeStage, uint8_t frame);

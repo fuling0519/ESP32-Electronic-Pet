@@ -17,6 +17,11 @@
 namespace Ui {
 namespace {
 constexpr uint32_t kBootDurationMs = 1500;
+#if defined(PET_SAD_TEST_MODE)
+constexpr uint32_t kCareReminderCooldownMs = 10000;
+#else
+constexpr uint32_t kCareReminderCooldownMs = 300000;
+#endif
 constexpr uint32_t kFarewellPoseMs = 2600;
 constexpr uint32_t kFarewellFlashMs = 100;
 constexpr uint32_t kGrowthTransitionDurationMs = 2400;
@@ -183,6 +188,35 @@ void UiController::init(uint32_t now) {
     lastRenderedPetRevision_ = pet_.displayRevision();
     careLevelUpPending_ = false;
     levelUpPreviousLevel_ = levelUpFinalLevel_ = 0;
+    sadMood_ = sadSatiety_ = sadCleanliness_ = sad_ = false;
+    observedSick_ = observedSleeping_ = false;
+    careReminderPlayed_ = false;
+    observedPetId_ = pet_.petId();
+    updateSadState();
+    careReminderPending_ = false; // Loading a sad pet is silent.
+}
+
+void UiController::updateSadState() {
+    if (observedPetId_ != pet_.petId()) {
+        observedPetId_ = pet_.petId();
+        sadMood_ = sadSatiety_ = sadCleanliness_ = sad_ = false;
+        observedSick_ = observedSleeping_ = false;
+        careReminderPending_ = careReminderPlayed_ = false;
+    }
+    const bool eligible = !pet_.isEnded() && pet_.lifeStage() != Pet::LifeStage::Egg;
+    const bool sleeping = pet_.sleepMode() != Pet::SleepMode::Awake;
+    const bool sick = eligible && pet_.isSick();
+    sadMood_ = eligible && (sadMood_ ? pet_.mood() < 45 : pet_.mood() <= 40);
+    sadSatiety_ = eligible && (sadSatiety_ ? pet_.satiety() < 30 : pet_.satiety() <= 25);
+    sadCleanliness_ = eligible && (sadCleanliness_ ? pet_.cleanliness() < 30 : pet_.cleanliness() <= 25);
+    const bool next = sick || sadMood_ || sadSatiety_ || sadCleanliness_;
+    if ((!sad_ && next) || (!observedSick_ && sick) ||
+        (observedSleeping_ && !sleeping && next)) careReminderPending_ = true;
+    if (!next) careReminderPending_ = false;
+    if (sad_ != next) dirty_ = true;
+    sad_ = next;
+    observedSick_ = sick;
+    observedSleeping_ = sleeping;
 }
 
 uint8_t UiController::eggCrackStage(uint32_t now) const {
@@ -195,6 +229,7 @@ uint8_t UiController::eggCrackStage(uint32_t now) const {
 }
 
 bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directionNeutral) {
+    updateSadState();
     const ScreenId previousScreen = screen_;
     const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
@@ -679,6 +714,19 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             break;
     }
 
+    // Only idle Home can deliver a reminder: no input, care action, celebration,
+    // sleep, or game audio is interrupted. Recheck live needs on each update.
+    if (careReminderPending_ && sad_ && screen_ == ScreenId::Home &&
+        pet_.sleepMode() == Pet::SleepMode::Awake &&
+        !feeding_ && !cleaning_ && !treating_ && !careLevelUpPending_ &&
+        !levelUpActive_ && pendingAction_ == UiAction::None &&
+        event == Hardware::InputEvent::None && !sound_.isPlaying() &&
+        (!careReminderPlayed_ || static_cast<uint32_t>(now - lastCareReminderAt_) >= kCareReminderCooldownMs)) {
+        sound_.playCareReminder();
+        careReminderPending_ = false;
+        careReminderPlayed_ = true;
+        lastCareReminderAt_ = now;
+    }
     if (kDebugUiEvents && menuIndex_ != previousMenuIndex) {
         Serial.printf("Menu index: %u -> %u\n", previousMenuIndex, menuIndex_);
     }
@@ -691,6 +739,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
 }
 
 void UiController::render() {
+    updateSadState();
     if ((screen_ == ScreenId::Home || screen_ == ScreenId::Sleeping ||
          screen_ == ScreenId::DetailedStatus ||
          screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
@@ -835,6 +884,7 @@ void UiController::onTreatResult(bool success, uint32_t now) {
 }
 
 void UiController::onSleepStarted(uint32_t now) {
+    updateSadState();
     sleepStartedAtMs_ = now;
     sleepAnimationFrame_ = 0;
     sleepZPhase_ = 0;
@@ -843,6 +893,8 @@ void UiController::onSleepStarted(uint32_t now) {
 }
 
 void UiController::onWakeSucceeded() {
+    updateSadState();
+    if (sad_) careReminderPending_ = true;
     setScreen(ScreenId::Home);
 }
 
@@ -924,7 +976,7 @@ void UiController::renderHome() {
     const bool treatmentSparkling = treating_ && treatmentSucceeded_ &&
         treatmentElapsedMs_ >= kTreatmentSparkleStartMs;
     // The cure settles before the sparkle starts; retain sad through that gap.
-    const bool sad = treating_ ? !treatmentSparkling : pet_.isSick();
+    const bool sad = treating_ ? !treatmentSparkling : sad_;
     // Care effects hide dirt temporarily; restore it from live cleanliness.
     if (!treating_ && !cleaning_ && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawDirt(display_, pet_.cleanlinessState());

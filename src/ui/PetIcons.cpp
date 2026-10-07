@@ -4,6 +4,7 @@
 
 #include "hardware/Display.h"
 #include "ui/BirdSprite.h"
+#include "ui/SadEffect.h"
 #include "ui/DirtySprite.h"
 
 namespace Ui {
@@ -204,6 +205,12 @@ void drawSadPet(Hardware::Display& d, int16_t x, int16_t y,
     const uint8_t* bitmap = lifeStage == Pet::LifeStage::Baby
         ? kBabyBirdSadFrames[frame % 2] : kBirdSadFrames[frame % 2];
     d.drawGlyph(x, y, bitmap, kBirdFrameWidth, kBirdFrameHeight);
+    const bool baby = lifeStage == Pet::LifeStage::Baby;
+    drawSadLines(d, x + (baby ? 40 : 39), y + (baby ? 14 : 9));
+}
+
+void drawSadLines(Hardware::Display& d, int16_t x, int16_t y) {
+    d.drawGlyph(x, y, kSadLines, 5, 6);
 }
 
 void drawSleepingPet(Hardware::Display& d, int16_t x, int16_t y,
