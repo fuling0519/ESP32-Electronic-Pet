@@ -40,13 +40,13 @@ constexpr uint32_t kTreatmentDurationMs = 3400;
 constexpr uint32_t kTreatmentNoticeMs = 1200;
 constexpr uint32_t kCleaningFrameMs = 400;
 constexpr uint32_t kCleaningDurationMs = 2400;
-constexpr uint8_t kMenuItemCount = 8;
+constexpr uint8_t kMenuItemCount = 9;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
-    "Feed", "Clean", "Treat", "Play", "Rest", "Status", "Records", "Farewell"
+    "Feed", "Clean", "Treat", "Play", "Rest", "Status", "Records", "Farewell", "Sound"
 };
 const char* const kMenuLabels[kMenuItemCount] = {
-    "餵食", "清潔", "治療", "陪玩", "休息", "狀態", "紀念冊", "送別"
+    "餵食", "清潔", "治療", "陪玩", "休息", "狀態", "紀念冊", "送別", "聲音"
 };
 constexpr int16_t kStatusLabelX = 9;
 constexpr int16_t kStatusValueRight = 118;
@@ -283,7 +283,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         }
     }
 
-    if (pet_.isDead() && !isDeathFlowScreen(screen_)) {
+    if (pet_.isDead() && !isDeathFlowScreen(screen_) &&
+        !(screen_ == ScreenId::Volume && volumeReturnScreen_ == ScreenId::DeathOptions)) {
         beginDeathAnimation(now);
         return true;
     }
@@ -367,8 +368,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         } else if (levelUpActive_) {
             if (event == Hardware::InputEvent::LongPress) {
                 levelUpActive_ = false;
-                sound_.playCancel();
-                setScreen(ScreenId::MainMenu);
+                cancelTo(ScreenId::MainMenu);
             } else {
                 const uint32_t elapsed = now - levelUpStartedAt_;
                 levelUpFrame_ = static_cast<uint8_t>(elapsed / 125);
@@ -428,12 +428,10 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 dirty_ = true;
             } else if (event == Hardware::InputEvent::Press &&
                        homeFocus_ == HomeFocus::None) {
-                sound_.playConfirm();
-                setScreen(ScreenId::MainMenu);
+                confirmTo(ScreenId::MainMenu);
             } else if (event == Hardware::InputEvent::Press &&
                        homeFocus_ == HomeFocus::Status) {
-                sound_.playConfirm();
-                setScreen(ScreenId::DetailedStatus);
+                confirmTo(ScreenId::DetailedStatus);
             }
             break;
 
@@ -462,7 +460,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     sound_.playFailure();
                     break;
                 }
-                sound_.playConfirm();
+                if (menuIndex_ != 8) sound_.playConfirm();
                 switch (menuIndex_) {
                     case 0: setScreen(ScreenId::FeedCare); break;
                     case 1: setScreen(ScreenId::CleanCare); break;
@@ -474,6 +472,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         restOption_ = 0; deepSleepFailed_ = false;
                         setScreen(ScreenId::Rest); break;
                     case 5: setScreen(ScreenId::DetailedStatus); break;
+                    case 8: beginVolume(ScreenId::MainMenu); break;
                     case 7:
                         if (pet_.lifeStage() == Pet::LifeStage::Egg) sound_.playFailure();
                         else if (memorials_.count() >= Storage::kMemorialLimit) setScreen(ScreenId::FarewellBlocked);
@@ -485,8 +484,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         break;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::Home);
+                cancelTo(ScreenId::Home);
             }
             break;
 
@@ -500,8 +498,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         UiAction::Feed : UiAction::Clean;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::MainMenu);
+                cancelTo(ScreenId::MainMenu);
             }
             break;
 
@@ -513,11 +510,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 game_.begin(); memoryNotes_.begin();
                 gameMoodGain_ = 0; gameExpGain_ = 0;
                 gamePreviousLevel_ = gameFinalLevel_ = 0;
-                sound_.playConfirm();
-                setScreen(ScreenId::PlayCare);
+                confirmTo(ScreenId::PlayCare);
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::MainMenu);
+                cancelTo(ScreenId::MainMenu);
             }
             break;
         case ScreenId::PlayCare:
@@ -536,8 +531,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     pendingAction_ = restOption_ == 0 ? UiAction::StartNormalSleep : UiAction::StartDeepSleep;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::MainMenu);
+                cancelTo(ScreenId::MainMenu);
             }
             break;
 
@@ -560,10 +554,47 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
             break;
 
+        case ScreenId::Volume:
+            if (event == Hardware::InputEvent::Down ||
+                (event == Hardware::InputEvent::Press && !volumeButtonsFocused_)) {
+                if (!volumeButtonsFocused_) {
+                    volumeButtonsFocused_ = true;
+                    volumeCancelSelected_ = false;
+                    dirty_ = true;
+                }
+            } else if (event == Hardware::InputEvent::Up) {
+                volumeButtonsFocused_ = false;
+                dirty_ = true;
+            } else if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Right) {
+                if (volumeButtonsFocused_) {
+                    volumeCancelSelected_ = !volumeCancelSelected_;
+                    dirty_ = true;
+                    break;
+                }
+                const uint8_t before = sound_.volume();
+                const uint8_t next = before ? 0 : 1;
+                if (next != before) {
+                    sound_.stopTone();
+                    sound_.setVolume(next);
+                    if (next) sound_.playTone(1047, 120);
+                    volumeSaveFailed_ = false;
+                    dirty_ = true;
+                }
+            } else if (event == Hardware::InputEvent::Press) {
+                if (volumeCancelSelected_) {
+                    cancelTo(volumeReturnScreen_);
+                } else if (sound_.volume() == originalVolume_) {
+                    confirmTo(volumeReturnScreen_);
+                }
+                else pendingAction_ = UiAction::SaveVolume;
+            } else if (event == Hardware::InputEvent::LongPress) {
+                cancelTo(volumeReturnScreen_);
+            }
+            break;
+
         case ScreenId::DetailedStatus:
             if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::Home);
+                cancelTo(ScreenId::Home);
             } else if ((event == Hardware::InputEvent::Right ||
                         event == Hardware::InputEvent::Down) && statusPage_ < 3) {
                 ++statusPage_;
@@ -587,13 +618,16 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         case ScreenId::DeathOptions:
             if (event == Hardware::InputEvent::Up ||
                 event == Hardware::InputEvent::Down) {
-                deathOptionIndex_ = deathOptionIndex_ == 0 ? 1 : 0;
+                deathOptionIndex_ = (deathOptionIndex_ +
+                    (event == Hardware::InputEvent::Down ? 1 : 2)) % 3;
                 dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
                 if (deathOptionIndex_ == 0) {
                     sound_.playConfirm();
                     memorialCategoryIndex_ = 0;
                     setScreen(ScreenId::MemorialCategories);
+                } else if (deathOptionIndex_ == 2) {
+                    beginVolume(ScreenId::DeathOptions);
                 } else if (!memorialReady_ ||
                            memorials_.count() > Storage::kMemorialLimit) {
                     sound_.playFailure();
@@ -602,8 +636,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     pendingAction_ = UiAction::AdoptNewEgg;
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(pet_.isDeparted() ? ScreenId::FarewellDone : ScreenId::DeathMemorial);
+                cancelTo(pet_.isDeparted() ? ScreenId::FarewellDone : ScreenId::DeathMemorial);
             }
             break;
 
@@ -622,11 +655,13 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     setScreen(ScreenId::Graveyard);
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                setScreen(pet_.isEnded() ? ScreenId::DeathOptions : ScreenId::MainMenu);
+                cancelTo(pet_.isEnded() ? ScreenId::DeathOptions : ScreenId::MainMenu);
             }
             break;
         case ScreenId::MemorialHelp:
-            if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MemorialCategories);
+            if (event == Hardware::InputEvent::LongPress) {
+                cancelTo(ScreenId::MemorialCategories);
+            }
             break;
         case ScreenId::Graveyard:
             if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Right) {
@@ -636,18 +671,20 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 if (pet_.isEnded() && selected->petId == pet_.petId()) sound_.playFailure();
                 else {
                     deleteConfirmIndex_ = 1; // Default to keeping the memory.
-                    setScreen(ScreenId::DeleteMemorialConfirm);
+                    confirmTo(ScreenId::DeleteMemorialConfirm);
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                setScreen(ScreenId::MemorialCategories);
+                cancelTo(ScreenId::MemorialCategories);
             }
             break;
 
         case ScreenId::FarewellInfo:
             if (event == Hardware::InputEvent::Press) {
                 farewellConfirmIndex_ = 0;
-                setScreen(ScreenId::FarewellConfirm);
-            } else if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MainMenu);
+                confirmTo(ScreenId::FarewellConfirm);
+            } else if (event == Hardware::InputEvent::LongPress) {
+                cancelTo(ScreenId::MainMenu);
+            }
             break;
         case ScreenId::FarewellConfirm:
             if (event == Hardware::InputEvent::Left || event == Hardware::InputEvent::Up) {
@@ -655,16 +692,22 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             } else if (event == Hardware::InputEvent::Right || event == Hardware::InputEvent::Down) {
                 farewellConfirmIndex_ = 1; dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
-                if (farewellConfirmIndex_ == 0) setScreen(ScreenId::MainMenu);
+                if (farewellConfirmIndex_ == 0) {
+                    cancelTo(ScreenId::MainMenu);
+                }
                 else {
                     pendingAction_ = UiAction::SendOff;
                     setScreen(ScreenId::FarewellBlocked); // Lock duplicate input until result.
+                    sound_.playConfirm();
                 }
-            } else if (event == Hardware::InputEvent::LongPress) setScreen(ScreenId::MainMenu);
+            } else if (event == Hardware::InputEvent::LongPress) {
+                cancelTo(ScreenId::MainMenu);
+            }
             break;
         case ScreenId::FarewellBlocked:
             if (pet_.isDeparted() && memorialReady_) setScreen(ScreenId::FarewellDone);
             else if (event == Hardware::InputEvent::Press) {
+                sound_.playConfirm();
                 if (pet_.isDeparted()) pendingAction_ = UiAction::RetryFarewell;
                 else if (memorials_.count() >= Storage::kMemorialLimit) {
                     memorialCategoryIndex_ = 0;
@@ -673,7 +716,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     farewellConfirmIndex_ = 0;
                     setScreen(ScreenId::FarewellConfirm);
                 }
-            } else if (event == Hardware::InputEvent::LongPress && !pet_.isDeparted()) setScreen(ScreenId::MainMenu);
+            } else if (event == Hardware::InputEvent::LongPress && !pet_.isDeparted()) {
+                cancelTo(ScreenId::MainMenu);
+            }
             break;
 
         case ScreenId::DeleteMemorialConfirm:
@@ -689,20 +734,20 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 if (deleteConfirmIndex_ == 0) {
                     pendingAction_ = UiAction::DeleteMemorial;
                 } else {
-                    sound_.playCancel();
-                    setScreen(ScreenId::Graveyard);
+                    cancelTo(ScreenId::Graveyard);
                 }
             } else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::Graveyard);
+                cancelTo(ScreenId::Graveyard);
             }
             break;
 
         case ScreenId::AdoptionBlocked:
-            if (event == Hardware::InputEvent::Press && !memorialReady_) pendingAction_ = UiAction::RetryFarewell;
+            if (event == Hardware::InputEvent::Press && !memorialReady_) {
+                sound_.playConfirm();
+                pendingAction_ = UiAction::RetryFarewell;
+            }
             else if (event == Hardware::InputEvent::LongPress) {
-                sound_.playCancel();
-                setScreen(ScreenId::DeathOptions);
+                cancelTo(ScreenId::DeathOptions);
             }
             break;
 
@@ -757,6 +802,7 @@ void UiController::render() {
         case ScreenId::Boot: renderBoot(); break;
         case ScreenId::Home: renderHome(); break;
         case ScreenId::MainMenu: renderMainMenu(); break;
+        case ScreenId::Volume: renderVolume(); break;
         case ScreenId::FeedCare: renderCare("餵食", "飽食", pet_.satiety()); break;
         case ScreenId::CleanCare: renderCare("清潔", "清潔", pet_.cleanliness()); break;
         case ScreenId::GameSelect: renderGameSelect(); break;
@@ -792,6 +838,7 @@ const char* UiController::screenName() const {
         case ScreenId::Boot: return "BOOT";
         case ScreenId::Home: return "HOME";
         case ScreenId::MainMenu: return "MAIN_MENU";
+        case ScreenId::Volume: return "SOUND";
         case ScreenId::FeedCare: return "FEED_CARE";
         case ScreenId::CleanCare: return "CLEAN_CARE";
         case ScreenId::GameSelect: return "GAME_SELECT";
@@ -931,9 +978,9 @@ void UiController::beginGrowthTransition(ScreenId screen, uint32_t now) {
     growthTransitionStartedAt_ = now;
     growthTransitionElapsedMs_ = 0;
     growthTransitionFrame_ = 0;
+    setScreen(screen);
     if (screen == ScreenId::HatchTransition) sound_.playHatch();
     else sound_.playSuccess();
-    setScreen(screen);
 }
 
 void UiController::beginDeathAnimation(uint32_t now) {
@@ -942,12 +989,31 @@ void UiController::beginDeathAnimation(uint32_t now) {
     deathStartedAt_ = now;
     deathAnimationElapsedMs_ = 0;
     deathAnimationFrame_ = 0;
-    sound_.playDeath();
     setScreen(ScreenId::DeathAnimation);
+    sound_.playDeath();
+}
+
+// Navigation feedback runs after cleanup, which may stop an audition and
+// restore the saved sound mode. Automatic transitions use silent setScreen().
+void UiController::confirmTo(ScreenId screen) {
+    setScreen(screen);
+    sound_.playConfirm();
+}
+
+void UiController::cancelTo(ScreenId screen) {
+    setScreen(screen);
+    sound_.playCancel();
 }
 
 void UiController::setScreen(ScreenId screen) {
     if (screen_ == screen) return;
+    if (screen_ == ScreenId::Volume) {
+        // Saving updates originalVolume_ first. All other exits, including
+        // death/growth interruptions, discard the unconfirmed audition.
+        sound_.stopTone();
+        sound_.setVolume(originalVolume_);
+        pendingAction_ = UiAction::None;
+    }
     treatmentNotice_ = false;
     if (screen_ == ScreenId::PlayCare) {
         levelUpActive_ = false;
@@ -1077,6 +1143,57 @@ void UiController::renderMainMenu() {
     }
 }
 
+void UiController::beginVolume(ScreenId returnScreen) {
+    volumeReturnScreen_ = returnScreen;
+    originalVolume_ = sound_.volume();
+    volumeSaveFailed_ = false;
+    volumeButtonsFocused_ = false;
+    volumeCancelSelected_ = false;
+    sound_.stopTone();
+    confirmTo(ScreenId::Volume);
+}
+
+void UiController::onVolumeSaveResult(bool success) {
+    if (screen_ != ScreenId::Volume) return;
+    if (success) {
+        originalVolume_ = sound_.volume();
+        confirmTo(volumeReturnScreen_);
+    } else {
+        volumeSaveFailed_ = true;
+        dirty_ = true;
+        sound_.playFailure();
+    }
+}
+
+void UiController::renderVolume() {
+    display_.clear();
+    display_.drawFrame(48, 21, 8, 12);
+    display_.drawLine(55, 21, 65, 11);
+    display_.drawLine(65, 11, 65, 42);
+    display_.drawLine(65, 42, 55, 32);
+    if (!sound_.volume()) {
+        display_.drawLine(69, 22, 79, 32);
+        display_.drawLine(79, 22, 69, 32);
+    }
+    else {
+        display_.drawLine(69, 20, 73, 24);
+        display_.drawLine(73, 24, 73, 29);
+        display_.drawLine(73, 29, 69, 33);
+        display_.drawLine(73, 15, 79, 21);
+        display_.drawLine(79, 21, 79, 32);
+        display_.drawLine(79, 32, 73, 38);
+    }
+    if (!volumeButtonsFocused_) {
+        display_.drawText(32, 31, "<");
+        display_.drawText(90, 31, ">");
+    }
+    // A failed save leaves both buttons available, relabeling confirm as retry.
+    display_.drawUiText(34, 58, volumeSaveFailed_ ? "重試" : "確定");
+    display_.drawUiText(82, 58, "取消");
+    if (volumeButtonsFocused_)
+        display_.drawSmallText(volumeCancelSelected_ ? 70 : 22, 58, ">");
+}
+
 void UiController::renderDetailedStatus() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
@@ -1172,8 +1289,7 @@ void UiController::onGameRewardApplied(uint8_t actualGain, uint16_t expGain,
 void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     using namespace Games;
     if (event == Hardware::InputEvent::LongPress) {
-        setScreen(ScreenId::MainMenu);
-        sound_.playCancel();
+        cancelTo(ScreenId::MainMenu);
         return;
     }
     if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
@@ -1204,8 +1320,7 @@ void UiController::updateGame(Hardware::InputEvent event, uint32_t now) {
     if (game_.update(input, now)) dirty_ = true;
     const RpsPhase current = game_.phase();
     if (current == RpsPhase::Inactive) {
-        setScreen(ScreenId::MainMenu);
-        sound_.playCancel();
+        cancelTo(ScreenId::MainMenu);
         return;
     }
     if (current == RpsPhase::Select && previous != current && game_.round() == 1) {
@@ -1245,8 +1360,7 @@ void UiController::renderGameSelect() {
 void UiController::updateMemoryNotes(Hardware::InputEvent event, uint32_t now, bool neutral) {
     using namespace Games;
     if (event == Hardware::InputEvent::LongPress) {
-        setScreen(ScreenId::MainMenu);
-        sound_.playCancel();
+        cancelTo(ScreenId::MainMenu);
         return;
     }
     if (pet_.lifeStage() == Pet::LifeStage::Egg || pet_.isSick() ||
@@ -1283,8 +1397,7 @@ void UiController::updateMemoryNotes(Hardware::InputEvent event, uint32_t now, b
     if (memoryNotes_.update(input, now, neutral, !sound_.isPlaying())) dirty_ = true;
     const NotesPhase current = memoryNotes_.phase();
     if (current == NotesPhase::Inactive) {
-        setScreen(ScreenId::MainMenu);
-        sound_.playCancel();
+        cancelTo(ScreenId::MainMenu);
         return;
     }
     if (current == NotesPhase::Playback && previous != current && memoryNotes_.round() == 1) {
@@ -1662,9 +1775,9 @@ void UiController::renderDeathOptions() {
     display_.drawFrame(0, 0, 128, 64);
     drawCenteredUiText(display_, 15, "接下來……？");
     display_.drawLine(6, 19, 121, 19);
-    const char* options[] = {"查看紀念冊", "領養新蛋"};
-    for (uint8_t i = 0; i < 2; ++i) {
-        const int16_t baseline = 36 + i * 18;
+    const char* options[] = {"查看紀念冊", "領養新蛋", "聲音"};
+    for (uint8_t i = 0; i < 3; ++i) {
+        const int16_t baseline = 32 + i * 14;
         if (deathOptionIndex_ == i) display_.drawSmallText(9, baseline, ">");
         display_.drawUiText(24, baseline, options[i]);
     }

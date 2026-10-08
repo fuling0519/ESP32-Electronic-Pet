@@ -24,6 +24,10 @@ static uint16_t lastNoteTone = 0;
 static bool holdNotePlaying = false;
 static unsigned successSounds = 0;
 static unsigned careReminders = 0;
+static unsigned confirmSounds = 0;
+static unsigned cancelSounds = 0;
+static bool feedbackActive = false;
+static uint8_t feedbackVolume = 0;
 static uint32_t randomMove() { return opponent; }
 static void point(int x, int y) { assert(x >= 0 && x < 128 && y >= 0 && y < 64); }
 static unsigned decode(const char*& s) {
@@ -34,6 +38,7 @@ static unsigned decode(const char*& s) {
     return ((c & 15) << 12) | ((b & 63) << 6) | (a & 63);
 }
 namespace Hardware {
+void Sound::setVolume(uint8_t level) { volume_=level<kVolumeCount?level:kDefaultVolume; }
 bool Display::isInitialized() const { return true; }
 void Display::clear() { pixels.fill(0); }
 void Display::update() {}
@@ -82,12 +87,13 @@ uint16_t Display::statusTextWidth(const char* s) const {
     u8g2_SetFont(&gfx,u8g2_font_pet_status_12); auto w=u8g2_GetUTF8Width(&gfx,s);
     u8g2_SetFont(&gfx,u8g2_font_6x10_tf); return w;
 }
-void Sound::playConfirm() {} void Sound::playCancel() {}
+void Sound::playConfirm() { ++confirmSounds; feedbackActive=volume_!=0; feedbackVolume=volume_; }
+void Sound::playCancel() { ++cancelSounds; feedbackActive=volume_!=0; feedbackVolume=volume_; }
 void Sound::playSuccess() { ++successSounds; } void Sound::playFailure() { ++failureSounds; }
 void Sound::playHatch() {} void Sound::playDeath() {}
 void Sound::playLevelUp() {}
 void Sound::playCareReminder() { ++careReminders; }
-void Sound::stopTone() { playing_=false; }
+void Sound::stopTone() { playing_=false; feedbackActive=false; }
 void Sound::playTone(uint16_t frequency,uint32_t) {
     ++noteTones; lastNoteTone=frequency; playing_=holdNotePlaying;
 }
@@ -670,7 +676,7 @@ int main() {
         Ui::UiController view(display,sound,p,album,randomMove);
         uint32_t t=1500;
         auto step=[&](E e,uint32_t delay=1) { t+=delay; view.update(e,t); view.render(); };
-        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Press);
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Up); step(E::Press);
         assert(view.screen()==S::FarewellInfo); capture(view,"farewell-info");
         step(E::Press); assert(view.screen()==S::FarewellConfirm);
         capture(view,"farewell-confirm-keep");
@@ -757,7 +763,7 @@ int main() {
         Ui::UiController view(display,sound,p,album,randomMove);
         uint32_t t=1500;
         auto step=[&](E e) { view.update(e,++t); view.render(); };
-        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Press);
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Up); step(E::Press);
         if(scenario==0) assert(view.screen()==S::MainMenu);
         if(scenario==1) {
             assert(view.screen()==S::FarewellBlocked); capture(view,"farewell-full");
@@ -800,7 +806,7 @@ int main() {
         Ui::UiController view(display,sound,p,album,randomMove);
         uint32_t t=1500;
         auto step=[&](E e) { view.update(e,++t); view.render(); };
-        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Up); step(E::Press);
+        view.init(0); step(E::None); step(E::Press); step(E::Up); step(E::Up); step(E::Up); step(E::Press);
         assert(view.screen()==S::MemorialCategories); capture(view,"album-categories-mixed");
         step(E::Up); step(E::Press); assert(view.screen()==S::MemorialHelp);
         capture(view,"album-help"); step(E::LongPress); assert(view.screen()==S::MemorialCategories);
@@ -842,7 +848,7 @@ int main() {
         auto step=[&](E e) { view.update(e,++t); view.render(); };
         step(E::None); step(E::Press);
         if(!resting) step(E::Press); // FarewellDone -> options -> categories.
-        else { step(E::Up); step(E::Up); step(E::Press); } // Home -> menu -> categories.
+        else { step(E::Up); step(E::Up); step(E::Up); step(E::Press); } // Home -> menu -> categories.
         assert(view.screen()==S::MemorialCategories);
         if(resting) step(E::Down);
         step(E::Press); assert(view.screen()==S::Graveyard);
@@ -943,5 +949,156 @@ int main() {
     }
     puts("PASS: sadness thresholds/recovery, shared mark, exact cooldown/rollover, cancellation, sound/care/game deferral, sleep/wake, illness and silent boot.");
     puts("PASS: farewell confirm/cancel, healthy/sick/baby/adult frames, viewfinder/flash/postcard timing, filters, protected delete, capacity, reboot/retry and death interruption.");
+    // Sound editor and button focus are independent; changing a button never
+    // changes the sound preference or auditions a tone.
+    for (bool egg : {false,true}) {
+        Pet::PetData p; if(egg) p.startNewEgg(); Storage::Memorials album;
+        sound.setVolume(1);
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.init(0); uint32_t t=1500;
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        step(E::None); step(E::Press); step(E::Up);
+        assert(view.menuIndex()==8); capture(view,"sound-menu");
+        step(E::Press); assert(view.screen()==S::Volume); capture(view,"sound-focus-on-edit");
+        const unsigned tones=noteTones;
+        for(E direction : {E::Right, E::Left}) {
+            const unsigned beforeTones=noteTones;
+            for(unsigned i=0;i<4;++i) {
+                step(direction); assert(sound.volume()==(i%2 ? 1 : 0));
+                assert(noteTones==beforeTones+(i+1)/2);
+            }
+        }
+        step(E::Down); capture(view,"sound-focus-on-confirm");
+        step(E::Right); capture(view,"sound-focus-on-cancel");
+        step(E::Left); step(E::Left); step(E::Right);
+        assert(sound.volume()==1 && noteTones==tones+4 && view.takeAction()==A::None);
+        step(E::Up); step(E::Left); capture(view,"sound-focus-off-edit");
+        step(E::Down); capture(view,"sound-focus-off-confirm");
+        step(E::Right); capture(view,"sound-focus-off-cancel");
+        step(E::Down); assert(sound.volume()==0); // Repeated Down preserves Cancel.
+        step(E::Press); assert(sound.volume()==1 && view.screen()==S::MainMenu && view.menuIndex()==8);
+        assert(view.takeAction()==A::None);
+        step(E::Press); step(E::Press); // Editor short press only focuses Confirm.
+        assert(view.screen()==S::Volume && view.takeAction()==A::None);
+        step(E::Press); assert(view.screen()==S::MainMenu && view.takeAction()==A::None);
+        step(E::Press); step(E::Left); step(E::Down); step(E::Press);
+        assert(view.screen()==S::Volume && view.takeAction()==A::SaveVolume);
+        view.onVolumeSaveResult(false); view.render(); capture(view,"sound-focus-save-failed");
+        assert(view.screen()==S::Volume && sound.volume()==0);
+        step(E::Press); assert(view.takeAction()==A::SaveVolume);
+        view.onVolumeSaveResult(true); assert(view.screen()==S::MainMenu && sound.volume()==0);
+        step(E::Press); step(E::Right); assert(sound.volume()==1 && noteTones==tones+5);
+        step(E::Down); step(E::Right); step(E::Press); assert(sound.volume()==0 && view.screen()==S::MainMenu);
+        step(E::Press); step(E::Right); step(E::Down); step(E::Press);
+        assert(view.takeAction()==A::SaveVolume); view.onVolumeSaveResult(true);
+        assert(view.screen()==S::MainMenu && sound.volume()==1);
+        step(E::Press); step(E::Left); step(E::Down); step(E::LongPress);
+        assert(view.screen()==S::MainMenu && sound.volume()==1);
+        if(!egg) {
+            step(E::Press); step(E::Left); p.setDead(true); step(E::None);
+            assert(view.screen()==S::DeathAnimation && sound.volume()==1);
+        } else {
+            step(E::Press); step(E::Left);
+            p.advanceSeconds(Pet::PetData::kEggHatchAgeSeconds); step(E::None);
+            assert(view.screen()==S::HatchTransition && sound.volume()==1);
+        }
+    }
+    for(bool departed : {false,true}) {
+        Pet::PetData p; if(departed) p.depart(); else p.setDead(true);
+        Storage::Memorials album; sound.setVolume(1);
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.setMemorialReady(true); view.init(0); uint32_t t=1500;
+        auto step=[&](E e,uint32_t dt=1) { t+=dt; view.update(e,t); view.render(); };
+        step(E::None); if(!departed) step(E::None,4000);
+        step(E::Press); assert(view.screen()==S::DeathOptions);
+        step(E::Up); capture(view,"sound-ended-options"); step(E::Press);
+        step(E::Left); step(E::Down); step(E::Right); step(E::Press);
+        assert(view.screen()==S::DeathOptions && sound.volume()==1 && view.takeAction()==A::None);
+        step(E::Press); step(E::Left); step(E::Down); step(E::Press);
+        assert(view.takeAction()==A::SaveVolume);
+        view.onVolumeSaveResult(true); assert(view.screen()==S::DeathOptions && sound.volume()==0);
+    }
+    // Every confirmation/back path on the third menu page gets one feedback
+    // request, after any sound-page cleanup and using the resulting mode.
+    for(uint8_t mode : {0,1}) {
+        Pet::PetData p; Storage::Memorials album;
+        Storage::MemorialRecord record{}; record.petId=100; strcpy(record.name,"Old");
+        record.speciesId=Pet::SpeciesId::Bird;
+        record.stage=static_cast<uint8_t>(Pet::LifeStage::Adult);
+        record.kind=Storage::FarewellKind::Departed; assert(album.append(record));
+        sound.setVolume(mode);
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.init(0); uint32_t t=1500;
+        auto step=[&](E e) { view.update(e,++t); view.render(); };
+        auto feedback=[&](E e,bool confirm,uint8_t expectedMode) {
+            const unsigned confirms=confirmSounds, cancels=cancelSounds;
+            step(e);
+            assert(confirmSounds==confirms+(confirm?1:0));
+            assert(cancelSounds==cancels+(confirm?0:1));
+            assert(feedbackVolume==expectedMode && feedbackActive==(expectedMode!=0));
+        };
+        step(E::None); step(E::Press); step(E::Up);
+        feedback(E::Press,true,mode); assert(view.screen()==S::Volume);
+        step(E::Down); feedback(E::Press,true,mode); assert(view.screen()==S::MainMenu);
+        feedback(E::Press,true,mode); step(E::Right);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MainMenu);
+        feedback(E::Press,true,mode); step(E::Left);
+        const unsigned beforeSave=confirmSounds;
+        step(E::Down); step(E::Press); assert(view.takeAction()==A::SaveVolume);
+        assert(confirmSounds==beforeSave); // Wait for successful persistence.
+        view.onVolumeSaveResult(true);
+        assert(confirmSounds==beforeSave+1 && view.screen()==S::MainMenu);
+        assert(feedbackVolume==1-mode && feedbackActive==(mode==0));
+        // Restore the test mode through a confirmed save.
+        step(E::Press); step(E::Left); step(E::Down); step(E::Press);
+        assert(view.takeAction()==A::SaveVolume); view.onVolumeSaveResult(true);
+        step(E::Up); step(E::Up); // Sound -> Farewell -> Records.
+        feedback(E::Press,true,mode); assert(view.screen()==S::MemorialCategories);
+        step(E::Up); feedback(E::Press,true,mode); assert(view.screen()==S::MemorialHelp);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MemorialCategories);
+        step(E::Down); feedback(E::Press,true,mode); assert(view.screen()==S::Graveyard);
+        feedback(E::Press,true,mode); assert(view.screen()==S::DeleteMemorialConfirm);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::Graveyard);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MemorialCategories);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MainMenu);
+        step(E::Down); feedback(E::Press,true,mode); assert(view.screen()==S::FarewellInfo);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MainMenu);
+        step(E::Press); feedback(E::Press,true,mode); assert(view.screen()==S::FarewellConfirm);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MainMenu);
+        step(E::Press); step(E::Press);
+        feedback(E::Press,false,mode); assert(view.screen()==S::MainMenu); // Explicit cancel.
+        step(E::Press); step(E::Press); step(E::Right);
+        feedback(E::Press,true,mode); assert(view.takeAction()==A::SendOff);
+        view.onFarewellResult(false,++t); assert(view.screen()==S::FarewellBlocked);
+        feedback(E::LongPress,false,mode); assert(view.screen()==S::MainMenu);
+        step(E::Press); step(E::Press); step(E::Right); step(E::Press);
+        assert(view.takeAction()==A::SendOff); view.onFarewellResult(false,++t);
+        feedback(E::Press,true,mode); assert(view.screen()==S::FarewellConfirm);
+    }
+    for(uint8_t mode : {0,1}) {
+        Pet::PetData p; p.setDead(true); Storage::Memorials album;
+        sound.setVolume(mode);
+        Ui::UiController view(display,sound,p,album,randomMove);
+        view.init(0); uint32_t t=1500;
+        auto step=[&](E e,uint32_t dt=1) { t+=dt; view.update(e,t); view.render(); };
+        step(E::None); step(E::None,4000); step(E::Press); step(E::Down); step(E::Press);
+        assert(view.screen()==S::AdoptionBlocked);
+        const unsigned confirms=confirmSounds;
+        step(E::Press); assert(view.takeAction()==A::RetryFarewell);
+        assert(confirmSounds==confirms+1 && feedbackActive==(mode!=0));
+        const unsigned cancels=cancelSounds;
+        step(E::LongPress); assert(view.screen()==S::DeathOptions && cancelSounds==cancels+1);
+        assert(feedbackVolume==mode && feedbackActive==(mode!=0));
+        step(E::Up); step(E::Press); assert(view.screen()==S::MemorialCategories);
+        const unsigned albumCancels=cancelSounds;
+        step(E::LongPress); assert(view.screen()==S::DeathOptions && cancelSounds==albumCancels+1);
+        step(E::Up); step(E::Press); assert(view.screen()==S::Volume);
+        const unsigned soundCancels=cancelSounds;
+        step(E::LongPress); assert(view.screen()==S::DeathOptions && cancelSounds==soundCancels+1);
+        assert(feedbackVolume==mode && feedbackActive==(mode!=0));
+    }
+    puts("PASS: third-page confirmation/cancellation, no cut-off or duplicates, saved/restored sound mode and muted feedback.");
+    sound.setVolume(1);
+    puts("PASS: sound toggle egg/ended access, left/right cycling, audition, cancel, save/retry and growth/death interruption.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
 }

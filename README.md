@@ -55,6 +55,8 @@ python -m pip install -r requirements.txt
 
 ESP32 韌體資料使用 Preferences／NVS。MySQL、SQLite 都不是目前韌體的必要依賴；`docs/database-erd.md` 與 SQL schema 是未來規劃資料，不屬於此建置流程。
 
+聲音可在主選單第三頁調整：喇叭列左右循環切換靜音／有聲音，向下進入「確定／取消」，左右選擇後短按執行並返回原選單位置，向上回到喇叭列。喇叭兩側 `< >` 與按鈕游標依焦點互斥顯示，靜音以右側 X 表示；長按可直接取消。操作與驗收見 [聲音設定驗收](docs/volume-test.md)。
+
 生病／治療動畫有專用快速測試版：`esp32dev_treatment_test`（成鳥）及 `esp32dev_treatment_baby_test`（幼鳥）。冷開機／按 RESET 直接建立生病小鳥，使用獨立測試存檔；死亡門檻維持正常 24 小時。燒錄與表情／閃光驗收見 [治療快速測試](docs/treatment-test.md)。
 
 傷心表情／照顧提醒使用 `esp32dev_sad_test`（成鳥）或 `esp32dev_sad_baby_test`（幼鳥）。冷開機先顯示正常小鳥，初始化後約 8 秒在首頁自動變低心情並提醒一次；使用獨立測試存檔，提示冷卻縮為 10 秒，其他養成／疾病時程沿用正式版。序列監控輸入單一數字 0～9 可切換正常、低心情、飢餓、髒污、生病、複合原因與恢復邊界；[測試與燒錄步驟](docs/sad-state-test.md#快速上板測試版本)。

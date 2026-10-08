@@ -12,3 +12,4 @@ uint32_t millis();
 double ledcSetup(uint8_t channel, double frequency, uint8_t resolution);
 void ledcAttachPin(uint8_t pin, uint8_t channel);
 double ledcWriteTone(uint8_t channel, double frequency);
+void ledcWrite(uint8_t channel, uint32_t duty);

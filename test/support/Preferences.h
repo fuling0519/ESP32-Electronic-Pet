@@ -13,11 +13,13 @@ struct FakeNvs {
     unsigned writes = 0;
     unsigned failWrite = 0;
     bool torn = false;
+    bool failBegin = false;
+    std::string lastNamespace;
 };
 extern FakeNvs nvs;
 class Preferences {
 public:
-    bool begin(const char*, bool) { return true; }
+    bool begin(const char* name, bool) { nvs.lastNamespace=name; return !nvs.failBegin; }
     size_t getBytesLength(const char* key) { return nvs.bytes[key].size(); }
     size_t getBytes(const char* key, void* out, size_t size) {
         const auto& value = nvs.bytes[key];

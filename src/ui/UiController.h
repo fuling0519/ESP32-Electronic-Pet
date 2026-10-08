@@ -46,6 +46,7 @@ enum class ScreenId {
     FarewellAnimation,
     FarewellDone,
     FarewellBlocked,
+    Volume,
 };
 
 enum class UiAction : uint8_t {
@@ -61,6 +62,7 @@ enum class UiAction : uint8_t {
     DeleteMemorial,
     SendOff,
     RetryFarewell,
+    SaveVolume,
 };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
@@ -103,6 +105,7 @@ public:
     void onDeepSleepPending(bool pending, bool failed = false);
     void onAdoptionSucceeded(uint32_t now);
     void onMemorialDeleteResult(bool success);
+    void onVolumeSaveResult(bool success);
 
 private:
     void updateSadState();
@@ -112,10 +115,19 @@ private:
     uint32_t lastCareReminderAt_ = 0;
     uint64_t observedPetId_ = 0;
     void setScreen(ScreenId screen);
+    void confirmTo(ScreenId screen);
+    void cancelTo(ScreenId screen);
     void renderBoot();
     void renderHome();
     void renderPetFooter();
     void renderMainMenu();
+    void beginVolume(ScreenId returnScreen);
+    void renderVolume();
+    ScreenId volumeReturnScreen_ = ScreenId::MainMenu;
+    uint8_t originalVolume_ = 1;
+    bool volumeSaveFailed_ = false;
+    bool volumeButtonsFocused_ = false;
+    bool volumeCancelSelected_ = false;
     void renderDetailedStatus();
     void renderDetailedStatusPage1();
     void renderDetailedStatusPage2();

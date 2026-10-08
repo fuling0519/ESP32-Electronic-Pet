@@ -2,6 +2,14 @@
 $ErrorActionPreference = 'Stop'
 $outputPath = Join-Path (Get-Location) '.pio/rps-preview'
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc test/device_settings_native.cpp src/storage/DeviceSettings.cpp -o "$outputPath/device-settings.exe"
+if ($LASTEXITCODE) { throw 'Device settings test build failed.' }
+& "$outputPath/device-settings.exe"
+if ($LASTEXITCODE) { throw 'Device settings tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -DPET_DEEP_SLEEP_TEST_MODE=1 -Itest/support -Isrc test/device_settings_native.cpp src/storage/DeviceSettings.cpp -o "$outputPath/device-settings-test.exe"
+if ($LASTEXITCODE) { throw 'Test settings namespace build failed.' }
+& "$outputPath/device-settings-test.exe"
+if ($LASTEXITCODE) { throw 'Test settings namespace tests failed.' }
 & g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -Iinclude test/sound_native.cpp src/hardware/Sound.cpp -o "$outputPath/sound.exe"
 if ($LASTEXITCODE) { throw 'Sound test build failed.' }
 & "$outputPath/sound.exe"

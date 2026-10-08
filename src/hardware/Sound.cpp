@@ -51,7 +51,22 @@ void Sound::playLevelUp() { playSequence(kLevelUp, 4); }
 void Sound::playCareReminder() { playSequence(kCareReminder, 5); }
 void Sound::playDeath() { playSequence(kDeath, sizeof(kDeath) / sizeof(kDeath[0])); }
 void Sound::startCurrentStep() {
-    ledcWriteTone(HardwareConfig::Sound::LedcChannel, sequence_[sequenceIndex_].frequency);
+    applyCurrentOutput();
     stepStartedAt_ = millis();
+}
+void Sound::setVolume(uint8_t level) {
+    volume_ = level < kVolumeCount ? level : kDefaultVolume;
+    applyCurrentOutput();
+}
+void Sound::applyCurrentOutput() {
+    // Silence before retuning. Unlike ledcWriteTone(), setup preserves our
+    // explicit 8-bit resolution and never introduces a default 50% pulse.
+    ledcWrite(HardwareConfig::Sound::LedcChannel, 0);
+    if (!playing_ || !volume_ || !sequence_[sequenceIndex_].frequency) return;
+    if (ledcSetup(HardwareConfig::Sound::LedcChannel,
+                  sequence_[sequenceIndex_].frequency,
+                  HardwareConfig::Sound::LedcResolutionBits) > 0) {
+        ledcWrite(HardwareConfig::Sound::LedcChannel, 128); // Fixed 50% when enabled.
+    }
 }
 }  // namespace Hardware

@@ -17,6 +17,7 @@
 - 角色採使用者的 64×44 蛋／幼鳥／成鳥素材；`PetIcons` 加上需求／病情圖示與清潔度四階髒污。排版來源見 [OLED 手冊](ui-layout-guide.md)，素材轉換入口見根 README。
 - `src/storage/Save` 逐欄位編碼、CRC32、序號及 NVS A／B 槽；寵物與墓碑分開保存。Memorials 管理遠行／長眠共 32 筆＋1 個死亡溢位槽，以 petId 去重。Farewell 先保存紀念冊備份與已告別寵物，再完成紀念紀錄；開機／定時重試完成後才能領養。V2 保留 V1 解碼，RTC magic 隨快照升級。
 - `src/ble/BleLink` 封裝 NimBLE，callback 收取分片與連線／訂閱事件，主迴圈組合 JSON、處理唯讀查詢及通知。BLE 不寫 NVS 或改養成規則。固定 device_id 取自 eFuse 工廠 MAC，與寵物存檔 ID 分開。
+- `src/storage/DeviceSettings` 保存裝置聲音開關偏好，正式／測試 namespace 為 `pet-prefs`／`pet-prefs-test`，與寵物及紀念冊格式獨立。Application 在啟動時載入並交給 Sound，UI 透過 SaveVolume 動作要求確認保存、再接收成功／失敗結果；喇叭列左右試聽與按鈕／長按取消不寫入。Sound 集中套用靜音／固定 50% PWM，靜音仍保留音序計時。內部沿用 volume／SaveVolume 名稱，數值只允許 0／1；偏好記錄 V2，讀取舊 V1 時把非零音量映射為開啟，開機不重寫。
 - `esp32_pet_app/` 是獨立 Flutter 建置；前端重組、驗證與顯示裝置快照。正式欄位與相容性要求只看 [PROTOCOL](../esp32_pet_app/PROTOCOL.md)。
 
 ## 擴充約束
@@ -26,3 +27,5 @@
 新增雲端層須分開 BLE payload、Web domain、API 與資料庫模型；純 Web 的帳號與偏好不放進韌體。規劃見 [Web 計畫](web-phase-plan.md)。
 
 1.6.1：Save 固定持有紀念冊序列化／驗證／候選更新工作區，避免在 8KB loop task stack 上同時建立多份完整 archive。只有主迴圈呼叫保存，工作區不支援並行／重入；BLE callback 不使用它。
+
+一般 UI 導覽使用 `UiController::confirmTo`／`cancelTo`：先完成 `setScreen` 的清理與聲音設定恢復，再播放一次回饋；`setScreen` 本身不自動播放聲音，供成長、死亡、睡眠等自動轉場使用。聲音設定保存成功後才確認，未變更也確認；取消依恢復後的偏好播放。照顧、遊戲與保存失敗等結果音效仍由相應流程決定，避免把每次換頁都當成玩家確認。

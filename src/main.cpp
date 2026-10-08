@@ -9,6 +9,7 @@
 #include "pet/PetName.h"
 #include "pet/PetClock.h"
 #include "storage/Save.h"
+#include "storage/DeviceSettings.h"
 #include "storage/Farewell.h"
 #include "storage/Memorials.h"
 #if defined(PET_MEMORIAL_SAMPLE_MODE)
@@ -46,6 +47,7 @@ private:
     Hardware::Input input;
     Hardware::Sound sound;
     Storage::Save save;
+    Storage::DeviceSettings settings;
     Pet::PetData pet;
     Pet::PetClock petClock;
     Storage::Memorials memorials;
@@ -173,6 +175,8 @@ void Application::setup() {
     Power::retainedCalibration(retainedX, retainedY);
     input.init(retainedX, retainedY);
     sound.init();
+    if (!settings.init()) Serial.println("Device settings unavailable; sound enabled by default.");
+    sound.setVolume(settings.volume());
     if (!save.init()) {
         Serial.println("NVS init failed; this session will not be saved.");
     } else {
@@ -512,6 +516,9 @@ void Application::loop() {
             ui.onMemorialDeleteResult(deleteSelectedMemorial());
             break;
         case Ui::UiAction::None: break;
+        case Ui::UiAction::SaveVolume:
+            ui.onVolumeSaveResult(settings.saveVolume(sound.volume()));
+            break;
     }
     if (action == Ui::UiAction::Feed || action == Ui::UiAction::Clean ||
         action == Ui::UiAction::Treat) ui.onCareRewardApplied(levelBeforeAction, now);
