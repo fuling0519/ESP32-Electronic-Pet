@@ -1,0 +1,10 @@
+{
+  "scope": "填入本次待提交功能與相關檔案，並說明對照的企劃書章節。",
+  "descriptions": "說明已核對的玩法、數值、需求與架構描述，以及修正內容。",
+  "implementation": "說明已實作與未實作的部分。",
+  "automated_validation": "列出實際執行的測試與結果；未測試請明寫。",
+  "hardware_acceptance": "列出已確認的實機驗收證據；未驗收請明寫。",
+  "next_steps": "說明企劃書下一步是否仍正確，以及更新內容。",
+  "plan_status": "unchanged",
+  "plan_decision": "填入企劃書無須修改的具體理由；若有修改，將 plan_status 改為 updated 並說明修正。"
+}

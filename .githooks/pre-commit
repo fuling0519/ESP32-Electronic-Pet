@@ -1,0 +1,4 @@
+#!/bin/sh
+# Git invokes this after constructing the commit index (including commit -a).
+root=$(git rev-parse --show-toplevel) || exit 1
+python "$root/tools/plan_review.py" check || exit 1

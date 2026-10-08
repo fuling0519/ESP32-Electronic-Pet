@@ -44,3 +44,6 @@ desktop.ini
 *.swp
 *.swo
 *~
+
+# Local commit review receipts and draft reports
+.plan-review/
