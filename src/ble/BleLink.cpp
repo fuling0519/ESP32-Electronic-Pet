@@ -140,6 +140,7 @@ bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& 
     snprintf(id,sizeof(id),"%llu",static_cast<unsigned long long>(pet.petId()));
     snprintf(age,sizeof(age),"%llu",static_cast<unsigned long long>(pet.ageSeconds()));
     p["id"]=id; p["name"]=pet.name(); p["life_stage"]=stage(pet.lifeStage());
+    p["species_id"]=static_cast<uint8_t>(pet.speciesId());
     p["satiety"]=pet.satiety(); p["mood"]=pet.mood(); p["cleanliness"]=pet.cleanliness();
     p["age_seconds"]=age; p["health"]=health(pet.healthState());
     p["is_departed"]=pet.isDeparted(); p["is_dead"]=pet.isDead(); p["sleep"]=sleep(pet.sleepMode());

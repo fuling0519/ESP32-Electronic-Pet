@@ -21,6 +21,8 @@
 - [farewell-test.md](farewell-test.md)：送別、紀念冊、存檔升級及中斷恢復驗收；含實際 UI 動畫預覽。
 - [volume-test.md](volume-test.md)：靜音／有聲音、舊四級偏好相容、實際 UI 預覽、自動測試與上板步驟；進度只在 A5-SOUND。
 - [cleaning-test.md](cleaning-test.md)：首頁清潔動畫的自動檢查、實際畫面預覽與實機操作步驟；進度及驗收回報仍在主台帳清潔動畫增量（A5-CARE／A5-VIS）。
+- [wyvern-test.md](wyvern-test.md)：小飛龍種類抽選、動畫、存檔相容、固定龍測試版與實際 UI 預覽；實機回報仍在主台帳 A5-PET。
+- [storage-recovery.md](storage-recovery.md)：持續存檔失敗的退避、容量提示、限定舊測試資料清理與備份；進度只在主台帳 A6-SAVE。
 - [exp-level-plan.md](exp-level-plan.md)：EXP、升級、滿等與畫面規則，以及 1.4.0 驗證證據及上板步驟；進度仍在 A3-EXP。
 - [rps-game-plan.md](rps-game-plan.md)：猜拳規則、畫面座標及素材分工；[rps-game-test.md](rps-game-test.md) 保存可重跑的測試方法與本次證據，進度仍在 A5-GAME。
 - [memory-notes-plan.md](memory-notes-plan.md)：記憶音符五回合玩法、四方向／回中操作、獎勵、像素座標與上板驗收；進度仍在 A5-GAME。

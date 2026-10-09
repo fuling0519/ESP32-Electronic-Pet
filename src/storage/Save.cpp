@@ -3,13 +3,26 @@
 #include <Arduino.h>
 #include <stddef.h>
 #include <string.h>
+#include <nvs.h>
 
 #include "storage/SaveFormat.h"
 
 namespace Storage {
 namespace {
 
-#if defined(PET_SAD_TEST_MODE)
+#if defined(PET_WYVERN_TEST_MODE)
+#if defined(PET_TREATMENT_TEST_MODE)
+#if defined(PET_TREATMENT_TEST_BABY)
+constexpr char kNamespace[] = "pet-w-treat-b";
+#else
+constexpr char kNamespace[] = "pet-w-treat-a";
+#endif
+#elif defined(PET_SAD_TEST_BABY)
+constexpr char kNamespace[] = "pet-w-sad-b";
+#else
+constexpr char kNamespace[] = "pet-w-sad-a";
+#endif
+#elif defined(PET_SAD_TEST_MODE)
 #if defined(PET_SAD_TEST_BABY)
 constexpr char kNamespace[] = "pet-sad-b";
 #else
@@ -365,11 +378,46 @@ bool sequenceIsNewer(uint32_t candidate, uint32_t reference) {
     return static_cast<int32_t>(candidate - reference) > 0;
 }
 
+uint32_t elapsedSince(uint32_t now, uint32_t then) {
+    // A synchronous checkpoint can finish after the loop's captured `now`.
+    // Treat that small negative delta as zero, while supporting millis rollover.
+    const uint32_t delta = now - then;
+    return static_cast<int32_t>(delta) < 0 ? 0 : delta;
+}
+
 }  // namespace
 
 bool Save::init() {
     initialized_ = preferences_.begin(kNamespace, false);
+    if (initialized_) refreshCapacity();
     return initialized_;
+}
+
+void Save::refreshCapacity() {
+    nvs_stats_t stats{};
+    if (nvs_get_stats(nullptr, &stats) != ESP_OK) {
+        capacityKnown_ = false;
+        return;
+    }
+    const bool wasLow = capacityLow();
+    const bool first = !capacityKnown_;
+    capacityKnown_ = true;
+    freeEntries_ = stats.free_entries;
+    if (first || wasLow != capacityLow()) {
+        Serial.printf("NVS capacity: used=%u free=%u total=%u namespaces=%u%s\n",
+            static_cast<unsigned>(stats.used_entries), static_cast<unsigned>(stats.free_entries),
+            static_cast<unsigned>(stats.total_entries), static_cast<unsigned>(stats.namespace_count),
+            capacityLow() ? " LOW" : "");
+    }
+}
+
+bool Save::failedSaveAttempt() {
+    if (saveFailures_ < 4) ++saveFailures_;
+    const uint32_t delays[] = {5000, 10000, 30000, 60000};
+    retryDelayMs_ = delays[saveFailures_ - 1];
+    lastSaveAttemptAtMs_ = millis();
+    refreshCapacity();
+    return false;
 }
 
 bool Save::isInitialized() const { return initialized_; }
@@ -401,20 +449,24 @@ LoadStatus Save::load(Pet::PetData& pet) {
 bool Save::save(const Pet::PetData& pet) {
     if (!initialized_ || writesBlocked_) return false;
     const Pet::PetSnapshotV1 snapshot = pet.snapshot();
-    if (!Pet::isValidPetSnapshot(snapshot)) return false;
+    if (!Pet::isValidPetSnapshot(snapshot)) return failedSaveAttempt();
     const uint32_t nextSequence = sequence_ + 1;
     uint8_t record[kPetSaveRecordSize]{};
-    if (!encodeRecord(snapshot, nextSequence, record)) return false;
+    if (!encodeRecord(snapshot, nextSequence, record)) return failedSaveAttempt();
     const bool targetSlotA = !hasActiveSlot_ || !activeSlotA_;
     const char* targetKey = targetSlotA ? kSlotAKey : kSlotBKey;
-    if (preferences_.putBytes(targetKey, record, sizeof(record)) != sizeof(record)) return false;
+    if (preferences_.putBytes(targetKey, record, sizeof(record)) != sizeof(record)) return failedSaveAttempt();
     const SlotRecord verified = readSlot(preferences_, targetKey);
-    if (!verified.valid || verified.sequence != nextSequence) return false;
+    if (!verified.valid || verified.sequence != nextSequence) return failedSaveAttempt();
     activeSlotA_ = targetSlotA;
     hasActiveSlot_ = true;
     sequence_ = nextSequence;
     dirty_ = false;
     lastSaveAtMs_ = millis();
+    lastSaveAttemptAtMs_ = lastSaveAtMs_;
+    saveFailures_ = 0;
+    retryDelayMs_ = 0;
+    refreshCapacity();
     return true;
 }
 
@@ -478,7 +530,8 @@ void Save::markDirty(uint32_t nowMs) {
 
 void Save::update(const Pet::PetData& pet, uint32_t nowMs) {
     if (!initialized_ || writesBlocked_) return;
-    const uint32_t sinceLastSave = nowMs - lastSaveAtMs_;
+    if (saveFailures_ && elapsedSince(nowMs, lastSaveAttemptAtMs_) < retryDelayMs_) return;
+    const uint32_t sinceLastSave = elapsedSince(nowMs, lastSaveAtMs_);
     if (!dirty_) {
         if (sinceLastSave < kPeriodicSaveIntervalMs) return;
         markDirty(nowMs - kDeferredSaveMs);

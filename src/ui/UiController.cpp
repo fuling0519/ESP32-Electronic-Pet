@@ -178,6 +178,7 @@ void UiController::init(uint32_t now) {
     observedLifeStage_ = pet_.lifeStage();
     dirty_ = true;
     pendingAction_ = UiAction::None;
+    normalSleepFailed_ = storageSaveFailed_ = storageLow_ = false;
     game_.cancel();
     memoryNotes_.cancel();
     selectedGame_ = 0;
@@ -399,7 +400,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     feeding_ = false;
                     dirty_ = true;
                 } else {
-                    const uint8_t frame = (elapsed / kFeedingFrameMs) % 2;
+                    const bool wyvern = pet_.speciesId() == Pet::SpeciesId::Wyvern;
+                    const uint8_t frame = (elapsed / (wyvern ? 375 : kFeedingFrameMs)) % (wyvern ? 4 : 2);
                     const uint8_t bowlStage = elapsed / 1000;
                     if (frame != feedingFrame_ || bowlStage != feedingBowlStage_) {
                         feedingFrame_ = frame;
@@ -411,8 +413,11 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 }
             }
             {
-                const uint8_t frame = (now % kBirdIdleCycleMs) >=
-                    kBirdIdleSecondFrameAtMs ? 1 : 0;
+                const bool wyvern = pet_.speciesId() == Pet::SpeciesId::Wyvern &&
+                    pet_.lifeStage() != Pet::LifeStage::Egg;
+                const uint8_t frame = wyvern ? (sad_ ? (now / 1000) % 2 :
+                    ((now % 1000) * 6 / 1000) % 2) :
+                    ((now % kBirdIdleCycleMs) >= kBirdIdleSecondFrameAtMs ? 1 : 0);
                 if (frame != homeAnimationFrame_) {
                     homeAnimationFrame_ = frame;
                     dirty_ = true;
@@ -469,7 +474,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                         selectedGame_ = 0;
                         setScreen(ScreenId::GameSelect); break;
                     case 4:
-                        restOption_ = 0; deepSleepFailed_ = false;
+                        restOption_ = 0; deepSleepFailed_ = normalSleepFailed_ = false;
                         setScreen(ScreenId::Rest); break;
                     case 5: setScreen(ScreenId::DetailedStatus); break;
                     case 8: beginVolume(ScreenId::MainMenu); break;
@@ -523,7 +528,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         case ScreenId::Rest:
             if (deepSleepPending_) break;
             if (event == Hardware::InputEvent::Up || event == Hardware::InputEvent::Down) {
-                restOption_ = 1 - restOption_; deepSleepFailed_ = false; dirty_ = true;
+                restOption_ = 1 - restOption_; deepSleepFailed_ = normalSleepFailed_ = false; dirty_ = true;
             } else if (event == Hardware::InputEvent::Press) {
                 if (pet_.lifeStage() == Pet::LifeStage::Egg) {
                     sound_.playFailure();
@@ -538,8 +543,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         case ScreenId::Sleeping:
             {
                 const uint32_t elapsed = now - sleepStartedAtMs_;
-                const uint8_t birdFrame = static_cast<uint8_t>(
-                    (elapsed / kSleepBirdFrameMs) % 2);
+                const bool wyvern = pet_.speciesId() == Pet::SpeciesId::Wyvern;
+                const uint8_t birdFrame = wyvern && sleepVisualStage_ == Pet::LifeStage::Adult ? 0 :
+                    static_cast<uint8_t>((elapsed / (wyvern ? 1000 : kSleepBirdFrameMs)) % 2);
                 const uint8_t zPhase = static_cast<uint8_t>(
                     (elapsed / kSleepZFrameMs) % 3);
                 if (birdFrame != sleepAnimationFrame_ ||
@@ -931,12 +937,25 @@ void UiController::onTreatResult(bool success, uint32_t now) {
 }
 
 void UiController::onSleepStarted(uint32_t now) {
+    normalSleepFailed_ = false;
     updateSadState();
     sleepStartedAtMs_ = now;
     sleepAnimationFrame_ = 0;
     sleepZPhase_ = 0;
     sleepVisualStage_ = pet_.lifeStage();
     setScreen(ScreenId::Sleeping);
+}
+
+void UiController::onNormalSleepFailed() {
+    normalSleepFailed_ = true;
+    dirty_ = true;
+}
+
+void UiController::setStorageStatus(bool saveFailed, bool capacityLow) {
+    if (storageSaveFailed_ == saveFailed && storageLow_ == capacityLow) return;
+    storageSaveFailed_ = saveFailed;
+    storageLow_ = capacityLow;
+    dirty_ = true;
 }
 
 void UiController::onWakeSucceeded() {
@@ -1057,15 +1076,15 @@ void UiController::renderHome() {
                            PetIcons::kCleaningWidth, PetIcons::kCleaningHeight);
     } else if (feeding_) {
         PetIcons::drawEatingPet(display_, 32, 6, pet_.lifeStage(),
-                               feedingFrame_, feedingBowlStage_);
+                               feedingFrame_, feedingBowlStage_, pet_.speciesId());
     } else if (sad && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawSadPet(display_, 32, 6,
                             treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
-                            treating_ ? 0 : homeAnimationFrame_);
+                            treating_ ? 0 : homeAnimationFrame_, pet_.speciesId(), !treating_);
     } else {
         PetIcons::drawPet(display_, 32, 6,
                           treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
-                          eggCrackStage_, treating_ ? 0 : homeAnimationFrame_);
+                          eggCrackStage_, treating_ ? 0 : homeAnimationFrame_, pet_.speciesId());
     }
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     if (pet_.lifeStage() != Pet::LifeStage::Egg) {
@@ -1084,7 +1103,9 @@ void UiController::renderHome() {
             const uint8_t frame = treatmentElapsedMs_ < 250 ? 0 :
                 treatmentElapsedMs_ < 500 ? 1 : treatmentElapsedMs_ < 850 ? 2 :
                 treatmentElapsedMs_ < kTreatmentPourDoneMs ? 3 : 4;
-            display_.drawGlyph(78, 1, PetIcons::kPotionFrames[frame],
+            const int16_t potionX = pet_.speciesId() == Pet::SpeciesId::Wyvern &&
+                treatmentVisualStage_ == Pet::LifeStage::Adult ? 88 : 78;
+            display_.drawGlyph(potionX, 1, PetIcons::kPotionFrames[frame],
                                PetIcons::kPotionWidth, PetIcons::kPotionHeight);
         } else {
             const uint8_t frame = (treatmentElapsedMs_ - kTreatmentSparkleStartMs) / 125;
@@ -1126,7 +1147,9 @@ void UiController::onCareRewardApplied(uint8_t previousLevel, uint32_t now) {
 void UiController::renderMainMenu() {
     display_.clear();
     display_.drawFrame(0, 0, 128, 64);
-    display_.drawUiText(9, 14, "選單");
+    display_.drawUiText(9, 14, storageSaveFailed_ ?
+        (storageLow_ ? "存檔空間不足" : "存檔失敗") :
+        storageLow_ ? "存檔空間偏低" : "選單");
     char pageText[4];
     snprintf(pageText, sizeof(pageText), "%u/3",
              static_cast<unsigned>(menuIndex_ / 3 + 1));
@@ -1257,7 +1280,7 @@ void UiController::renderDetailedStatusPage2() {
 
     display_.drawUiText(kStatusLabelX, 55, "階段");
     const char* stage = pet_.lifeStage() == Pet::LifeStage::Egg ? "蛋" :
-        pet_.lifeStage() == Pet::LifeStage::Baby ? "幼鳥" : "成鳥";
+        pet_.lifeStage() == Pet::LifeStage::Baby ? "幼年" : "成年";
     display_.drawUiText(kStatusValueRight - display_.uiTextWidth(stage), 55, stage);
 }
 
@@ -1611,7 +1634,9 @@ void UiController::renderLevelUp() {
     const uint8_t phase = levelUpFrame_ % 8;
     const int16_t jump = phase == 2 || phase == 3 ? 2 :
                          phase == 1 || phase == 4 ? 1 : 0;
-    PetIcons::drawPet(display_, 32, 7 - jump, pet_.lifeStage(), 0, phase / 4);
+    const int16_t baseY = pet_.speciesId() == Pet::SpeciesId::Wyvern &&
+        pet_.lifeStage() == Pet::LifeStage::Adult ? 9 : 7;
+    PetIcons::drawPet(display_, 32, baseY - jump, pet_.lifeStage(), 0, phase / 4, pet_.speciesId());
     drawSparkles(display_, levelUpFrame_, 18, 109);
     char left[8], right[8];
     snprintf(left, sizeof(left), "Lv%u", levelUpPreviousLevel_);
@@ -1658,8 +1683,9 @@ void UiController::renderRest() {
         drawCenteredUiText(display_, 55, "Hold SW: cancel");
         return;
     }
-    if (deepSleepFailed_) {
-        drawCenteredUiText(display_, 38, "Sleep failed");
+    if (deepSleepFailed_ || normalSleepFailed_) {
+        drawCenteredUiText(display_, 38, storageSaveFailed_ ?
+            (storageLow_ ? "存檔空間不足" : "存檔失敗") : "入睡失敗");
         drawCenteredUiText(display_, 55, "長按返回");
         return;
     }
@@ -1673,7 +1699,7 @@ void UiController::renderSleeping() {
     PetIcons::drawMood(display_, 3, 3, pet_.moodState());
     PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
     PetIcons::drawSleepingPet(display_, 32, 6, sleepVisualStage_,
-                              sleepAnimationFrame_);
+                              sleepAnimationFrame_, pet_.speciesId());
     if (pet_.isSick()) PetIcons::drawSick(display_, 113, 7);
     PetIcons::drawCleaningAlert(display_, 113, 23,
                                 pet_.cleanlinessState());
@@ -1681,7 +1707,10 @@ void UiController::renderSleeping() {
     PetIcons::drawStatusCard(display_, 113, 40);
     const char* zText = sleepZPhase_ == 0 ? "Z" :
         sleepZPhase_ == 1 ? "Zz" : "Zzz";
-    display_.drawSmallText(78, 17, zText);
+    const bool wyvern = pet_.speciesId() == Pet::SpeciesId::Wyvern;
+    const bool baby = sleepVisualStage_ == Pet::LifeStage::Baby;
+    display_.drawSmallText(wyvern ? (baby ? 76 : 83) : 78,
+                          wyvern ? (baby ? 23 : 15) : 17, zText);
     PetIcons::drawDirt(display_, pet_.cleanlinessState());
     renderPetFooter();
 }
@@ -1689,10 +1718,10 @@ void UiController::renderSleeping() {
 void UiController::renderHatchTransition() {
     display_.clear();
     if (growthTransitionElapsedMs_ < 700) {
-        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Egg, 2, 0);
+        PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Egg, 2, 0, pet_.speciesId());
     } else if (growthTransitionElapsedMs_ >= 1000) {
         PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Baby, 0,
-                          growthTransitionFrame_ % 2);
+                          growthTransitionFrame_ % 2, pet_.speciesId());
         char message[Pet::kPetNameMaxLength + sizeof(" 孵化了！")];
         snprintf(message, sizeof(message), "%s 孵化了！", pet_.name());
         drawCenteredUiText(display_, 62, message);
@@ -1708,10 +1737,10 @@ void UiController::renderGrowTransition() {
     display_.clear();
     if (growthTransitionElapsedMs_ < 700) {
         PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Baby, 0,
-                          growthTransitionFrame_ % 2);
+                          growthTransitionFrame_ % 2, pet_.speciesId());
     } else if (growthTransitionElapsedMs_ >= 1000) {
         PetIcons::drawPet(display_, 32, 2, Pet::LifeStage::Adult, 0,
-                          growthTransitionFrame_ % 2);
+                          growthTransitionFrame_ % 2, pet_.speciesId());
         drawCenteredUiText(display_, 62, "長大了!");
     } else {
         display_.drawLine(29, 22, 35, 22);
@@ -1728,7 +1757,7 @@ void UiController::renderDeathAnimation() {
     if (deathAnimationElapsedMs_ >= 700) dissolveStage = 1;
     if (deathAnimationElapsedMs_ >= 1400) dissolveStage = 2;
     if (deathAnimationElapsedMs_ >= 2100) dissolveStage = 3;
-    PetIcons::drawPetDissolve(display_, 32, 14, pet_.lifeStage(), dissolveStage);
+    PetIcons::drawPetDissolve(display_, 32, 14, pet_.lifeStage(), dissolveStage, pet_.speciesId());
 
     if (deathAnimationElapsedMs_ >= 300) {
         const uint32_t soulElapsed = deathAnimationElapsedMs_ - 300;
@@ -1857,7 +1886,7 @@ void UiController::renderGraveyard() {
         memorial->stage == static_cast<uint8_t>(Pet::LifeStage::Baby) ||
         memorial->stage == static_cast<uint8_t>(Pet::LifeStage::Adult);
     if (hasPortrait) {
-        PetIcons::drawMemorialPet(display_, static_cast<Pet::LifeStage>(memorial->stage), !departed);
+        PetIcons::drawMemorialPet(display_, static_cast<Pet::LifeStage>(memorial->stage), !departed, memorial->speciesId);
     } else {
         PetIcons::drawTombstone(display_, 7, 23, 37, 37);
         display_.drawSmallText(18, 38, "RIP");
@@ -1889,7 +1918,7 @@ void UiController::onFarewellResult(bool success, uint32_t now) {
 void UiController::renderFarewell() {
     display_.clear();
     if (screen_ == ScreenId::FarewellDone) {
-        PetIcons::drawCenteredPostcardPet(display_, pet_.lifeStage());
+        PetIcons::drawCenteredPostcardPet(display_, pet_.lifeStage(), pet_.speciesId());
         display_.drawFrame(2, 2, 124, 60);
         display_.drawLine(64, 8, 64, 55);
         display_.drawText(75, 35, pet_.name());
@@ -1916,7 +1945,7 @@ void UiController::renderFarewell() {
             for (int16_t y = 0; y < 64; ++y) display_.drawLine(0, y, 127, y);
         } else {
             PetIcons::drawPet(display_, 32, 0, pet_.lifeStage(), 0,
-                             farewellElapsedMs_ >= kBirdIdleSecondFrameAtMs ? 1 : 0);
+                             farewellElapsedMs_ >= kBirdIdleSecondFrameAtMs ? 1 : 0, pet_.speciesId());
             display_.drawText(64 - static_cast<int16_t>(strlen(pet_.name()) * 3), 57, pet_.name());
             for (int16_t x : {3, 124}) for (int16_t y : {3, 61}) {
                 display_.drawLine(x, y, x + (x == 3 ? 10 : -10), y);

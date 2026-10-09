@@ -9,10 +9,6 @@ bool isValidTimestamp(const SavedTimestamp& timestamp) {
     return timestamp.valid ? timestamp.unixSeconds > 0 : timestamp.unixSeconds == 0;
 }
 
-bool isKnownSpecies(SpeciesId species) {
-    return species == SpeciesId::Bird;
-}
-
 bool isKnownLifeStage(LifeStage stage) {
     return stage == LifeStage::Egg || stage == LifeStage::Baby ||
            stage == LifeStage::Adult;

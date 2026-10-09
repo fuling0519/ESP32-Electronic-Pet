@@ -254,12 +254,12 @@ void PetData::startNewEgg() {
     ++displayRevision_;
 }
 
-bool PetData::startNewEgg(uint64_t petId, const char* name) {
-    if (petId == 0 || !isValidPetName(name)) return false;
+bool PetData::startNewEgg(uint64_t petId, const char* name, SpeciesId species) {
+    if (petId == 0 || !isValidPetName(name) || !isKnownSpecies(species)) return false;
     petId_ = petId;
     memset(name_, 0, sizeof(name_));
     strncpy(name_, name, kPetNameMaxLength);
-    speciesId_ = SpeciesId::Bird;
+    speciesId_ = species;
     startNewEgg();
     return true;
 }

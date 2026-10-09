@@ -8,6 +8,14 @@ void main() {
     'sleep': 'awake', 'satiety': 80, 'mood': 100, 'cleanliness': 100,
   };
   assert(PetSnapshot.parse(base)?.level == null);
+  assert(PetSnapshot.parse(base)?.speciesId == 1);
+  assert(PetSnapshot.parse({...base, 'species_id': 2})?.speciesName == '小飛龍');
+  assert(PetSnapshot.parse({...base, 'species_id': 2})?.portraitEmoji == '🐉');
+  assert(PetSnapshot.parse({...base, 'species_id': 3})?.speciesName == '未知種類');
+  assert(PetSnapshot.parse({...base, 'species_id': 3})?.portraitEmoji == '？');
+  for (final value in [null, '2', 0, -1, 256, 2.0]) {
+    assert(PetSnapshot.parse({...base, 'species_id': value}) == null);
+  }
   final progress = {...base, 'level': 2, 'exp': 10, 'exp_to_next_level': 75};
   final pet = PetSnapshot.parse(progress)!;
   assert(pet.level == 2 && pet.exp == 10 && pet.expToNextLevel == 75);

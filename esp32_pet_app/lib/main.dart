@@ -311,7 +311,7 @@ class _PetHomePageState extends State<PetHomePage> {
     if (pet.isDead) return '已死亡';
     if (pet.sleep == 'normal') return '睡眠中';
     if (pet.health == 'sick') return '生病';
-    switch (pet.stage) { case 'egg': return '蛋'; case 'baby': return '幼鳥'; case 'adult': return '成鳥'; }
+    switch (pet.stage) { case 'egg': return '蛋'; case 'baby': return '幼年'; case 'adult': return '成年'; }
     return '未知狀態';
   }
 
@@ -368,10 +368,11 @@ class _PetHomePageState extends State<PetHomePage> {
               Container(width: double.infinity, padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: const Color(0xff9bbc0f), border: Border.all(color: const Color(0xff3b4b16), width: 3), borderRadius: BorderRadius.circular(14)),
                 child: Column(children: [
-                  Text(pet?.isDeparted == true ? '👋' : pet?.isDead == true ? '†' : pet?.stage == 'egg' ? '🥚' : pet?.stage == 'baby' ? '🐣' : pet?.stage == 'adult' ? '🐦' : '—', style: const TextStyle(fontSize: 48)),
+                  Text(pet?.portraitEmoji ?? '—', style: const TextStyle(fontSize: 48)),
                   Text(pet?.name ?? '等待 ESP32 狀態'),
                   Text(_stateLabel),
                   if (pet != null) Text('寵物 ID：${pet.id}'),
+                  if (pet != null && pet.stage != 'egg') Text('種類：${pet.speciesName}'),
                 ]),
               ),
               if (_lastReceived != null) ...[

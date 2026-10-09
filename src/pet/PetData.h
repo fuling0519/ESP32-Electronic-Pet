@@ -127,7 +127,8 @@ public:
     void startNewEgg();
     // Starts a distinct logical pet. Identity is validated before any state is
     // changed so a failed adoption cannot partially overwrite a dead pet.
-    bool startNewEgg(uint64_t petId, const char* name);
+    bool startNewEgg(uint64_t petId, const char* name,
+                     SpeciesId species = SpeciesId::Bird);
     // Advances awake time in whole seconds. Keep the remainders with the pet
     // so future recovery can resume without losing partial intervals.
     void advanceSeconds(uint32_t seconds);

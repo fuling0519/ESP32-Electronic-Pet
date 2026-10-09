@@ -9,6 +9,7 @@
 #include "pet/PetName.h"
 #include "pet/PetClock.h"
 #include "storage/Save.h"
+#include "storage/Adoption.h"
 #include "storage/DeviceSettings.h"
 #include "storage/Farewell.h"
 #include "storage/Memorials.h"
@@ -26,6 +27,18 @@
 namespace {
 constexpr bool kDebugUi = true;
 
+Pet::SpeciesId newEggSpecies(uint32_t bits) {
+#if defined(PET_WYVERN_TEST_MODE)
+    (void)bits;
+    return Pet::SpeciesId::Wyvern;
+#elif defined(PET_SAD_TEST_MODE) || defined(PET_TREATMENT_TEST_MODE)
+    (void)bits;
+    return Pet::SpeciesId::Bird;
+#else
+    return Pet::speciesForNewEgg(bits);
+#endif
+}
+
 // Application owns the current pet. UI borrows it read-only, without a copy.
 class Application {
 public:
@@ -35,6 +48,7 @@ public:
 private:
     void printUiState(Hardware::InputEvent event);
     bool prepareNewEgg(Pet::PetData& target, uint64_t petId);
+    void generateNewName(char (&name)[Pet::kPetNameMaxLength + 1]);
     bool ensureCurrentMemorialSaved();
     bool startNormalSleep(uint32_t now);
     bool wakeFromNormalSleep(uint32_t now);
@@ -47,6 +61,7 @@ private:
     Hardware::Input input;
     Hardware::Sound sound;
     Storage::Save save;
+    Storage::Adoption adoption;
     Storage::DeviceSettings settings;
     Pet::PetData pet;
     Pet::PetClock petClock;
@@ -56,6 +71,7 @@ private:
     uint64_t lastEggCheckpointMinute = 0;
     bool memorialReady = false;
     uint32_t farewellRetryAt = 0;
+    uint32_t lastCapacityCheckAt = 0;
     bool appReady = false;
     bool deepPending = false;
     uint32_t deepRequestedAt = 0;
@@ -93,13 +109,17 @@ void Application::printUiState(Hardware::InputEvent event) {
     }
 }
 
-bool Application::prepareNewEgg(Pet::PetData& target, uint64_t petId) {
-    char name[Pet::kPetNameMaxLength + 1]{};
+void Application::generateNewName(char (&name)[Pet::kPetNameMaxLength + 1]) {
     for (uint8_t attempt = 0; attempt < 8; ++attempt) {
         Pet::generateAbbName(esp_random(), name);
         if (!memorials.containsName(name)) break;
     }
-    return target.startNewEgg(petId, name);
+}
+
+bool Application::prepareNewEgg(Pet::PetData& target, uint64_t petId) {
+    char name[Pet::kPetNameMaxLength + 1]{};
+    generateNewName(name);
+    return target.startNewEgg(petId, name, newEggSpecies(esp_random()));
 }
 
 bool Application::ensureCurrentMemorialSaved() {
@@ -142,9 +162,13 @@ bool Application::adoptNewEgg(uint32_t now) {
     uint64_t highestId = memorials.highestPetId();
     if (pet.petId() > highestId) highestId = pet.petId();
     if (highestId == UINT64_MAX) return false;
-    Pet::PetData candidate;
-    if (!prepareNewEgg(candidate, highestId + 1) || !save.save(candidate) ||
-        !pet.restore(candidate.snapshot())) return false;
+    if (!adoption.prepared()) {
+        char name[Pet::kPetNameMaxLength + 1]{};
+        generateNewName(name);
+        const uint32_t bits = newEggSpecies(esp_random()) == Pet::SpeciesId::Wyvern ? 1 : 0;
+        if (!adoption.prepare(highestId + 1, name, bits)) return false;
+    }
+    if (!adoption.commit(save, pet)) return false;
     memorialReady = false;
     ui.setMemorialReady(false);
     petClock.reset(now);
@@ -302,6 +326,8 @@ void Application::setup() {
     Serial.println("Sleep test mode: entering sleep sets satiety to zero; mood recovers every 20 seconds with one low need (paused with two), sickness starts after 20 seconds, and death follows 30 seconds later.");
 #endif
     ui.init(now);
+    ui.setStorageStatus(save.hasSaveFailure(), save.capacityLow());
+    lastCapacityCheckAt = now;
     if (resumedFromDeep && !pet.isEnded()) ui.onWakeSucceeded();
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
         pet.ageSeconds() / 60 : 0;
@@ -480,6 +506,7 @@ void Application::loop() {
                 sound.playConfirm();
                 actionSavedImmediately = true;
             } else {
+                ui.onNormalSleepFailed();
                 sound.playFailure();
             }
             break;
@@ -530,6 +557,11 @@ void Application::loop() {
         save.markDirty(now);
     }
     save.update(pet, now);
+    if (now - lastCapacityCheckAt >= 30000) {
+        lastCapacityCheckAt = now;
+        save.refreshCapacity();
+    }
+    ui.setStorageStatus(save.hasSaveFailure(), save.capacityLow());
     if (changed) printUiState(event);
     sound.update();
     ui.render();

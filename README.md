@@ -1,6 +1,10 @@
-# ESP32 Electronic Pet／神秘蛋電子寵物 2026/10/01
+# ESP32 Electronic Pet／神秘蛋電子寵物
 
 這是以 ESP32 NodeMCU-32S 製作的離線電子寵物。本文件負責環境、建置及操作入口。
+
+目前正式韌體為 1.8.1；自 1.8.0 起加入第二種寵物「小飛龍」：每顆新蛋小鳥／小飛龍各 50%，種類沿用到成長、睡眠與紀念冊；現有小鳥存檔保留原種類。[小飛龍驗收與固定種類測試版](docs/wyvern-test.md)。
+
+1.8.1 修正存檔失敗造成的連續重試、增加容量提示，階段文字改為幼年／成年。[存檔修復與維護操作](docs/storage-recovery.md)。
 
 **開發與實機驗收進度只看 [主企畫第 10 節](docs/project-plan.md#progress)**；所有文件的用途見 [文件導覽](docs/README.md)。容量實測數字由主進度連到有日期的建置紀錄，README 不另外複製。
 
@@ -15,7 +19,18 @@
 
 ## 小鳥 Web 展示入口
 
-下載本專案後，直接以瀏覽器開啟 [web-preview/index.html](web-preview/index.html)，同資料夾的 app.js、style.css 與 assets/ 必須一起保留。此入口是本機模擬展示，不需要安裝套件；裝置連線按鈕目前提供說明。正式 Web 進度與驗收只見主企畫第 10 節 W2。
+下載本專案後，直接以瀏覽器開啟 [web-preview/index.html](web-preview/index.html)，同資料夾的 app.js、style.css 與 assets/ 必須一起保留。此入口是本機模擬展示，不需要安裝套件；裝置連線視窗已接入 BLE 唯讀搜尋與狀態讀取，須透過 localhost／HTTPS 及支援的瀏覽器使用；直接開啟檔案可使用模擬展示。此花園仍以小鳥造型呈現，尚未接入小飛龍美術。正式 Web 進度與驗收只見主企畫第 10 節 W2。
+
+## BLE 狀態檢視入口
+
+要查看 ESP32 的真實狀態，可使用 [Flutter 檢視 App](esp32_pet_app/README.md)。安裝 Flutter 與 Chrome 後，在 `esp32_pet_app/` 執行：
+
+```text
+flutter pub get
+flutter run -d chrome
+```
+
+保持終端機開啟、筆電藍牙開啟及 ESP32 供電清醒；網頁按「搜尋裝置」，選擇 ESP32-PET，再點裝置列連線。此介面唯讀，照顧操作仍在裝置端執行；省電睡眠會斷線，醒後重新連接。支援種類顯示的 Flutter 介面與小鳥花園展示為不同入口；驗收紀錄統一見主企劃。
 
 ## 開發環境與建置
 
@@ -39,7 +54,7 @@ pio run -e esp32dev -t upload
 pio device monitor -b 115200
 ```
 
-只有要重新產生字圖素材時才需要 Python。建議安裝 Python 3.10 以上；`tools/generate_ui_font.py` 只用標準函式庫，`tools/generate_bird_sprite.py` 需要 Pillow 12.3.0。建議在專案根目錄先建立並啟用 `.venv`，再安裝 requirements：
+只有要重新產生字圖素材時才需要 Python。建議安裝 Python 3.10 以上；`tools/generate_ui_font.py` 只用標準函式庫，`tools/generate_bird_sprite.py` 與 `tools/generate_wyvern_sprite.py` 需要 Pillow 12.3.0。建議在專案根目錄先建立並啟用 `.venv`，再安裝 requirements：
 
 ```text
 python -m venv .venv
@@ -61,6 +76,8 @@ ESP32 韌體資料使用 Preferences／NVS。MySQL、SQLite 都不是目前韌�
 
 傷心表情／照顧提醒使用 `esp32dev_sad_test`（成鳥）或 `esp32dev_sad_baby_test`（幼鳥）。冷開機先顯示正常小鳥，初始化後約 8 秒在首頁自動變低心情並提醒一次；使用獨立測試存檔，提示冷卻縮為 10 秒，其他養成／疾病時程沿用正式版。序列監控輸入單一數字 0～9 可切換正常、低心情、飢餓、髒污、生病、複合原因與恢復邊界；[測試與燒錄步驟](docs/sad-state-test.md#快速上板測試版本)。
 
+小飛龍固定種類測試版為 `esp32dev_wyvern_test`（成年）及 `esp32dev_wyvern_baby_test`（幼年），倒藥預覽使用 `esp32dev_wyvern_treatment_test`／`esp32dev_wyvern_treatment_baby_test`；用途與命名空間見 [小飛龍驗收](docs/wyvern-test.md)。`esp32dev_nvs_maintenance` 是存檔維護工具，啟動只做盤點；明確送出清理命令後才清理舊測試資料，完成後須燒回正式版。操作見 [存檔修復](docs/storage-recovery.md)。各測試 namespace 共用同一個 NVS 分割區，容量並非彼此隔離。
+
 死亡動畫可用專用測試環境在約 30 秒內驗收；此環境開機後直接把測試寵物設為生病，正式 `esp32dev` 環境仍使用六小時生病、24 小時清醒疾病死亡門檻：
 
 ```text
@@ -75,14 +92,14 @@ pio run -e esp32dev_memorial_test
 pio run -e esp32dev_memorial_test -t upload
 ```
 
-一般睡眠可用獨立的快速測試環境驗收。它每次開機建立心情 50 的成鳥，進入睡眠時才把飽食設為 0；睡眠時每 10 秒恢復 1 點心情，飽食為 0 持續 20 秒後生病，再過 30 秒會在睡夢中死亡。此環境使用獨立 NVS namespace，不影響正式寵物：
+一般睡眠可用獨立的快速測試環境驗收。它每次開機建立心情 50 的成鳥，進入睡眠時才把飽食設為 0；睡眠心情按需求狀態每 10／20 秒 +1 或暫停；入睡後飽食為 0，依低需求規則降低恢復速度或暫停。飽食為 0 持續 20 秒後生病，再過 30 秒會在睡夢中死亡。此環境使用獨立 NVS namespace，不影響正式寵物：
 
 ```text
 pio run -e esp32dev_sleep_test
 pio run -e esp32dev_sleep_test -t upload
 ```
 
-手動深度睡眠測試使用 `esp32dev_deep_sleep_test`，詳細操作見 [深睡驗收步驟](docs/deep-sleep-test.md)。它使用獨立 NVS namespace `pet-deep`，首次建立成鳥、心情 50；資料會跨睡醒與重開機保留，不覆寫正式寵物。進入「休息」後，上下選擇一般睡眠或省電睡眠，短按執行、長按返回。測試版省電睡眠 60 秒 Timer 喚醒，心情每 10 秒 +1；正式版不啟用 Timer，只由 SW 喚醒，心情每 10 分鐘 +1；每次醒來最多結算 48 小時，超出的時間不補算。測試版也可按 SW 提早喚醒，醒來重新廣播 BLE。實作／驗收只見主進度。
+手動深度睡眠測試使用 `esp32dev_deep_sleep_test`，詳細操作見 [深睡驗收步驟](docs/deep-sleep-test.md)。它使用獨立 NVS namespace `pet-deep`，首次建立成鳥、心情 50；資料會跨睡醒與重開機保留，不覆寫正式寵物。進入「休息」後，上下選擇一般睡眠或省電睡眠，短按執行、長按返回。測試版省電睡眠 60 秒 Timer 喚醒；正式版不啟用 Timer，只由 SW 喚醒；心情依需求狀態每 20／40 分鐘 +1 或暫停恢復，測試版對應每 10／20 秒 +1 或暫停；每次醒來最多結算 48 小時，超出的時間不補算。測試版也可按 SW 提早喚醒，醒來重新廣播 BLE。實作／驗收只見主進度。
 
 ```text
 pio run -e esp32dev_deep_sleep_test
@@ -102,8 +119,8 @@ pio run -e esp32dev_deep_sleep_test -t upload
 ## 功能與進度入口
 
 - 猜拳操作：主選單「陪玩」→上下選「猜拳」→短按進入，再短按開始，左右選招、短按出拳；揭曉後短按繼續，長按返回。固定三回合，整場贏／和／輸的心情獎勵為 +10／+6／+3，EXP 為 +15／+10／+5；第三回合揭曉時結算，提早退出不發獎勵。蛋與生病寵物不可開始。規則、素材與畫面見 [猜拳企劃](docs/rps-game-plan.md)，上板檢查見 [猜拳驗收](docs/rps-game-test.md)。
-- 記憶音符（1.5.0）：主選單「陪玩」→上下選「記憶音符」→短按進入／開始。共五回合，每回合 2～6 個音符；看完後依序推搖桿，每次推完回中，按住不連答。每步限時 5 秒，答錯仍可進下一回合；長按退出，完成才結算。心情按答對回合數為 10／8／6／3，EXP 為 15／10／5；完整規則、畫面與上板驗收見 [記憶音符](docs/memory-notes-plan.md)。
-- 治療操作：生病且清醒的幼鳥／成鳥在主選單選「治療」後直接倒藥，倒完才恢復健康，再播放恢復閃光；全程約 3.4 秒。期間汙點隱藏、按鍵鎖定，結束依當下清潔度重畫。座標與實際程式預覽見 [治療動畫](docs/ui-layout-guide.md#治療動畫)。
+- 記憶音符（自 1.5.0 加入，1.5.1 調整操作）：主選單「陪玩」→上下選「記憶音符」→短按進入／開始。共五回合，每回合 2～6 個音符；看完後依序推搖桿，每次推完回中，按住不連答。每步限時 5 秒，答錯仍可進下一回合；長按退出，完成才結算。心情按答對回合數為 10／8／6／3，EXP 為 15／10／5；完整規則、畫面與上板驗收見 [記憶音符](docs/memory-notes-plan.md)。
+- 治療操作：生病且清醒的幼年／成年寵物（小鳥或小飛龍）在主選單選「治療」後直接倒藥，倒完才恢復健康，再播放恢復閃光；全程約 3.4 秒。期間汙點隱藏、按鍵鎖定，結束依當下清潔度重畫。座標與實際程式預覽見 [治療動畫](docs/ui-layout-guide.md#治療動畫)。
 - 清潔操作：主選單「清潔」→清潔頁再短按，成功後回首頁播放水面上升；前三格各 400ms、最後全白停 1.2 秒，總長 2.4 秒，不退水。兩側狀態和 EXP 條保留，期間鎖定按鍵，播完恢復寵物及當下清潔度的污漬，留在首頁；有升級才接慶祝。見 [清潔動畫](docs/ui-layout-guide.md#清潔動畫)。
 - [主企畫：進度、驗證證據與下一步](docs/project-plan.md#progress)。
 - [產品規則](docs/project-plan.md#4-功能規劃與規則)：養成、疾病、孵化與睡眠。
@@ -120,11 +137,13 @@ pio run -e esp32dev_deep_sleep_test -t upload
 - `src/ble/`：唯讀 BLE v1 的 GATT service、分片 JSON 命令與狀態通知。
 - `esp32_pet_app/`：Flutter 狀態檢視 App；與 PlatformIO 韌體分開建置。
 - `include/HardwareConfig.h`：集中腳位及硬體參數。
-- `docs/project-plan.md`：需求、決策、進度與驗收；`docs/architecture.md`：早期架構說明。
+- `docs/project-plan.md`：需求、決策、進度與驗收；`docs/architecture.md`：目前模組與架構說明。
 
 素材分類、命名規則與舊檔對應見 [美術素材說明](assets/README.md)。
 
-正式寵物的主畫面美術以 **64×44 單色像素**為標準畫布，放在 `(32, 6)`；主畫面中央安全區域約為 `x=20..108`、`y=0..54`。蛋、裂蛋、幼鳥與成鳥均使用上下兩格的 64×44 使用者手繪素材；目前幼鳥與成鳥分別取自 [baby/idle.png](assets/pets/bird/baby/idle.png) 和 [adult/idle.png](assets/pets/bird/adult/idle.png)，`tools/generate_bird_sprite.py` 逐像素產生韌體點陣資料及閉眼睡眠版本。成鳥第二格讓呆毛變化、身體略為下沉，畫面依序顯示 700／400 毫秒；幼鳥死亡時也會以其自身圖案溶解。畫面驗收範圍見主進度台帳。死亡動畫共用靈魂以 [soul.png](assets/shared/effects/soul.png) 為準：圖檔 30×56，從上到下是兩格 30×28 畫面，白色身體、X 眼、光環和兩種翅膀位置皆逐像素保留。兩格約每 300 毫秒交替，靈魂畫布從 `x=64` 開始（中心 `x≈79`)。
+正式寵物的主畫面美術使用 **64×44 單色像素**畫布，一般主頁放在 `(32, 6)`；中央安全區域約為 `x=20..108`、`y=0..54`。小鳥素材位於 [bird](assets/pets/bird/)，由 `tools/generate_bird_sprite.py` 逐像素產生點陣及閉眼睡眠版本；目前普通待機兩格各 1600／1000 毫秒。小飛龍素材位於 [wyvern](assets/pets/wyvern/)，由 `tools/generate_wyvern_sprite.py` 產生 19 格點陣：普通待機 6 FPS、幼龍睡眠與兩階段傷心／生病 1 FPS，成龍睡眠單格。成長、升級、治療等畫面依種類調整位置；共用蛋、裂蛋與特效。死亡時依個體種類與階段溶解，畫面規格見 [OLED 排版](docs/ui-layout-guide.md)，驗收範圍見主進度台帳。
+
+死亡動畫共用靈魂以 [soul.png](assets/shared/effects/soul.png) 為準：圖檔 30×56，從上到下是兩格 30×28 畫面，白色身體、X 眼、光環和兩種翅膀位置皆逐像素保留。兩格約每 300 毫秒交替，靈魂畫布從 `x=64` 開始（中心 `x≈79`）。
 
 UI 不應直接操作硬體腳位。主迴圈目前以非阻塞方式更新輸入與音效；增加養成計時、保存與睡眠時維持這個方向。修改現有程式前先讀實際檔案，避免依據已過時的文件覆蓋工作目錄變更。
 

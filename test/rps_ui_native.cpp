@@ -12,6 +12,9 @@
 #include "ui/UiFont12.h"
 #include "ui/StatusFont12.h"
 #include "pet/PetData.h"
+#include "ui/PetIcons.h"
+#include "ui/WyvernSprite.h"
+#include "ui/SadEffect.h"
 
 SerialStub Serial;
 static u8g2_t gfx{};
@@ -126,6 +129,152 @@ static void checkStatusSpacing() {
         ++groups;
     }
     assert(groups == 3); // Level, EXP and progress frame.
+}
+
+static void checkPetBitmap(const uint8_t* bitmap, bool lines=false, bool baby=false) {
+    for (int y=0;y<44;++y) for (int x=0;x<64;++x) {
+        bool expected=!(bitmap[y*8+x/8] & (128>>(x%8)));
+        const int lx=x-(baby?42:50), ly=y-(baby?14:6);
+        if(lines && lx>=0 && lx<5 && ly>=0 && ly<6)
+            expected=expected || !(Ui::PetIcons::kSadLines[ly] & (128>>lx));
+        assert(lit(32+x,6+y)==expected);
+    }
+}
+
+static void expectUiText(Hardware::Display& display, const char* text, int x, int baseline) {
+    const auto actual = pixels;
+    display.clear(); display.drawUiText(x,baseline,text);
+    for (int row=baseline-11;row<=baseline;++row)
+        for (int col=x;col<x+display.uiTextWidth(text);++col) {
+            const bool recorded=(actual[(row/8)*128+col]>>(row%8))&1;
+            assert(recorded==lit(col,row));
+        }
+    pixels=actual;
+}
+
+static void checkStorageStatusUi() {
+    using E=Hardware::InputEvent; using S=Ui::ScreenId; using A=Ui::UiAction;
+    for (auto species : {Pet::SpeciesId::Bird,Pet::SpeciesId::Wyvern}) for (bool baby : {false,true}) {
+        Hardware::Display display; Hardware::Sound sound; Pet::PetData pet; Storage::Memorials album;
+        assert(pet.startNewEgg(90,"Status",species));
+        auto saved=pet.snapshot(); saved.lifeStage=baby?Pet::LifeStage::Baby:Pet::LifeStage::Adult;
+        saved.ageSeconds=baby?Pet::PetData::kEggHatchAgeSeconds:Pet::PetData::kAdultAgeSeconds;
+        assert(pet.restore(saved));
+        Ui::UiController view(display,sound,pet,album,randomMove);
+        view.init(0); uint32_t now=2000;
+        auto step=[&](E event) {view.update(event,++now);view.render();};
+        step(E::None); step(E::Press); assert(view.screen()==S::MainMenu);
+        view.setStorageStatus(false,true); view.render(); expectUiText(display,"存檔空間偏低",9,14);
+        step(E::Down); assert(view.menuIndex()==1);
+        view.setStorageStatus(true,false); view.render(); expectUiText(display,"存檔失敗",9,14);
+        view.setStorageStatus(true,true); view.render(); expectUiText(display,"存檔空間不足",9,14);
+        capture(view,"storage-low-menu");
+        step(E::Down);step(E::Down);step(E::Down);step(E::Press);
+        assert(view.screen()==S::Rest);
+        view.onNormalSleepFailed();view.render();expectUiText(display,"存檔空間不足",28,38);
+        capture(view,"storage-sleep-failed");
+        step(E::Press);assert(view.takeAction()==A::StartNormalSleep);
+        assert(pet.beginNormalSleep());view.setStorageStatus(false,false);view.onSleepStarted(++now);view.render();
+        assert(view.screen()==S::Sleeping);
+        assert(pet.wake());view.onWakeSucceeded();view.render();
+        step(E::Press);step(E::Down);step(E::Press);assert(view.screen()==S::DetailedStatus);
+        step(E::Right);expectUiText(display,baby?"幼年":"成年",94,55);
+        capture(view,baby?"storage-stage-baby":"storage-stage-adult");
+    }
+    puts("PASS: generic stages for both species, capacity/error text fits, navigation and sleep retry remain available.");
+}
+
+static void checkWyvernUi() {
+    using E=Hardware::InputEvent;
+    using Pet::LifeStage;
+    using Pet::SpeciesId;
+    for(bool baby : {false,true}) {
+        Hardware::Display display; Hardware::Sound sound;
+        Pet::PetData pet; Storage::Memorials album;
+        assert(pet.startNewEgg(75,"Wyvern",SpeciesId::Wyvern));
+        auto s=pet.snapshot();s.lifeStage=baby?LifeStage::Baby:LifeStage::Adult;
+        s.ageSeconds=baby?Pet::PetData::kEggHatchAgeSeconds:Pet::PetData::kAdultAgeSeconds;
+        assert(pet.restore(s));
+        Ui::UiController view(display,sound,pet,album,randomMove);
+        view.init(0);view.update(E::None,1500);view.update(E::None,2000);view.render();
+        const auto* idle=baby?Ui::PetIcons::kBabyWyvernIdleFrames:Ui::PetIcons::kWyvernIdleFrames;
+        checkPetBitmap(idle[0]);
+        capture(view,baby?"wyvern-baby-idle-0":"wyvern-adult-idle-0");
+        view.update(E::None,2166);view.render();checkPetBitmap(idle[0]);
+        view.update(E::None,2167);view.render();checkPetBitmap(idle[1]);
+        capture(view,baby?"wyvern-baby-idle-1":"wyvern-adult-idle-1");
+        capture(view,baby?"wyvern-baby-idle":"wyvern-adult-idle");
+        view.update(E::None,2333);view.render();checkPetBitmap(idle[1]);
+        view.update(E::None,2334);view.render();checkPetBitmap(idle[0]);
+        pet.setSick(true);view.update(E::None,3000);view.render();
+        const auto* sad=baby?Ui::PetIcons::kBabyWyvernSadFrames:Ui::PetIcons::kWyvernSadFrames;
+        checkPetBitmap(sad[1],true,baby);
+        capture(view,baby?"wyvern-baby-sad-1":"wyvern-adult-sad-1");
+        view.update(E::None,3999);view.render();checkPetBitmap(sad[1],true,baby);
+        view.update(E::None,4000);view.render();checkPetBitmap(sad[0],true,baby);
+        capture(view,baby?"wyvern-baby-sad":"wyvern-adult-sad");
+        capture(view,baby?"wyvern-baby-sad-0":"wyvern-adult-sad-0");
+        // Real treatment input path and all five pouring/empty frames.
+        view.update(E::Press,4001);view.update(E::Down,4002);view.update(E::Down,4003);
+        view.update(E::Press,4004);
+        const uint32_t times[]={0,250,500,850,1200};
+        for(unsigned f=0;f<5;++f) {
+            view.update(E::None,4004+times[f]);view.render();
+            assert(!lit(baby?74:82,baby?20:12)); // Lines hidden during pour.
+            char name[64];snprintf(name,sizeof(name),"wyvern-%s-pour-%u",baby?"baby":"adult",f);
+            capture(view,name);
+        }
+        assert(view.takeAction()==Ui::UiAction::Treat);
+        assert(pet.treat());view.onTreatResult(true,5204);
+        for(unsigned f=0;f<16;++f) {
+            view.update(E::None,5404+f*125);view.render();
+            char name[64];snprintf(name,sizeof(name),"wyvern-%s-recovery-%u",baby?"baby":"adult",f);
+            capture(view,name);
+        }
+        view.update(E::None,7404);view.render();
+        assert(pet.beginNormalSleep());view.onSleepStarted(7500);
+        for(uint32_t t : {8499U,8500U,9499U,9500U}) {
+            view.update(E::None,t);view.render();const auto actual=pixels;
+            display.clear();
+            const uint8_t frame=baby?((t-7500)/1000)%2:0;
+            Ui::PetIcons::drawSleepingPet(display,32,6,pet.lifeStage(),frame,SpeciesId::Wyvern);
+            const char* z[]={"Z","Zz","Zzz"};
+            display.drawSmallText(baby?76:83,baby?23:15,z[((t-7500)/650)%3]);
+            for(int y=6;y<50;++y) for(int x=32;x<96;++x)
+                assert(lit(x,y)==bool((actual[(y/8)*128+x]>>(y%8))&1));
+            pixels=actual;
+            if(t==8499 || t==8500) capture(view,baby ? (t==8499?"wyvern-baby-sleep-0":"wyvern-baby-sleep-1") :
+                (t==8499?"wyvern-adult-sleep-0":"wyvern-adult-sleep-1"));
+        }
+        // Pure renderer verifies single-frame adult and both original baby poses.
+        display.clear();Ui::PetIcons::drawSleepingPet(display,32,6,pet.lifeStage(),1,SpeciesId::Wyvern);
+        checkPetBitmap(baby?Ui::PetIcons::kBabyWyvernSleepFrames[1]:Ui::PetIcons::kWyvernSleepFrames[0]);
+        view.update(E::None,10100);capture(view,baby?"wyvern-baby-sleep":"wyvern-adult-sleep");
+        assert(pet.wake());view.onWakeSucceeded();
+        const auto oldLevel=pet.level();pet.gainExp(75);
+        view.onCareRewardApplied(oldLevel,10200);view.update(E::None,10600);
+        for(unsigned f=0;f<16;++f) {
+            view.update(E::None,10600+f*125);view.render();
+            const auto actual=pixels;display.clear();display.drawText(37,10,"LEVEL UP!");
+            for(int y=0;y<=10;++y) for(int x=0;x<128;++x)
+                assert(lit(x,y)==bool((actual[(y/8)*128+x]>>(y%8))&1));
+            pixels=actual;
+            char name[64];snprintf(name,sizeof(name),"wyvern-%s-level-up-%u",baby?"baby":"adult",f);
+            capture(view,name);
+        }
+        // Feed renderer covers every cell and full/partial/empty bowls.
+        for(unsigned f=0;f<4;++f) {
+            display.clear();Ui::PetIcons::drawEatingPet(display,32,6,pet.lifeStage(),f,f%3,SpeciesId::Wyvern);
+            const auto* eat=baby?Ui::PetIcons::kBabyWyvernEatingFrames[f]:Ui::PetIcons::kWyvernEatingFrames[f];
+            for(int y=0;y<44;++y) for(int x=13;x<64;++x)
+                assert(lit(32+x,6+y)==!(eat[y*8+x/8] & (128>>(x%8))));
+        }
+        // Actual memorial and death renderers accept the recorded species.
+        display.clear();Ui::PetIcons::drawMemorialPet(display,pet.lifeStage(),true,SpeciesId::Wyvern);
+        display.clear();Ui::PetIcons::drawCenteredPostcardPet(display,pet.lifeStage(),SpeciesId::Wyvern);
+        display.clear();Ui::PetIcons::drawPetDissolve(display,32,14,pet.lifeStage(),1,SpeciesId::Wyvern);
+    }
+    puts("PASS: wyvern actual UI, 6 FPS boundaries, 1 FPS sad, treatment/recovery, sprite variants and memorial bounds.");
 }
 int main() {
     info.tile_width=16; info.tile_height=8; info.pixel_width=128; info.pixel_height=64;
@@ -1101,4 +1250,6 @@ int main() {
     sound.setVolume(1);
     puts("PASS: sound toggle egg/ended access, left/right cycling, audition, cancel, save/retry and growth/death interruption.");
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
+    checkWyvernUi();
+    checkStorageStatusUi();
 }

@@ -1,0 +1,114 @@
+{
+  "baby": {
+    "original": [
+      {
+        "frame": 1,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 2,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 3,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 4,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 5,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      }
+    ],
+    "proposed": [
+      {
+        "frame": 1,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 2,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 3,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 4,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 5,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      }
+    ]
+  },
+  "adult": {
+    "original": [
+      {
+        "frame": 1,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 2,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 6
+      },
+      {
+        "frame": 3,
+        "dragon_overlap": 1,
+        "sad_lines_overlap": 6
+      },
+      {
+        "frame": 4,
+        "dragon_overlap": 1,
+        "sad_lines_overlap": 6
+      },
+      {
+        "frame": 5,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 6
+      }
+    ],
+    "proposed": [
+      {
+        "frame": 1,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 2,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 3,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 4,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      },
+      {
+        "frame": 5,
+        "dragon_overlap": 0,
+        "sad_lines_overlap": 0
+      }
+    ]
+  }
+}

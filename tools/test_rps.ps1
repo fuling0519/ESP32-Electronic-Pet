@@ -75,3 +75,17 @@ Write-Output 'PASS: mood thresholds, recovery progress and batch settlement.'
 if ($LASTEXITCODE) { throw 'Farewell storage test build failed.' }
 & "$outputPath/farewell.exe"
 if ($LASTEXITCODE) { throw 'Farewell storage tests failed.' }
+
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc test/wyvern_native.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp `
+    -o "$outputPath/wyvern.exe"
+if ($LASTEXITCODE) { throw 'Wyvern storage test build failed.' }
+& "$outputPath/wyvern.exe"
+if ($LASTEXITCODE) { throw 'Wyvern storage tests failed.' }
+
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc test/storage_retry_native.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp `
+    -o "$outputPath/storage-retry.exe"
+if ($LASTEXITCODE) { throw 'Storage retry test build failed.' }
+& "$outputPath/storage-retry.exe"
+if ($LASTEXITCODE) { throw 'Storage retry tests failed.' }

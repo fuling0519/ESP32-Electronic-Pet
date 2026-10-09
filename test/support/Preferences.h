@@ -14,6 +14,9 @@ struct FakeNvs {
     unsigned failWrite = 0;
     bool torn = false;
     bool failBegin = false;
+    bool failAllWrites = false;
+    bool failStats = false;
+    size_t freeEntries = 500;
     std::string lastNamespace;
 };
 extern FakeNvs nvs;
@@ -30,7 +33,7 @@ public:
     size_t putBytes(const char* key, const void* data, size_t size) {
         ++nvs.writes;
         const auto* source = static_cast<const uint8_t*>(data);
-        if (nvs.writes == nvs.failWrite) {
+        if (nvs.failAllWrites || nvs.writes == nvs.failWrite) {
             if (nvs.torn) nvs.bytes[key] = std::vector<uint8_t>(source, source + size / 2);
             return 0;
         }

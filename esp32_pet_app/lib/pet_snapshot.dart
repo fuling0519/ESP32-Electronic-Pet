@@ -10,12 +10,17 @@ class PetSnapshot {
     required this.health,
     required this.isDead,
     this.isDeparted = false,
+    this.speciesId = 1,
     required this.sleep,
     this.level, this.exp, this.expToNextLevel,
   });
 
   final String id, name, stage, ageSeconds, health, sleep;
   final int satiety, mood, cleanliness;
+  final int speciesId;
+  String get speciesName => speciesId == 1 ? '小鳥' : speciesId == 2 ? '小飛龍' : '未知種類';
+  String get portraitEmoji => isDeparted ? '👋' : isDead ? '†' : stage == 'egg' ? '🥚' :
+      speciesId == 2 ? '🐉' : speciesId == 1 ? (stage == 'baby' ? '🐣' : '🐦') : '？';
   final int? level, exp, expToNextLevel;
   final bool isDead, isDeparted;
 
@@ -23,6 +28,8 @@ class PetSnapshot {
     if (value is! Map<String, dynamic>) return null;
     final id = value['id'];
     final name = value['name'];
+    final species = value.containsKey('species_id') ? value['species_id'] : 1;
+    if (species is! int || species < 1 || species > 255) return null;
     final stage = value['life_stage'];
     final age = value['age_seconds'];
     final health = value['health'];
@@ -58,6 +65,7 @@ class PetSnapshot {
     }
     return PetSnapshot(
       id: id, name: name, stage: stage as String,
+      speciesId: species,
       satiety: satiety, mood: mood, cleanliness: cleanliness,
       ageSeconds: age, health: health as String, isDead: dead, isDeparted: departed,
       sleep: sleep as String,

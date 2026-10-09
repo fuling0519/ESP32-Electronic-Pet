@@ -8,7 +8,7 @@ namespace Storage {
 
 bool isValidMemorial(const MemorialRecord& memorial) {
     return memorial.petId != 0 && Pet::isValidPetName(memorial.name) &&
-           memorial.speciesId == Pet::SpeciesId::Bird &&
+           Pet::isKnownSpecies(memorial.speciesId) &&
            (memorial.kind == FarewellKind::Resting || memorial.kind == FarewellKind::Departed) &&
            (memorial.stage == static_cast<uint8_t>(Pet::LifeStage::Baby) ||
             memorial.stage == static_cast<uint8_t>(Pet::LifeStage::Adult) ||

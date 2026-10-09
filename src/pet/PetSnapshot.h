@@ -8,7 +8,17 @@ constexpr uint8_t kPetNameMaxLength = 8;
 
 enum class SpeciesId : uint8_t {
     Bird = 1,
+    Wyvern = 2,
 };
+
+inline bool isKnownSpecies(SpeciesId species) {
+    return species == SpeciesId::Bird || species == SpeciesId::Wyvern;
+}
+
+// One unbiased random bit: every new egg independently chooses either species.
+inline SpeciesId speciesForNewEgg(uint32_t randomBits) {
+    return (randomBits & 1U) ? SpeciesId::Wyvern : SpeciesId::Bird;
+}
 
 enum class LifeStage : uint8_t {
     Egg = 0,

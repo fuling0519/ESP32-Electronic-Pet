@@ -97,6 +97,8 @@ public:
     void setMemorialReady(bool ready);
     void onFarewellResult(bool success, uint32_t now);
     void onSleepStarted(uint32_t now);
+    void onNormalSleepFailed();
+    void setStorageStatus(bool saveFailed, bool capacityLow);
     void onFeedSucceeded(uint32_t now);
     void onCleanSucceeded(uint32_t now);
     void onTreatResult(bool success, uint32_t now);
@@ -189,6 +191,8 @@ private:
     uint8_t restOption_ = 0;
     bool deepSleepPending_ = false;
     bool deepSleepFailed_ = false;
+    bool normalSleepFailed_ = false;
+    bool storageSaveFailed_ = false, storageLow_ = false;
     uint8_t deathOptionIndex_ = 0;
     uint8_t memorialIndex_ = 0;
     uint8_t deleteConfirmIndex_ = 0;

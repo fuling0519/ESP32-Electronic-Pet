@@ -68,6 +68,7 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 |---|---|---|
 | `pet.id` | 十進位字串 | 必填；避免 64-bit ID 在 Web 整數中失真 |
 | `pet.name` | UTF-8 字串 | 必填，ESP32 提供 |
+| `pet.species_id` | 整數 | 1.8.0 起提供：1 小鳥、2 小飛龍；舊封包省略時 App 預設 1，未知合法 ID 顯示未知種類 |
 | `pet.life_stage` | `egg`、`baby`、`adult` | 必填 |
 | `pet.satiety`、`pet.mood`、`pet.cleanliness` | 整數 0–100 | 必填；satiety 越高越飽 |
 | `pet.age_seconds` | 非負十進位字串 | 必填；ESP32 計算，App 只格式化 |

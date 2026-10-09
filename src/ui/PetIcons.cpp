@@ -4,6 +4,7 @@
 
 #include "hardware/Display.h"
 #include "ui/BirdSprite.h"
+#include "ui/WyvernSprite.h"
 #include "ui/SadEffect.h"
 #include "ui/DirtySprite.h"
 
@@ -138,27 +139,36 @@ void drawStatusCard(Hardware::Display& d, int16_t x, int16_t y) {
 
 namespace {
 const uint8_t* petFrame(Pet::LifeStage lifeStage, uint8_t eggCrackStage,
-                        uint8_t frame) {
+                        uint8_t frame, Pet::SpeciesId species) {
     const uint8_t index = frame % 2;
     if (lifeStage == Pet::LifeStage::Egg) {
         if (eggCrackStage == 1) return kCrackedEggFrames[0];
         if (eggCrackStage >= 2) return kCrackedEggFrames[1];
         return kEggFrames[index];
     }
+    if (species == Pet::SpeciesId::Wyvern) return lifeStage == Pet::LifeStage::Baby ?
+        kBabyWyvernIdleFrames[index] : kWyvernIdleFrames[index];
     if (lifeStage == Pet::LifeStage::Baby) return kBabyBirdFrames[index];
     return kBirdFrames[index];
+}
+
+const uint8_t* sleepingFrame(Pet::LifeStage stage, uint8_t frame, Pet::SpeciesId species) {
+    if (species == Pet::SpeciesId::Wyvern) return stage == Pet::LifeStage::Baby ?
+        kBabyWyvernSleepFrames[frame % 2] : kWyvernSleepFrames[0];
+    return stage == Pet::LifeStage::Baby ? kBabyBirdSleepingFrames[frame % 2] :
+        kBirdSleepingFrames[frame % 2];
 }
 }  // namespace
 
 void drawPet(Hardware::Display& d, int16_t x, int16_t y,
-             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame) {
-    d.drawGlyph(x, y, petFrame(lifeStage, eggCrackStage, frame),
+             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame, Pet::SpeciesId species) {
+    d.drawGlyph(x, y, petFrame(lifeStage, eggCrackStage, frame, species),
                 kBirdFrameWidth, kBirdFrameHeight);
 }
 
 // Center the visible pixels; sprite sheets can contain asymmetric black padding.
-void drawCenteredPostcardPet(Hardware::Display& d, Pet::LifeStage stage) {
-    const auto* bits = petFrame(stage, 0, 0);
+void drawCenteredPostcardPet(Hardware::Display& d, Pet::LifeStage stage, Pet::SpeciesId species) {
+    const auto* bits = petFrame(stage, 0, 0, species);
     int top = 44, bottom = 0;
     for (int row = 0; row < 44; ++row) for (int col = 0; col < 64; ++col) {
         if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8)))) {
@@ -172,9 +182,8 @@ void drawCenteredPostcardPet(Hardware::Display& d, Pet::LifeStage stage) {
 
 // Memorial content lives below the title divider (19..60), with two clear
 // rows above the bottom border. Center visible art within that content region.
-void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage, bool resting) {
-    const auto* bits = resting ? (stage == Pet::LifeStage::Baby ?
-        kBabyBirdSleepingFrames[0] : kBirdSleepingFrames[0]) : petFrame(stage, 0, 0);
+void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage, bool resting, Pet::SpeciesId species) {
+    const auto* bits = resting ? sleepingFrame(stage, 0, species) : petFrame(stage, 0, 0, species);
     int top = 44, bottom = 0;
     for (int row = 0; row < 44; ++row) for (int col = 0; col < 64; ++col) {
         if (!(pgm_read_byte(bits + row * 8 + col / 8) & (128 >> (col % 8)))) {
@@ -201,12 +210,18 @@ void drawMemorialPet(Hardware::Display& d, Pet::LifeStage stage, bool resting) {
 }
 
 void drawSadPet(Hardware::Display& d, int16_t x, int16_t y,
-                Pet::LifeStage lifeStage, uint8_t frame) {
+                Pet::LifeStage lifeStage, uint8_t frame, Pet::SpeciesId species, bool showLines) {
     const uint8_t* bitmap = lifeStage == Pet::LifeStage::Baby
         ? kBabyBirdSadFrames[frame % 2] : kBirdSadFrames[frame % 2];
+    if (species == Pet::SpeciesId::Wyvern) bitmap = lifeStage == Pet::LifeStage::Baby ?
+        kBabyWyvernSadFrames[frame % 2] : kWyvernSadFrames[frame % 2];
     d.drawGlyph(x, y, bitmap, kBirdFrameWidth, kBirdFrameHeight);
     const bool baby = lifeStage == Pet::LifeStage::Baby;
-    drawSadLines(d, x + (baby ? 40 : 39), y + (baby ? 14 : 9));
+    if (showLines) {
+        const bool wyvern = species == Pet::SpeciesId::Wyvern;
+        drawSadLines(d, x + (wyvern ? (baby ? 42 : 50) : (baby ? 40 : 39)),
+                     y + (wyvern ? (baby ? 14 : 6) : (baby ? 14 : 9)));
+    }
 }
 
 void drawSadLines(Hardware::Display& d, int16_t x, int16_t y) {
@@ -214,35 +229,35 @@ void drawSadLines(Hardware::Display& d, int16_t x, int16_t y) {
 }
 
 void drawSleepingPet(Hardware::Display& d, int16_t x, int16_t y,
-                     Pet::LifeStage lifeStage, uint8_t frame) {
-    const uint8_t index = frame % 2;
-    const uint8_t* bitmap = lifeStage == Pet::LifeStage::Baby
-        ? kBabyBirdSleepingFrames[index] : kBirdSleepingFrames[index];
+                     Pet::LifeStage lifeStage, uint8_t frame, Pet::SpeciesId species) {
+    const uint8_t* bitmap = sleepingFrame(lifeStage, frame, species);
     d.drawGlyph(x, y, bitmap, kBirdFrameWidth, kBirdFrameHeight);
 }
 
 void drawEatingPet(Hardware::Display& d, int16_t x, int16_t y,
-                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage) {
+                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage, Pet::SpeciesId species) {
     const bool baby = lifeStage == Pet::LifeStage::Baby;
-    d.drawGlyph(x, y, baby ? kBabyBirdEatingFrames[frame % 2]
-                          : kBirdEatingFrames[frame % 2],
+    const bool wyvern = species == Pet::SpeciesId::Wyvern;
+    const uint8_t* bitmap = wyvern ? (baby ? kBabyWyvernEatingFrames[frame % 4] : kWyvernEatingFrames[frame % 4]) :
+        (baby ? kBabyBirdEatingFrames[frame % 2] : kBirdEatingFrames[frame % 2]);
+    d.drawGlyph(x, y, bitmap,
                 kBirdFrameWidth, kBirdFrameHeight);
     // Visible bowl x=26..42; bird starts at x=45 (adult) or 50 (baby).
     // Bowl bottom (local y=12) aligns with feet at y=49 / 47 on Home.
-    d.drawGlyph(x - 8, y + (baby ? 29 : 31), kBowlFrames[bowlStage % 3],
+    d.drawGlyph(x - 8, y + (wyvern || baby ? 29 : 31), kBowlFrames[bowlStage % 3],
                 kBowlWidth, kBowlHeight);
 }
 
 void drawPetDissolve(Hardware::Display& d, int16_t x, int16_t y,
-                     Pet::LifeStage lifeStage, uint8_t dissolveStage) {
+                     Pet::LifeStage lifeStage, uint8_t dissolveStage, Pet::SpeciesId species) {
     if (dissolveStage == 0) {
-        drawPet(d, x, y, lifeStage, 0, 0);
+        drawPet(d, x, y, lifeStage, 0, 0, species);
         return;
     }
     if (dissolveStage >= 3) return;
 
     // Keep a stable subset of the original pixels at each fade stage.
-    const uint8_t* bitmap = petFrame(lifeStage, 0, 0);
+    const uint8_t* bitmap = petFrame(lifeStage, 0, 0, species);
     for (uint8_t row = 0; row < kBirdFrameHeight; ++row) {
         for (uint8_t col = 0; col < kBirdFrameWidth; ++col) {
             const uint8_t bits = pgm_read_byte(&bitmap[row * 8 + col / 8]);

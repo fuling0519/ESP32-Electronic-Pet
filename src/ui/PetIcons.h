@@ -26,23 +26,30 @@ void drawCleaningAlert(Hardware::Display& display, int16_t x, int16_t y,
 void drawDirt(Hardware::Display& display, Pet::CleanlinessState state);
 void drawSick(Hardware::Display& display, int16_t x, int16_t y);
 void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
-// User-drawn egg, baby and adult sheets, each with two 64 x 44 frames.
+// User-drawn 64 x 44 frames, selected by species and life stage; eggs are shared.
 void drawPet(Hardware::Display& display, int16_t x, int16_t y,
-             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame);
-void drawMemorialPet(Hardware::Display& display, Pet::LifeStage stage, bool resting = false);
-void drawCenteredPostcardPet(Hardware::Display& display, Pet::LifeStage stage);
+             Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame,
+             Pet::SpeciesId species = Pet::SpeciesId::Bird);
+void drawMemorialPet(Hardware::Display& display, Pet::LifeStage stage, bool resting = false,
+                     Pet::SpeciesId species = Pet::SpeciesId::Bird);
+void drawCenteredPostcardPet(Hardware::Display& display, Pet::LifeStage stage,
+                            Pet::SpeciesId species = Pet::SpeciesId::Bird);
 void drawSadPet(Hardware::Display& display, int16_t x, int16_t y,
-                Pet::LifeStage lifeStage, uint8_t frame);
+                Pet::LifeStage lifeStage, uint8_t frame,
+                Pet::SpeciesId species = Pet::SpeciesId::Bird, bool showLines = true);
 // Shared effect; origin is independent of species and sprite bounds.
 void drawSadLines(Hardware::Display& display, int16_t x, int16_t y);
-// Draws a frame generated from the current bird with its eyes closed.
+// Bird sleep frames are generated closed eyes; wyvern uses original sleep art.
 void drawSleepingPet(Hardware::Display& display, int16_t x, int16_t y,
-                     Pet::LifeStage lifeStage, uint8_t frame);
+                     Pet::LifeStage lifeStage, uint8_t frame,
+                     Pet::SpeciesId species = Pet::SpeciesId::Bird);
 void drawEatingPet(Hardware::Display& display, int16_t x, int16_t y,
-                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage);
-// Dissolve stages 0..3 progressively remove the current bird.
+                   Pet::LifeStage lifeStage, uint8_t frame, uint8_t bowlStage,
+                   Pet::SpeciesId species = Pet::SpeciesId::Bird);
+// Dissolve stages 0..3 progressively remove the current species.
 void drawPetDissolve(Hardware::Display& display, int16_t x, int16_t y,
-                     Pet::LifeStage lifeStage, uint8_t dissolveStage);
+                     Pet::LifeStage lifeStage, uint8_t dissolveStage,
+                     Pet::SpeciesId species = Pet::SpeciesId::Bird);
 // Shared user-drawn ghost. Frames 0 and 1 alternate the wing positions.
 void drawGhost(Hardware::Display& display, int16_t x, int16_t y,
                uint8_t frame);
