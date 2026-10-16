@@ -45,3 +45,13 @@
 #tombstone[hidden],#afterlife-menu[hidden]{display:none}#tombstone strong{font-size:26px;letter-spacing:5px}#tomb-name{overflow-wrap:anywhere;font-size:12px}#tomb-age{font-size:11px}
 #afterlife-menu{text-align:center;margin:18px 0;padding:18px;background:#eee5d8;border:2px solid var(--line)}#afterlife-menu button{margin:6px}#adoption-note{font-size:12px}
 #cemetery-dialog{max-width:760px;max-height:85svh;overflow:auto}#cemetery-dialog select{font:inherit;max-width:100%;padding:8px}#memorial-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:20px 0}.memorial-card{padding:20px;background:#f6efdf;border:1px solid #c8baa8;border-radius:12px;overflow-wrap:anywhere}.memorial-card p,.memorial-card small{font-size:12px}.mini-stone{width:75px;padding:25px 6px 12px;border-radius:40px 40px 4px 4px;background:#d8d1c7;border:2px solid #a3988a;text-align:center;margin:auto}
+/* Shared pet controls; existing garden artwork remains unchanged. */
+#pet-species,#pet-exp{font-size:.85rem;line-height:1.5}
+#exp-progress{width:100%;max-width:220px;height:8px}
+#game-dialog{width:min(92vw,520px);max-height:85vh;overflow:auto}
+#game-inputs,#game-picker{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+#game-inputs button{min-width:64px;min-height:48px}
+.memorial-card canvas{width:128px;height:88px;image-rendering:pixelated}
+
+/* New baked day/night artwork keeps its authored palette and crisp pixels. */
+#aviary:not(.simple-background) .scene img,#aviary.simple-background.night .scene img,#aviary .scene img{filter:none;image-rendering:pixelated}
