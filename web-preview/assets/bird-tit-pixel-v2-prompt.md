@@ -1,0 +1,7 @@
+# First bird redesign, v2
+
+Built-in imagegen, 2026-10-16. File: bird-tit-pixel-v2.png. Source: exec-831370e4-b8ee-4b8d-9e5a-88e24a57093a.png.
+
+Prompt: Redesign the FIRST BIRD character for a pixel-art game. Image 1 is COLOR REFERENCE ONLY: a great tit bird, charcoal black cap and black bib stripe, creamy white cheeks and warm pale cream belly, muted olive green shoulders/back, slate gray wings, little dark beak and feet. Image 2 is SHAPE AND POSE REFERENCE: preserve its simple round pear-shaped outline, tiny head tuft, goofy widely spaced simple eyes, pink pixel blush marks, tiny feet, and right wing/hand holding a small dumbbell or gripped object at the right. Keep this very close to image 2 silhouette and proportions. This is a BIRD, no dragon horns, no dragon wings, no purple, no reptile tail. ONE full-body sprite centered on a genuinely transparent background. Coarse clean 64x44-style logical pixels enlarged with hard square edges, uniform pixel grid, dark pixel outline, flat limited color palette, no gradients, no painterly texture, no antialiasing. Make it cute and readable at tiny size, preserve the silly gaze. Entire bird, held object, and tiny feet visible. No text, no panels, no background, no cast shadow. Single pose with eyes open, do not reproduce reference screenshot labels or frame borders.
+
+Single generated appearance; not an exact 64x44 production animation sheet. Sad/treatment masks remain unchanged.

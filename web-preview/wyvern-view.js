@@ -11,9 +11,15 @@ function frameFor(p,now,action,elapsed=0,reduced=false){
  return {name:prefix+state+'Frames',index:frame,bits:WyvernFrames[prefix+state+'Frames'][frame]};
 }
 function paint(ctx,bits,x=94,y=45,scale=3){
- // Draw only original foreground pixels; the garden remains visible around them.
- ctx.fillStyle='#fffaf0';
- for(let row=0;row<44;row++)for(let col=0;col<64;col++)if(!(bits[row*8+(col>>3)]&(128>>(col%8))))ctx.fillRect(x+col*scale,y+row*scale,scale,scale);
+ const ink=(c,r)=>c>=0&&c<64&&r>=0&&r<44&&!(bits[r*8+(c>>3)]&(128>>(c%8)));
+ // Keep the original animation masks; add a crisp one-pixel outline outside them.
+ ctx.fillStyle='#211b2e';
+ for(let r=-1;r<=44;r++)for(let c=-1;c<=64;c++)if(!ink(c,r)&&(ink(c-1,r)||ink(c+1,r)||ink(c,r-1)||ink(c,r+1)))ctx.fillRect(x+c*scale,y+r*scale,scale,scale);
+ for(let r=0;r<44;r++)for(let c=0;c<64;c++)if(ink(c,r)){
+  // Limited pastel palette, with discrete pixel bands rather than gradients.
+  ctx.fillStyle=r<9?'#f7df9d':r>28&&c>23&&c<40?'#fff1cf':r>18&&(c<19||c>45)?'#e9cd86':r>32?'#a282d0':r<20?'#cbb0f4':'#b99ae9';
+  ctx.fillRect(x+c*scale,y+r*scale,scale,scale);
+ }
 }
 function draw(ctx,p,now,action,elapsed,reduced){
  const frame=frameFor({...p},now,action,elapsed,reduced);paint(ctx,frame.bits);

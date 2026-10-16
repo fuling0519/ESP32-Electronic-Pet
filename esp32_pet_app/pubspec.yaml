@@ -18,3 +18,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: ChenYuluoyan
+      fonts:
+        - asset: assets/fonts/ChenYuluoyan-2.0-Thin.ttf
+          weight: 100

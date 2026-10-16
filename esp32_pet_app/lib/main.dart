@@ -2,6 +2,7 @@ import 'pet_snapshot.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -15,6 +16,7 @@ class Esp32PetApp extends StatelessWidget {
         title: 'ESP32 Pet',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          fontFamily: kIsWeb ? 'ChenYuluoyan' : null,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffeab308)),
           useMaterial3: true,
           scaffoldBackgroundColor: const Color(0xfffffbeb),
