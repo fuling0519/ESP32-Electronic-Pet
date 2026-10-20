@@ -1,0 +1,366 @@
+{
+  "status": "HAPPY_IDLE_V4_PREVIEW_ONLY",
+  "roles": [
+    {
+      "role": "bird-baby",
+      "face_box_frame0_local_exclusive": [
+        24,
+        25,
+        39,
+        29
+      ],
+      "states": [
+        {
+          "state": "happy-0-heart-0",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 5
+        },
+        {
+          "state": "happy-0-heart-1",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 5
+        },
+        {
+          "state": "happy-1-heart-0",
+          "idle_frame": 1,
+          "face_shift_y": 1,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 5
+        },
+        {
+          "state": "happy-1-heart-1",
+          "idle_frame": 1,
+          "face_shift_y": 1,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 5
+        }
+      ],
+      "idle_source_matches_firmware": true,
+      "extra_body_translation": [
+        0,
+        0
+      ],
+      "timeline_ms": [
+        0,
+        700,
+        1100,
+        1500,
+        1600,
+        1900,
+        2300,
+        2600,
+        2700,
+        3100,
+        3500,
+        3900,
+        4200,
+        4300,
+        4700,
+        4950,
+        5200,
+        5650
+      ],
+      "idle_cycle_ms": 2600,
+      "idle_frame_timing_ms": [
+        1600,
+        1000
+      ]
+    },
+    {
+      "role": "bird-adult",
+      "face_box_frame0_local_exclusive": [
+        18,
+        18,
+        37,
+        26
+      ],
+      "states": [
+        {
+          "state": "happy-0-heart-0",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-0-heart-1",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 5
+        },
+        {
+          "state": "happy-1-heart-0",
+          "idle_frame": 1,
+          "face_shift_y": 1,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 5
+        },
+        {
+          "state": "happy-1-heart-1",
+          "idle_frame": 1,
+          "face_shift_y": 1,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 5
+        }
+      ],
+      "idle_source_matches_firmware": true,
+      "extra_body_translation": [
+        0,
+        0
+      ],
+      "timeline_ms": [
+        0,
+        700,
+        1100,
+        1500,
+        1600,
+        1900,
+        2300,
+        2600,
+        2700,
+        3100,
+        3500,
+        3900,
+        4200,
+        4300,
+        4700,
+        4950,
+        5200,
+        5650
+      ],
+      "idle_cycle_ms": 2600,
+      "idle_frame_timing_ms": [
+        1600,
+        1000
+      ]
+    },
+    {
+      "role": "wyvern-baby",
+      "face_box_frame0_local_exclusive": [
+        24,
+        25,
+        39,
+        30
+      ],
+      "states": [
+        {
+          "state": "happy-0-heart-0",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-0-heart-1",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-1-heart-0",
+          "idle_frame": 1,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-1-heart-1",
+          "idle_frame": 1,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 4
+        }
+      ],
+      "idle_source_matches_firmware": true,
+      "extra_body_translation": [
+        0,
+        0
+      ],
+      "timeline_ms": [
+        0,
+        170,
+        330,
+        500,
+        670,
+        700,
+        830,
+        1000,
+        1100,
+        1170,
+        1330,
+        1500,
+        1670,
+        1830,
+        1900,
+        2000,
+        2170,
+        2300,
+        2330,
+        2500,
+        2670,
+        2700,
+        2830,
+        3000,
+        3100,
+        3170,
+        3330,
+        3500,
+        3670,
+        3830,
+        3900,
+        4000,
+        4170,
+        4300,
+        4330,
+        4500,
+        4670,
+        4700,
+        4830,
+        4950,
+        5000,
+        5170,
+        5330,
+        5500,
+        5650
+      ],
+      "idle_cycle_ms": 1000,
+      "idle_frame_timing_ms": [
+        170,
+        160,
+        170,
+        170,
+        160,
+        170
+      ]
+    },
+    {
+      "role": "wyvern-adult",
+      "face_box_frame0_local_exclusive": [
+        23,
+        20,
+        42,
+        26
+      ],
+      "states": [
+        {
+          "state": "happy-0-heart-0",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-0-heart-1",
+          "idle_frame": 0,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-1-heart-0",
+          "idle_frame": 1,
+          "face_shift_y": 0,
+          "heart_shift_y": 0,
+          "heart_blank_clearance": 4
+        },
+        {
+          "state": "happy-1-heart-1",
+          "idle_frame": 1,
+          "face_shift_y": 0,
+          "heart_shift_y": -1,
+          "heart_blank_clearance": 4
+        }
+      ],
+      "idle_source_matches_firmware": true,
+      "extra_body_translation": [
+        0,
+        0
+      ],
+      "timeline_ms": [
+        0,
+        170,
+        330,
+        500,
+        670,
+        700,
+        830,
+        1000,
+        1100,
+        1170,
+        1330,
+        1500,
+        1670,
+        1830,
+        1900,
+        2000,
+        2170,
+        2300,
+        2330,
+        2500,
+        2670,
+        2700,
+        2830,
+        3000,
+        3100,
+        3170,
+        3330,
+        3500,
+        3670,
+        3830,
+        3900,
+        4000,
+        4170,
+        4300,
+        4330,
+        4500,
+        4670,
+        4700,
+        4830,
+        4950,
+        5000,
+        5170,
+        5330,
+        5500,
+        5650
+      ],
+      "idle_cycle_ms": 1000,
+      "idle_frame_timing_ms": [
+        170,
+        160,
+        170,
+        170,
+        160,
+        170
+      ]
+    }
+  ],
+  "source_sha256": {
+    "assets/pets/bird/baby/idle.png": "f0861b72223116fcd294e876e9cd3a6c38baccb46bd4827d20ec23211b963f24",
+    "assets/pets/bird/baby/happy.png": "63dd1bcefaf50da03c44ef791d6b85ffe73f1ead7624babb25f277b12dd11c53",
+    "assets/pets/bird/adult/idle.png": "198490d1ad7aa4bafcc0fa9f1c8fbc7b6f63e82b1a569ed53b97929dafbc165e",
+    "assets/pets/bird/adult/happy.png": "f60f1dc2cda4e22ffa6a6cfb45eae5defb174b94222b1e8dbcba38375d536988",
+    "assets/pets/wyvern/baby/idle.png": "518704001d7ba120a8a4ac22eb9a623c04934b97874684bfddfa0137066105d0",
+    "assets/pets/wyvern/baby/happy.png": "831a3c24980ad05d9c7ffa6150b454974a161cacee6bbd74cc258ccfa217217c",
+    "assets/pets/wyvern/adult/idle.png": "09472a7e40c72aa53850e851d18f157a32cb65aedb45c9637c356f23675b73b8",
+    "assets/pets/wyvern/adult/happy.png": "56f69a6d810cf61a0b6f2da19c4fde876414e89b7620e439987cfb469e84ed3a"
+  },
+  "validated_native_states": 24,
+  "pet_start_ms": 700,
+  "hold_end_ms": 4700,
+  "tail_end_ms": 4950,
+  "loop_duration_ms": 5650,
+  "gif_files_verified": 9,
+  "firmware_source_sha256": {
+    "src/ui/UiController.cpp": "5ee5a83fd0d829460836f8f080880ef594c18798d6d29b33dc2548c85c15f968",
+    "src/ui/PetIcons.cpp": "a51e65b107f8725af0cbc7cc2e6f904ccf786c41591c97dfd400b198e4113746",
+    "src/ui/BirdSprite.h": "9214f0904f5cc441b5671b0607485d7655c13141b83149729c8cc1cbd7c48145",
+    "src/ui/WyvernSprite.h": "9a886a4796c77ca58ba5d65bedd02dc81af0ed7e7d22f1306d4ca558bcb5c679",
+    "test/rps_ui_native.cpp": "cd6b633b079ab7bc1688caaf94b2929b2b87f45098b5767b816770f60e041ea4"
+  }
+}

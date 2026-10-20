@@ -1,0 +1,376 @@
+{
+  "status": "USER_ART_V2_PREVIEW_ONLY_NOT_FIRMWARE_OR_HARDWARE_ACCEPTANCE",
+  "roles": [
+    {
+      "role": "bird-baby",
+      "expressions": {
+        "shock": {
+          "source": "assets/pets/bird/baby/shock.png",
+          "source_frame_count": 2,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 120,
+              "body_offset": [
+                0,
+                -2
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "f690756743d0a51b4ffb18aebbb42a658db73702caef46c95dd8e9d2d8e53cfa"
+            },
+            {
+              "source_frame": 1,
+              "duration_ms": 100,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "710add03dca155fcf1fa4589a81b4acc065255bb6fe63055389516dad695b11f"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 100,
+              "body_offset": [
+                0,
+                -1
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "a5982fcf4f83df863804b6a4d209006a65209443b2f337036008e943b09843df"
+            },
+            {
+              "source_frame": 1,
+              "duration_ms": 180,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "710add03dca155fcf1fa4589a81b4acc065255bb6fe63055389516dad695b11f"
+            }
+          ]
+        },
+        "happy": {
+          "source": "assets/pets/bird/baby/happy.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": 5,
+              "rendered_sha256": "ca4327380734b8d420e6d8ba7c14ebe15ea2c481787bafec1d4d46ce9253192d"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                1
+              ],
+              "heart_offset": [
+                0,
+                -1
+              ],
+              "heart_clear_blank_pixels": 5,
+              "rendered_sha256": "8e1d991b5f313bd0f36a0c4e8cc0a4fca8cae31923bb401e48245cdf1126581b"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "role": "bird-adult",
+      "expressions": {
+        "shock": {
+          "source": "assets/pets/bird/adult/shock.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 160,
+              "body_offset": [
+                1,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "f16a0d11fff37deeff9225e631785207defc13b31efa038c43fe681459ff40f9"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 340,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "7ef2dabd572d1f6ce2a46381bc481550c50e035c6fe290dddfc573490e97b077"
+            }
+          ]
+        },
+        "happy": {
+          "source": "assets/pets/bird/adult/happy.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": 4,
+              "rendered_sha256": "9c2d5303dae3c7d97e9fa71929bba149322f06d9b5d3ef8d36c409f1c3caafeb"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                1
+              ],
+              "heart_offset": [
+                0,
+                -1
+              ],
+              "heart_clear_blank_pixels": 5,
+              "rendered_sha256": "3dbea373ebf414b7479194ba71953aabfefa9cb24a7b23830dea1bb20cfb771f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "role": "wyvern-baby",
+      "expressions": {
+        "shock": {
+          "source": "assets/pets/wyvern/baby/shock.png",
+          "source_frame_count": 2,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 120,
+              "body_offset": [
+                0,
+                -2
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "5af1231d1cbcececf5afe50cd519c1f84dd031d013d849508ca2f7e7599e364f"
+            },
+            {
+              "source_frame": 1,
+              "duration_ms": 100,
+              "body_offset": [
+                1,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "fdd802b57cad99b2e6a8d7067cd7e2113503b00c75b3c25c0e564fa40dcd66de"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 100,
+              "body_offset": [
+                0,
+                -1
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "e5655da85f721ccdf3dfda671cd622a493d2819f4919b360ff0840bbbbb701f6"
+            },
+            {
+              "source_frame": 1,
+              "duration_ms": 180,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "07008d6f855174d2c77b376985224d3b9536034f7c2cba165f45680d765fdaed"
+            }
+          ]
+        },
+        "happy": {
+          "source": "assets/pets/wyvern/baby/happy.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": 4,
+              "rendered_sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                1
+              ],
+              "heart_offset": [
+                0,
+                -1
+              ],
+              "heart_clear_blank_pixels": 5,
+              "rendered_sha256": "ab38751307888e05cdf7cae1848c91a3e3daa83959b5dc6ae268c71960d26b4e"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "role": "wyvern-adult",
+      "expressions": {
+        "shock": {
+          "source": "assets/pets/wyvern/adult/shock.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 160,
+              "body_offset": [
+                1,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "defd2c59e953ab7761933f5e545b8b82e0d756bf20ca7e35c750ace8d1ba2e20"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 340,
+              "body_offset": [
+                0,
+                0
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": null,
+              "rendered_sha256": "d3c5c08187378b2cca26bd7965c3334a3ae97db2879bc87a69634f7e2aafe154"
+            }
+          ]
+        },
+        "happy": {
+          "source": "assets/pets/wyvern/adult/happy.png",
+          "source_frame_count": 1,
+          "schedule": [
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                1
+              ],
+              "heart_offset": [
+                0,
+                0
+              ],
+              "heart_clear_blank_pixels": 4,
+              "rendered_sha256": "d95ed942c9d1009d1e0c43436d50a0fae1a3b6ac8c07a38f9722bffb7c8192f9"
+            },
+            {
+              "source_frame": 0,
+              "duration_ms": 400,
+              "body_offset": [
+                0,
+                1
+              ],
+              "heart_offset": [
+                0,
+                -1
+              ],
+              "heart_clear_blank_pixels": 3,
+              "rendered_sha256": "f986370b99511a40a97593dc8eaae7806235597b5a8de9048ff02671c402a3bd"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "validated_reaction_frames": 20,
+  "overview": {
+    "frame_count": 12,
+    "duration_ms": 3250,
+    "all_oled_cells_pixel_verified": true
+  },
+  "source_sha256": {
+    "assets\\pets\\bird\\baby\\shock.png": "f74a3c08a6285dd2221a86191cd29d7986817e7e9ec7956a3ef9205bc0c792a8",
+    "assets\\pets\\bird\\baby\\happy.png": "63dd1bcefaf50da03c44ef791d6b85ffe73f1ead7624babb25f277b12dd11c53",
+    "assets\\pets\\bird\\adult\\shock.png": "70107989888d612c59a460cadf7030c30ed7e2ef685aeeaa8b148fcfb429938e",
+    "assets\\pets\\bird\\adult\\happy.png": "f60f1dc2cda4e22ffa6a6cfb45eae5defb174b94222b1e8dbcba38375d536988",
+    "assets\\pets\\wyvern\\baby\\shock.png": "434e5dd00ea86533a7ea9d8001da63e1a40a2fbaf805f5696e1e575a36763c76",
+    "assets\\pets\\wyvern\\baby\\happy.png": "831a3c24980ad05d9c7ffa6150b454974a161cacee6bbd74cc258ccfa217217c",
+    "assets\\pets\\wyvern\\adult\\shock.png": "91f4f747751305357aef6f20f659fee391eca67eb03718d8e5844a521a3ab8c6",
+    "assets\\pets\\wyvern\\adult\\happy.png": "56f69a6d810cf61a0b6f2da19c4fde876414e89b7620e439987cfb469e84ed3a"
+  },
+  "firmware_source_sha256": {
+    "src/ui/UiController.cpp": "5ee5a83fd0d829460836f8f080880ef594c18798d6d29b33dc2548c85c15f968",
+    "src/ui/PetIcons.cpp": "a51e65b107f8725af0cbc7cc2e6f904ccf786c41591c97dfd400b198e4113746",
+    "src/ui/BirdSprite.h": "9214f0904f5cc441b5671b0607485d7655c13141b83149729c8cc1cbd7c48145",
+    "src/ui/WyvernSprite.h": "9a886a4796c77ca58ba5d65bedd02dc81af0ed7e7d22f1306d4ca558bcb5c679",
+    "test/rps_ui_native.cpp": "cd6b633b079ab7bc1688caaf94b2929b2b87f45098b5767b816770f60e041ea4"
+  }
+}

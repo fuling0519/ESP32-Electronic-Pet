@@ -1,0 +1,321 @@
+{
+  "status": "PROPOSAL_ONLY_NOT_FIRMWARE_OR_HARDWARE_ACCEPTANCE",
+  "roles": [
+    {
+      "role": "bird-baby",
+      "sprite_origin": [
+        32,
+        6
+      ],
+      "eye_patches_local_exclusive": [
+        [
+          24,
+          25,
+          29,
+          29
+        ],
+        [
+          35,
+          25,
+          40,
+          29
+        ]
+      ],
+      "exclamation": [
+        44,
+        17,
+        3,
+        7
+      ],
+      "hearts": [
+        [
+          62,
+          11,
+          7
+        ]
+      ],
+      "frames": [
+        {
+          "name": "bird-baby-poke-0",
+          "offset": [
+            0,
+            -2
+          ],
+          "effect_clear_blank_pixels": 7,
+          "hud_footer_unchanged": true,
+          "sha256": "9a84e006a48054b3e36a6da56270c8907723d10ed0f483d19a16659dc11e348a"
+        },
+        {
+          "name": "bird-baby-poke-1",
+          "offset": [
+            0,
+            -1
+          ],
+          "effect_clear_blank_pixels": 7,
+          "hud_footer_unchanged": true,
+          "sha256": "632aff266c936cdd5a4ddf2b6e3f6fe4f8cdc6a28cb4a03674ad0b753a4a09a7"
+        },
+        {
+          "name": "bird-baby-petting-0",
+          "offset": [
+            0,
+            0
+          ],
+          "effect_clear_blank_pixels": 4,
+          "hud_footer_unchanged": true,
+          "sha256": "2e7d5d64d81b5709e18c8fef67b7ff8ce153a96c9262ace703d0541ee73e8896"
+        },
+        {
+          "name": "bird-baby-petting-1",
+          "offset": [
+            0,
+            1
+          ],
+          "effect_clear_blank_pixels": 6,
+          "hud_footer_unchanged": true,
+          "sha256": "0b492b54838bae123a6c1b41d4090375f32d3ec906d19fd02ccc3f784a2c03d1"
+        }
+      ]
+    },
+    {
+      "role": "bird-adult",
+      "sprite_origin": [
+        32,
+        6
+      ],
+      "eye_patches_local_exclusive": [
+        [
+          19,
+          18,
+          25,
+          25
+        ],
+        [
+          31,
+          20,
+          38,
+          26
+        ]
+      ],
+      "exclamation": [
+        91,
+        14,
+        3,
+        7
+      ],
+      "hearts": [
+        [
+          65,
+          2,
+          7
+        ]
+      ],
+      "frames": [
+        {
+          "name": "bird-adult-poke-0",
+          "offset": [
+            1,
+            0
+          ],
+          "effect_clear_blank_pixels": 9,
+          "hud_footer_unchanged": true,
+          "sha256": "d545d6be3ee6de6fb5722d397f8c728d61017daa256e0d7f62fce9cbfacd13f5"
+        },
+        {
+          "name": "bird-adult-poke-1",
+          "offset": [
+            0,
+            0
+          ],
+          "effect_clear_blank_pixels": 9,
+          "hud_footer_unchanged": true,
+          "sha256": "22bf2a4b6d3a0bbf222d19d87917aa70c5aa18424f03a5a0270d37d49945b085"
+        },
+        {
+          "name": "bird-adult-petting-0",
+          "offset": [
+            0,
+            0
+          ],
+          "effect_clear_blank_pixels": 6,
+          "hud_footer_unchanged": true,
+          "sha256": "a6ca1dad36b409ef19dd5d1c8750663a82b27799539ba671fec1dd913eeab19e"
+        },
+        {
+          "name": "bird-adult-petting-1",
+          "offset": [
+            0,
+            1
+          ],
+          "effect_clear_blank_pixels": 8,
+          "hud_footer_unchanged": true,
+          "sha256": "8cf172b447cbba7b062f3ea8ab05b38475d427c95c114cad5dfb07270539c034"
+        }
+      ]
+    },
+    {
+      "role": "wyvern-baby",
+      "sprite_origin": [
+        32,
+        6
+      ],
+      "eye_patches_local_exclusive": [
+        [
+          24,
+          25,
+          29,
+          30
+        ],
+        [
+          35,
+          25,
+          40,
+          30
+        ]
+      ],
+      "exclamation": [
+        44,
+        17,
+        3,
+        7
+      ],
+      "hearts": [
+        [
+          59,
+          10,
+          7
+        ],
+        [
+          73,
+          14,
+          5
+        ]
+      ],
+      "frames": [
+        {
+          "name": "wyvern-baby-poke-0",
+          "offset": [
+            0,
+            -2
+          ],
+          "effect_clear_blank_pixels": 4,
+          "hud_footer_unchanged": true,
+          "sha256": "77fd0e2c75904b511991b46e265b9bfdc13056a3a2d09e150ae69347e935c01b"
+        },
+        {
+          "name": "wyvern-baby-poke-1",
+          "offset": [
+            1,
+            -1
+          ],
+          "effect_clear_blank_pixels": 5,
+          "hud_footer_unchanged": true,
+          "sha256": "e98313e10b2f339edbe07743a581afeea6a4cd7cd71574f85c52be3a125946f1"
+        },
+        {
+          "name": "wyvern-baby-petting-0",
+          "offset": [
+            0,
+            0
+          ],
+          "effect_clear_blank_pixels": 4,
+          "hud_footer_unchanged": true,
+          "sha256": "18f7ec533668432524b93536c3dfd045f8959d13a4334b67a269fd5f98afd5c2"
+        },
+        {
+          "name": "wyvern-baby-petting-1",
+          "offset": [
+            0,
+            1
+          ],
+          "effect_clear_blank_pixels": 5,
+          "hud_footer_unchanged": true,
+          "sha256": "617cbefc88a97a3f66e6ee708795aeb251bb0e9f4b48556a3d5c1d6f94d05559"
+        }
+      ]
+    },
+    {
+      "role": "wyvern-adult",
+      "sprite_origin": [
+        32,
+        6
+      ],
+      "eye_patches_local_exclusive": [
+        [
+          23,
+          20,
+          29,
+          26
+        ],
+        [
+          37,
+          20,
+          43,
+          26
+        ]
+      ],
+      "exclamation": [
+        96,
+        14,
+        3,
+        7
+      ],
+      "hearts": [
+        [
+          96,
+          6,
+          7
+        ]
+      ],
+      "frames": [
+        {
+          "name": "wyvern-adult-poke-0",
+          "offset": [
+            1,
+            0
+          ],
+          "effect_clear_blank_pixels": 12,
+          "hud_footer_unchanged": true,
+          "sha256": "b2faece9faa85c87556bcdea86c7c56b3bbc5b7948cd188216a9505031168f54"
+        },
+        {
+          "name": "wyvern-adult-poke-1",
+          "offset": [
+            0,
+            0
+          ],
+          "effect_clear_blank_pixels": 13,
+          "hud_footer_unchanged": true,
+          "sha256": "4d523d202238bde0ae103ea743b25c994f4e856d242e7981f72acfe54484bab8"
+        },
+        {
+          "name": "wyvern-adult-petting-0",
+          "offset": [
+            0,
+            1
+          ],
+          "effect_clear_blank_pixels": 13,
+          "hud_footer_unchanged": true,
+          "sha256": "ad181d3a9fd9e849ced07c1365e0166d675a71250ffb3bbb6d57c073c9e546f3"
+        },
+        {
+          "name": "wyvern-adult-petting-1",
+          "offset": [
+            0,
+            1
+          ],
+          "effect_clear_blank_pixels": 13,
+          "hud_footer_unchanged": true,
+          "sha256": "bd1e8f22e7bca3d4b31e0026aa61d873925ce35a2866a898dbc606e67c35b145"
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "src/ui/UiController.cpp": "5ee5a83fd0d829460836f8f080880ef594c18798d6d29b33dc2548c85c15f968",
+    "src/ui/PetIcons.cpp": "a51e65b107f8725af0cbc7cc2e6f904ccf786c41591c97dfd400b198e4113746",
+    "src/ui/BirdSprite.h": "9214f0904f5cc441b5671b0607485d7655c13141b83149729c8cc1cbd7c48145",
+    "src/ui/WyvernSprite.h": "9a886a4796c77ca58ba5d65bedd02dc81af0ed7e7d22f1306d4ca558bcb5c679",
+    "test/rps_ui_native.cpp": "cd6b633b079ab7bc1688caaf94b2929b2b87f45098b5767b816770f60e041ea4"
+  }
+}

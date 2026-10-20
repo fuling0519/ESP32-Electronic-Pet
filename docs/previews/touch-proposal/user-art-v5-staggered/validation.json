@@ -1,0 +1,3823 @@
+{
+  "status": "STAGGERED_HEARTS_V5_PNG_PROPOSAL_ONLY",
+  "period_ms": 1800,
+  "visible_ms": 1680,
+  "hidden_ms": 120,
+  "preview_end_ms": 4000,
+  "body_phase_origin_ms": 700,
+  "source_sha256": {
+    "assets/pets/bird/baby/idle.png": "f0861b72223116fcd294e876e9cd3a6c38baccb46bd4827d20ec23211b963f24",
+    "assets/pets/bird/baby/happy.png": "63dd1bcefaf50da03c44ef791d6b85ffe73f1ead7624babb25f277b12dd11c53",
+    "assets/pets/bird/adult/idle.png": "198490d1ad7aa4bafcc0fa9f1c8fbc7b6f63e82b1a569ed53b97929dafbc165e",
+    "assets/pets/bird/adult/happy.png": "f60f1dc2cda4e22ffa6a6cfb45eae5defb174b94222b1e8dbcba38375d536988",
+    "assets/pets/wyvern/baby/idle.png": "518704001d7ba120a8a4ac22eb9a623c04934b97874684bfddfa0137066105d0",
+    "assets/pets/wyvern/baby/happy.png": "831a3c24980ad05d9c7ffa6150b454974a161cacee6bbd74cc258ccfa217217c",
+    "assets/pets/wyvern/adult/idle.png": "09472a7e40c72aa53850e851d18f157a32cb65aedb45c9637c356f23675b73b8",
+    "assets/pets/wyvern/adult/happy.png": "56f69a6d810cf61a0b6f2da19c4fde876414e89b7620e439987cfb469e84ed3a"
+  },
+  "v4_files_sha256": {
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-0-heart-0-128x64.png": "2db7d99cb48df5abc2855d334633484ea0ecff991ecdc8cc1c93f5de09abf975",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-0-heart-1-128x64.png": "55ad9d4e55c5db869dd9ce12d0b5dfeb4aee2442b124ef57e0e680297c4d6aa3",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-1-heart-0-128x64.png": "d831bd9f458abaa11f032ca9314725a5769e692c2bc080417f3ab54e1da0b0a8",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-1-heart-1-128x64.png": "e89bdfcb7c392590f16f892addd14f2f44bb65c01f00d2f876bf4917de935d6c",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-idle-128x64.gif": "d0348c82476a72e0322ceaf8dd100ccbd1e98b9cdce4a4cbb13b7fbc91084d00",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-idle-512x256.gif": "5d2a4af2900d4a00697bf242f5b5fcfa439725c3c0d61b5c1c353b450b3e6c5e",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-idle-pose-0-64x44.png": "c062dea2e2e8d2560709a23e2a0b51716fd969eab2f9b04880b947c87daab617",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-happy-idle-pose-1-64x44.png": "2e34bd415452dc7619be117d5ab0f2687f0c88069924d126ef3a9be3c22088a0",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-idle-0-128x64.png": "c5ef0a834e97e18617e6275446ed2017d947f4a3e94de07977a9b05db14c2722",
+    "docs/previews/touch-proposal/user-art-v4/bird-adult-idle-1-128x64.png": "63cf0f58f89215948aa9dd13bdb3ef5c682bd89e33f198b40e0957d61599845c",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-0-heart-0-128x64.png": "ead8921af02f9a651a4546049a9f1141a106256dc915b80fbe475275ac632877",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-0-heart-1-128x64.png": "3950c43c1993c3a1ac817b86db973f328bb534a333a4175bf72f598e3e555ce9",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-1-heart-0-128x64.png": "7f72ff6bee31a9f59480feab5e205fb2be9e2e403520787b8b4f5529ceae2a76",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-1-heart-1-128x64.png": "ffa1791d5d87fc76f8e54a457b6e8a1527fcc733319bf1a3e0ef0378846aa716",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-idle-128x64.gif": "11b78512a5ec598b64d83b9bbda3611fac71fd30568dcb13ba04be2e41cc81b7",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-idle-512x256.gif": "18e767316f1330e173c52ebf7cfe61a1ab2e1ed68fc83c0b5cb380371470cbcf",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-idle-pose-0-64x44.png": "6660bad012397bcd34ef67d4c0dfe90e2e66a0b3fd115d9d3e0d5663eb5423b0",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-happy-idle-pose-1-64x44.png": "6c9c4a9f238203e1344832706a41661023c1d487bb563ff3858f764278e86ef8",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-idle-0-128x64.png": "a2ae0e36b323046ed9b38a9bad5cc62c9e6b0dcdfd2610a60b17e876be83f121",
+    "docs/previews/touch-proposal/user-art-v4/bird-baby-idle-1-128x64.png": "d1f3de3b08e35b5a624defe8959d9134b2ee3747862dfaeb4db639ed235025a7",
+    "docs/previews/touch-proposal/user-art-v4/happy-idle-contact.gif": "5f9b55f7f772189ab331b2b4d90d61b243b5894bafff66daae67b275ba563ba2",
+    "docs/previews/touch-proposal/user-art-v4/happy-idle-contact.png": "0fc1bbd80c28d06be055a331993283328b0a894b45c1b77f32a11fabb77ddc07",
+    "docs/previews/touch-proposal/user-art-v4/happy-idle-second-pose.png": "2207cbdf1fdf37735bd5ec3cf49d464cff5936076a64816a88b610ee48b5710d",
+    "docs/previews/touch-proposal/user-art-v4/validation.json": "33602dd24f3241f9b5efc86d9bf75537f8a7b2d54efaf5b46ea06aa39a445c7c",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-0-heart-0-128x64.png": "0cf067a7baddabbd2b248f1b64c9bfa20f7dd3ced18289dbefc1f16498c34c91",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-0-heart-1-128x64.png": "e2d0b0807a88a693083ff3497e7a63c77aef70af49d028dc69dd8c22ef7817f8",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-1-heart-0-128x64.png": "1bbb2b82a9df405884f7905f29859df78325f0546756974eac37d219bab29a2f",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-1-heart-1-128x64.png": "21ff3aa34051fbe3d7f6da3732579bf8366cc99cd79afce2e1ad594b9f487945",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-idle-128x64.gif": "e21f6399c8a65dd76696edadfe82a399d2c47db9501992c59105a09e763d620b",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-idle-512x256.gif": "559ad226a33a1f9fb4894c77eb1efe2cd4ffa197422632d0e6e9b57aa8d8e5df",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-idle-pose-0-64x44.png": "523e003942f34cdcec51ddef129c87ced0b292ecd2cd4f864cc4399b35a1dc38",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-happy-idle-pose-1-64x44.png": "3fd2c6c146612a38facc4e4e5e2d7f440470777b86bc20b2e67e3d33ed2eb375",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-idle-0-128x64.png": "ee5d05b3090e94df447d216fae6f030b25e95f956cd4bcb65fae085f2089b893",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-adult-idle-1-128x64.png": "8cabbcf66e89bd171eafb197c9abcc6c1c44828692577a5e3738f7ff62c64718",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-0-heart-0-128x64.png": "4110d38eefc66a623c2eced869e3090ce2964fff09aaabee766eeded65b72ce3",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-0-heart-1-128x64.png": "ae6902f894a2505a063618a1832a4fb07f72a04b1f25f83290c90838c58b9448",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-1-heart-0-128x64.png": "440121e46b33625d6e452a51ce9b3dbfe38511dc09014ab3bcfb6c282bcd0e0f",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-1-heart-1-128x64.png": "85098ab4d678a1dab3dc7259dd03b548ec714fd456c48029fdd447ac2257afc0",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-idle-128x64.gif": "515474de49d15e728e0329c829e6349310d5a31012bcc6f7bfd6de82f5618d85",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-idle-512x256.gif": "fe38b3746289072e94d23547645b91757093f9eb77316461a816118c25c09102",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-idle-pose-0-64x44.png": "719000ab22a9d51249daa6c9ac8b9ed260de2dd8420a96da1f352defec0e00e6",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-happy-idle-pose-1-64x44.png": "83ab155501b581471ec58462b5e14e667363986d02490b40b073afedf41d69ac",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-idle-0-128x64.png": "bc87295d250cb2472e8a757e74497b217b7fcc6c4fe6e433b65f93ffcc089438",
+    "docs/previews/touch-proposal/user-art-v4/wyvern-baby-idle-1-128x64.png": "03222a7eea51718c2fb2c67b67dcfbdb14bd4a664958bf7c8bdc52a1aebb4e41"
+  },
+  "roles": [
+    {
+      "role": "bird-baby",
+      "hearts": [
+        {
+          "id": "H0",
+          "v4_local_rectangle_exclusive": [
+            13,
+            14,
+            18,
+            19
+          ],
+          "v4_oled_origin": [
+            45,
+            20
+          ],
+          "white_pixel_count": 16,
+          "delay_ms": 0,
+          "first_float_ms": 100,
+          "first_disappear_ms": 1680,
+          "first_reappear_ms": 1800,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "3983865606613b8775f2e8fadabbae4a63195e58f45cca63200d4b5c8eba70b6"
+        },
+        {
+          "id": "H1",
+          "v4_local_rectangle_exclusive": [
+            44,
+            11,
+            51,
+            17
+          ],
+          "v4_oled_origin": [
+            76,
+            17
+          ],
+          "white_pixel_count": 27,
+          "delay_ms": 200,
+          "first_float_ms": 300,
+          "first_disappear_ms": 1880,
+          "first_reappear_ms": 2000,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "002718aa3a065d7999890c48f94a4b890acb5226b85361f09a57bbb8ff61165d"
+        }
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "time_ms": 0,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-000-0000ms-128x64.png",
+          "sha256": "e57019602a167e4b6953d6d9790b551ef603f261ab41a583749a219467bab426"
+        },
+        {
+          "index": 1,
+          "time_ms": 100,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-001-0100ms-128x64.png",
+          "sha256": "7f6617246b5cb19d725e3244f699a266bdf2161c49bdc353108d823331fca434"
+        },
+        {
+          "index": 2,
+          "time_ms": 200,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-002-0200ms-128x64.png",
+          "sha256": "e41a8bf59cf3b2d9ed1802f56e8d3f72d028ea92a6a5122375f20fe3ca6ddf49"
+        },
+        {
+          "index": 3,
+          "time_ms": 300,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-003-0300ms-128x64.png",
+          "sha256": "09fd305cdaff2e1342324a0814cd46820b5db279cb363394b576c1ddc6c914df"
+        },
+        {
+          "index": 4,
+          "time_ms": 500,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-004-0500ms-128x64.png",
+          "sha256": "42f74f59e1837105528fea7277eb83d532a11c2dcbcf98f0fa93b28772ecf143"
+        },
+        {
+          "index": 5,
+          "time_ms": 700,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 700,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-005-0700ms-128x64.png",
+          "sha256": "ca4327380734b8d420e6d8ba7c14ebe15ea2c481787bafec1d4d46ce9253192d"
+        },
+        {
+          "index": 6,
+          "time_ms": 900,
+          "duration_to_next_ms": 200,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 700,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-006-0900ms-128x64.png",
+          "sha256": "3369168940f70cfb71d6fda9905ec80bf03ea4212d17e1c4537aedb5ad1fb64e"
+        },
+        {
+          "index": 7,
+          "time_ms": 1100,
+          "duration_to_next_ms": 200,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1100,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-007-1100ms-128x64.png",
+          "sha256": "9991ed3306c70f22f345065476e266ebe2d8d1829409c6c915380bcdda28966d"
+        },
+        {
+          "index": 8,
+          "time_ms": 1300,
+          "duration_to_next_ms": 200,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1100,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-008-1300ms-128x64.png",
+          "sha256": "f875e1216e57113eca9c4031d871cf1e582a5612beb92288e3a1b0cb253f2c8a"
+        },
+        {
+          "index": 9,
+          "time_ms": 1500,
+          "duration_to_next_ms": 180,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-009-1500ms-128x64.png",
+          "sha256": "be6543ee7133309088d02f311bb86c2875653a856101ed1e92edf66b8746a45c"
+        },
+        {
+          "index": 10,
+          "time_ms": 1680,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 1480,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-010-1680ms-128x64.png",
+          "sha256": "d5cb9d907eade5bcf48ab6e7ffa2ac12a89e9646c7fd86e44d50c60977bb276f"
+        },
+        {
+          "index": 11,
+          "time_ms": 1800,
+          "duration_to_next_ms": 80,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1600,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-011-1800ms-128x64.png",
+          "sha256": "be6543ee7133309088d02f311bb86c2875653a856101ed1e92edf66b8746a45c"
+        },
+        {
+          "index": 12,
+          "time_ms": 1880,
+          "duration_to_next_ms": 20,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 80,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-012-1880ms-128x64.png",
+          "sha256": "c5291bd754135fac7875e000975f8d03b0222b0c8883e2cec936648fd808442d"
+        },
+        {
+          "index": 13,
+          "time_ms": 1900,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1700,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-013-1900ms-128x64.png",
+          "sha256": "7f6617246b5cb19d725e3244f699a266bdf2161c49bdc353108d823331fca434"
+        },
+        {
+          "index": 14,
+          "time_ms": 2000,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-014-2000ms-128x64.png",
+          "sha256": "e41a8bf59cf3b2d9ed1802f56e8d3f72d028ea92a6a5122375f20fe3ca6ddf49"
+        },
+        {
+          "index": 15,
+          "time_ms": 2100,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-015-2100ms-128x64.png",
+          "sha256": "09fd305cdaff2e1342324a0814cd46820b5db279cb363394b576c1ddc6c914df"
+        },
+        {
+          "index": 16,
+          "time_ms": 2300,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-016-2300ms-128x64.png",
+          "sha256": "42f74f59e1837105528fea7277eb83d532a11c2dcbcf98f0fa93b28772ecf143"
+        },
+        {
+          "index": 17,
+          "time_ms": 2500,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 700,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-017-2500ms-128x64.png",
+          "sha256": "ca4327380734b8d420e6d8ba7c14ebe15ea2c481787bafec1d4d46ce9253192d"
+        },
+        {
+          "index": 18,
+          "time_ms": 2700,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 700,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-018-2700ms-128x64.png",
+          "sha256": "e41a8bf59cf3b2d9ed1802f56e8d3f72d028ea92a6a5122375f20fe3ca6ddf49"
+        },
+        {
+          "index": 19,
+          "time_ms": 2900,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1100,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-019-2900ms-128x64.png",
+          "sha256": "09fd305cdaff2e1342324a0814cd46820b5db279cb363394b576c1ddc6c914df"
+        },
+        {
+          "index": 20,
+          "time_ms": 3100,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1100,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-020-3100ms-128x64.png",
+          "sha256": "42f74f59e1837105528fea7277eb83d532a11c2dcbcf98f0fa93b28772ecf143"
+        },
+        {
+          "index": 21,
+          "time_ms": 3300,
+          "duration_to_next_ms": 180,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-021-3300ms-128x64.png",
+          "sha256": "ca4327380734b8d420e6d8ba7c14ebe15ea2c481787bafec1d4d46ce9253192d"
+        },
+        {
+          "index": 22,
+          "time_ms": 3480,
+          "duration_to_next_ms": 20,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 1480,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-022-3480ms-128x64.png",
+          "sha256": "a99efec551042d58622b6519bf082bd9c78756dddbfe3f09320c7d59798d3142"
+        },
+        {
+          "index": 23,
+          "time_ms": 3500,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1700,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-023-3500ms-128x64.png",
+          "sha256": "d5cb9d907eade5bcf48ab6e7ffa2ac12a89e9646c7fd86e44d50c60977bb276f"
+        },
+        {
+          "index": 24,
+          "time_ms": 3600,
+          "duration_to_next_ms": 80,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1600,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-024-3600ms-128x64.png",
+          "sha256": "be6543ee7133309088d02f311bb86c2875653a856101ed1e92edf66b8746a45c"
+        },
+        {
+          "index": 25,
+          "time_ms": 3680,
+          "duration_to_next_ms": 20,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 80,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-025-3680ms-128x64.png",
+          "sha256": "c5291bd754135fac7875e000975f8d03b0222b0c8883e2cec936648fd808442d"
+        },
+        {
+          "index": 26,
+          "time_ms": 3700,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1700,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "bird-baby/frame-026-3700ms-128x64.png",
+          "sha256": "da7f263e233acd0a4125fedcf1ee8ae487f7d07563669d78e8261629dc0c3c63"
+        },
+        {
+          "index": 27,
+          "time_ms": 3800,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "bird-baby/frame-027-3800ms-128x64.png",
+          "sha256": "3369168940f70cfb71d6fda9905ec80bf03ea4212d17e1c4537aedb5ad1fb64e"
+        },
+        {
+          "index": 28,
+          "time_ms": 3900,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-028-3900ms-128x64.png",
+          "sha256": "9991ed3306c70f22f345065476e266ebe2d8d1829409c6c915380bcdda28966d"
+        },
+        {
+          "index": 29,
+          "time_ms": 4000,
+          "duration_to_next_ms": null,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 400,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-baby/frame-029-4000ms-128x64.png",
+          "sha256": "9991ed3306c70f22f345065476e266ebe2d8d1829409c6c915380bcdda28966d"
+        }
+      ],
+      "frame_directory": "bird-baby",
+      "all_body_and_hud_pixels_identical_to_v4": true,
+      "no_both_hidden_1ms_audit": true,
+      "first_visible_heart": "H0",
+      "second_visible_heart": "H1"
+    },
+    {
+      "role": "bird-adult",
+      "hearts": [
+        {
+          "id": "H0",
+          "v4_local_rectangle_exclusive": [
+            6,
+            12,
+            11,
+            17
+          ],
+          "v4_oled_origin": [
+            38,
+            18
+          ],
+          "white_pixel_count": 16,
+          "delay_ms": 180,
+          "first_float_ms": 280,
+          "first_disappear_ms": 1860,
+          "first_reappear_ms": 1980,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "3983865606613b8775f2e8fadabbae4a63195e58f45cca63200d4b5c8eba70b6"
+        },
+        {
+          "id": "H1",
+          "v4_local_rectangle_exclusive": [
+            43,
+            8,
+            50,
+            14
+          ],
+          "v4_oled_origin": [
+            75,
+            14
+          ],
+          "white_pixel_count": 27,
+          "delay_ms": 0,
+          "first_float_ms": 100,
+          "first_disappear_ms": 1680,
+          "first_reappear_ms": 1800,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "002718aa3a065d7999890c48f94a4b890acb5226b85361f09a57bbb8ff61165d"
+        }
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "time_ms": 0,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-000-0000ms-128x64.png",
+          "sha256": "0e9c798aa305f029d626699428af390a3c7f7808349ce46ff46dc4f5cea0c649"
+        },
+        {
+          "index": 1,
+          "time_ms": 100,
+          "duration_to_next_ms": 80,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-001-0100ms-128x64.png",
+          "sha256": "10a404708d66e2cd1b5c4726365acaee8fbe954c67e25e39cb69175bec2eb485"
+        },
+        {
+          "index": 2,
+          "time_ms": 180,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 180,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-002-0180ms-128x64.png",
+          "sha256": "d4e8f61e6774bc28fb5a823561cbb80f269629edb091fc0d248617dc29af4cff"
+        },
+        {
+          "index": 3,
+          "time_ms": 280,
+          "duration_to_next_ms": 220,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 280,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-003-0280ms-128x64.png",
+          "sha256": "d71edd3377bac4fed557168fe59b2c6de8832f150206dcf25a331125cca2476d"
+        },
+        {
+          "index": 4,
+          "time_ms": 500,
+          "duration_to_next_ms": 180,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 320,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-004-0500ms-128x64.png",
+          "sha256": "de24abe337df203e137f73c4fec974fe821be903dca50cb695b068c3696fcb7b"
+        },
+        {
+          "index": 5,
+          "time_ms": 680,
+          "duration_to_next_ms": 220,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 680,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-005-0680ms-128x64.png",
+          "sha256": "9c2d5303dae3c7d97e9fa71929bba149322f06d9b5d3ef8d36c409f1c3caafeb"
+        },
+        {
+          "index": 6,
+          "time_ms": 900,
+          "duration_to_next_ms": 180,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 720,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-006-0900ms-128x64.png",
+          "sha256": "d0260d775197c8aa575f99fcdc1df0e907e60724755817ab2ccccfd9701dc4da"
+        },
+        {
+          "index": 7,
+          "time_ms": 1080,
+          "duration_to_next_ms": 220,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1080,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-007-1080ms-128x64.png",
+          "sha256": "2cb2eb95f90c8ab1c77ea48386959cf3936b517e743a5901679353463698e099"
+        },
+        {
+          "index": 8,
+          "time_ms": 1300,
+          "duration_to_next_ms": 180,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1120,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-008-1300ms-128x64.png",
+          "sha256": "552a73e44a6bb383e5073a33e1e85a429f2e306e844e028218181115ee0662fd"
+        },
+        {
+          "index": 9,
+          "time_ms": 1480,
+          "duration_to_next_ms": 200,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1480,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-009-1480ms-128x64.png",
+          "sha256": "e4b1f72ff479c75dbbab5569ee86d38f379889c4b9c736042e5a8abe23eebc16"
+        },
+        {
+          "index": 10,
+          "time_ms": 1680,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "bird-adult/frame-010-1680ms-128x64.png",
+          "sha256": "4c2347b4257517270d5abe6f915e94c020acf08fe058da8c0f9a65831b8d960e"
+        },
+        {
+          "index": 11,
+          "time_ms": 1800,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1620,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-011-1800ms-128x64.png",
+          "sha256": "e4b1f72ff479c75dbbab5569ee86d38f379889c4b9c736042e5a8abe23eebc16"
+        },
+        {
+          "index": 12,
+          "time_ms": 1860,
+          "duration_to_next_ms": 40,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 60,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-012-1860ms-128x64.png",
+          "sha256": "129dcbc7c451234f6574258fadf7c10e0d5236ea651351ab8bd35c73cdc8c39e"
+        },
+        {
+          "index": 13,
+          "time_ms": 1900,
+          "duration_to_next_ms": 80,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1720,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-013-1900ms-128x64.png",
+          "sha256": "10a404708d66e2cd1b5c4726365acaee8fbe954c67e25e39cb69175bec2eb485"
+        },
+        {
+          "index": 14,
+          "time_ms": 1980,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 180,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-014-1980ms-128x64.png",
+          "sha256": "d4e8f61e6774bc28fb5a823561cbb80f269629edb091fc0d248617dc29af4cff"
+        },
+        {
+          "index": 15,
+          "time_ms": 2080,
+          "duration_to_next_ms": 220,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 280,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-015-2080ms-128x64.png",
+          "sha256": "d71edd3377bac4fed557168fe59b2c6de8832f150206dcf25a331125cca2476d"
+        },
+        {
+          "index": 16,
+          "time_ms": 2300,
+          "duration_to_next_ms": 180,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 320,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-016-2300ms-128x64.png",
+          "sha256": "de24abe337df203e137f73c4fec974fe821be903dca50cb695b068c3696fcb7b"
+        },
+        {
+          "index": 17,
+          "time_ms": 2480,
+          "duration_to_next_ms": 220,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 680,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-017-2480ms-128x64.png",
+          "sha256": "9c2d5303dae3c7d97e9fa71929bba149322f06d9b5d3ef8d36c409f1c3caafeb"
+        },
+        {
+          "index": 18,
+          "time_ms": 2700,
+          "duration_to_next_ms": 180,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 720,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-018-2700ms-128x64.png",
+          "sha256": "d4e8f61e6774bc28fb5a823561cbb80f269629edb091fc0d248617dc29af4cff"
+        },
+        {
+          "index": 19,
+          "time_ms": 2880,
+          "duration_to_next_ms": 220,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1080,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-019-2880ms-128x64.png",
+          "sha256": "d71edd3377bac4fed557168fe59b2c6de8832f150206dcf25a331125cca2476d"
+        },
+        {
+          "index": 20,
+          "time_ms": 3100,
+          "duration_to_next_ms": 180,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1120,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-020-3100ms-128x64.png",
+          "sha256": "de24abe337df203e137f73c4fec974fe821be903dca50cb695b068c3696fcb7b"
+        },
+        {
+          "index": 21,
+          "time_ms": 3280,
+          "duration_to_next_ms": 200,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1480,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-021-3280ms-128x64.png",
+          "sha256": "9c2d5303dae3c7d97e9fa71929bba149322f06d9b5d3ef8d36c409f1c3caafeb"
+        },
+        {
+          "index": 22,
+          "time_ms": 3480,
+          "duration_to_next_ms": 20,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "bird-adult/frame-022-3480ms-128x64.png",
+          "sha256": "f2d41cf22de8aa423c627fa751aff7c5bcea334e182b13a17cef9d9a47fd2617"
+        },
+        {
+          "index": 23,
+          "time_ms": 3500,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1520,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1700,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "bird-adult/frame-023-3500ms-128x64.png",
+          "sha256": "4c2347b4257517270d5abe6f915e94c020acf08fe058da8c0f9a65831b8d960e"
+        },
+        {
+          "index": 24,
+          "time_ms": 3600,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1620,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-024-3600ms-128x64.png",
+          "sha256": "e4b1f72ff479c75dbbab5569ee86d38f379889c4b9c736042e5a8abe23eebc16"
+        },
+        {
+          "index": 25,
+          "time_ms": 3660,
+          "duration_to_next_ms": 40,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 60,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "bird-adult/frame-025-3660ms-128x64.png",
+          "sha256": "129dcbc7c451234f6574258fadf7c10e0d5236ea651351ab8bd35c73cdc8c39e"
+        },
+        {
+          "index": 26,
+          "time_ms": 3700,
+          "duration_to_next_ms": 80,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1720,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-026-3700ms-128x64.png",
+          "sha256": "d9de7974c12ad1ed7fe2f3024be2ba1569b30a8d4bbb00c04d8d76f8665525f7"
+        },
+        {
+          "index": 27,
+          "time_ms": 3780,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 180,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-027-3780ms-128x64.png",
+          "sha256": "d0260d775197c8aa575f99fcdc1df0e907e60724755817ab2ccccfd9701dc4da"
+        },
+        {
+          "index": 28,
+          "time_ms": 3880,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 280,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-028-3880ms-128x64.png",
+          "sha256": "2cb2eb95f90c8ab1c77ea48386959cf3936b517e743a5901679353463698e099"
+        },
+        {
+          "index": 29,
+          "time_ms": 4000,
+          "duration_to_next_ms": null,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 220,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 400,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "bird-adult/frame-029-4000ms-128x64.png",
+          "sha256": "2cb2eb95f90c8ab1c77ea48386959cf3936b517e743a5901679353463698e099"
+        }
+      ],
+      "frame_directory": "bird-adult",
+      "all_body_and_hud_pixels_identical_to_v4": true,
+      "no_both_hidden_1ms_audit": true,
+      "first_visible_heart": "H1",
+      "second_visible_heart": "H0"
+    },
+    {
+      "role": "wyvern-baby",
+      "hearts": [
+        {
+          "id": "H0",
+          "v4_local_rectangle_exclusive": [
+            12,
+            9,
+            19,
+            15
+          ],
+          "v4_oled_origin": [
+            44,
+            15
+          ],
+          "white_pixel_count": 27,
+          "delay_ms": 0,
+          "first_float_ms": 100,
+          "first_disappear_ms": 1680,
+          "first_reappear_ms": 1800,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "002718aa3a065d7999890c48f94a4b890acb5226b85361f09a57bbb8ff61165d"
+        },
+        {
+          "id": "H1",
+          "v4_local_rectangle_exclusive": [
+            48,
+            14,
+            53,
+            19
+          ],
+          "v4_oled_origin": [
+            80,
+            20
+          ],
+          "white_pixel_count": 16,
+          "delay_ms": 220,
+          "first_float_ms": 320,
+          "first_disappear_ms": 1900,
+          "first_reappear_ms": 2020,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "3983865606613b8775f2e8fadabbae4a63195e58f45cca63200d4b5c8eba70b6"
+        }
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "time_ms": 0,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-000-0000ms-128x64.png",
+          "sha256": "62ffbf3184360f7f63676aca4da0f0cd93aa8ed0ff52e9fd54dc0e4e9f3dc56b"
+        },
+        {
+          "index": 1,
+          "time_ms": 100,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-001-0100ms-128x64.png",
+          "sha256": "91003dcb639388b7048383af18f5b28999cffb655ecbb7379c5707360edc7e4e"
+        },
+        {
+          "index": 2,
+          "time_ms": 130,
+          "duration_to_next_ms": 90,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 130,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-002-0130ms-128x64.png",
+          "sha256": "05ea1213ca22351076dde8f1f15a97170182eef1abf45f1bb8e7c3e9aa7116c2"
+        },
+        {
+          "index": 3,
+          "time_ms": 220,
+          "duration_to_next_ms": 80,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 220,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-003-0220ms-128x64.png",
+          "sha256": "74fb6b4b003c19022da91a3ac6c216de4068554ac201868db3c552762d62b3e2"
+        },
+        {
+          "index": 4,
+          "time_ms": 300,
+          "duration_to_next_ms": 20,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 80,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-004-0300ms-128x64.png",
+          "sha256": "1a1bbb820c86c142636b69780b16ffd882361956b6bcdf7a68779768831e6f00"
+        },
+        {
+          "index": 5,
+          "time_ms": 320,
+          "duration_to_next_ms": 150,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 320,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-005-0320ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        },
+        {
+          "index": 6,
+          "time_ms": 470,
+          "duration_to_next_ms": 30,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 470,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 250,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-006-0470ms-128x64.png",
+          "sha256": "32ff9182e678b1976e9170d74247746c5db8892db318825105707dc763bebd13"
+        },
+        {
+          "index": 7,
+          "time_ms": 500,
+          "duration_to_next_ms": 130,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 280,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-007-0500ms-128x64.png",
+          "sha256": "48b05ca1902c28bf4a26167a19255ba38f917401510e3bf390db7fd88aec8747"
+        },
+        {
+          "index": 8,
+          "time_ms": 630,
+          "duration_to_next_ms": 90,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 630,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 410,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-008-0630ms-128x64.png",
+          "sha256": "03a0940ca9f97dadd3ac1bdd62cac6f4a6e9d92d51f7ec51009c908a363b4005"
+        },
+        {
+          "index": 9,
+          "time_ms": 720,
+          "duration_to_next_ms": 80,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 720,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-009-0720ms-128x64.png",
+          "sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+        },
+        {
+          "index": 10,
+          "time_ms": 800,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 800,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 580,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-010-0800ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 11,
+          "time_ms": 900,
+          "duration_to_next_ms": 70,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 680,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-011-0900ms-128x64.png",
+          "sha256": "74fb6b4b003c19022da91a3ac6c216de4068554ac201868db3c552762d62b3e2"
+        },
+        {
+          "index": 12,
+          "time_ms": 970,
+          "duration_to_next_ms": 150,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 970,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 750,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-012-0970ms-128x64.png",
+          "sha256": "1a1bbb820c86c142636b69780b16ffd882361956b6bcdf7a68779768831e6f00"
+        },
+        {
+          "index": 13,
+          "time_ms": 1120,
+          "duration_to_next_ms": 10,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1120,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-013-1120ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        },
+        {
+          "index": 14,
+          "time_ms": 1130,
+          "duration_to_next_ms": 170,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1130,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 910,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-014-1130ms-128x64.png",
+          "sha256": "32ff9182e678b1976e9170d74247746c5db8892db318825105707dc763bebd13"
+        },
+        {
+          "index": 15,
+          "time_ms": 1300,
+          "duration_to_next_ms": 170,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1080,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-015-1300ms-128x64.png",
+          "sha256": "03a0940ca9f97dadd3ac1bdd62cac6f4a6e9d92d51f7ec51009c908a363b4005"
+        },
+        {
+          "index": 16,
+          "time_ms": 1470,
+          "duration_to_next_ms": 50,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1470,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1250,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-016-1470ms-128x64.png",
+          "sha256": "48b05ca1902c28bf4a26167a19255ba38f917401510e3bf390db7fd88aec8747"
+        },
+        {
+          "index": 17,
+          "time_ms": 1520,
+          "duration_to_next_ms": 110,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1520,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-017-1520ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 18,
+          "time_ms": 1630,
+          "duration_to_next_ms": 50,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1630,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1410,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-018-1630ms-128x64.png",
+          "sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+        },
+        {
+          "index": 19,
+          "time_ms": 1680,
+          "duration_to_next_ms": 120,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 1460,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-019-1680ms-128x64.png",
+          "sha256": "a75e3c04220c34a8f88bdba034f02db2e7dfe24798e72a954b2edae64a605f68"
+        },
+        {
+          "index": 20,
+          "time_ms": 1800,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1580,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-020-1800ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 21,
+          "time_ms": 1900,
+          "duration_to_next_ms": 70,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-021-1900ms-128x64.png",
+          "sha256": "05ea1213ca22351076dde8f1f15a97170182eef1abf45f1bb8e7c3e9aa7116c2"
+        },
+        {
+          "index": 22,
+          "time_ms": 1970,
+          "duration_to_next_ms": 50,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 170,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1750,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-022-1970ms-128x64.png",
+          "sha256": "91003dcb639388b7048383af18f5b28999cffb655ecbb7379c5707360edc7e4e"
+        },
+        {
+          "index": 23,
+          "time_ms": 2020,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 220,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-023-2020ms-128x64.png",
+          "sha256": "1a1bbb820c86c142636b69780b16ffd882361956b6bcdf7a68779768831e6f00"
+        },
+        {
+          "index": 24,
+          "time_ms": 2120,
+          "duration_to_next_ms": 10,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 320,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-024-2120ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        },
+        {
+          "index": 25,
+          "time_ms": 2130,
+          "duration_to_next_ms": 170,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 330,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 110,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-025-2130ms-128x64.png",
+          "sha256": "32ff9182e678b1976e9170d74247746c5db8892db318825105707dc763bebd13"
+        },
+        {
+          "index": 26,
+          "time_ms": 2300,
+          "duration_to_next_ms": 170,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 280,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-026-2300ms-128x64.png",
+          "sha256": "03a0940ca9f97dadd3ac1bdd62cac6f4a6e9d92d51f7ec51009c908a363b4005"
+        },
+        {
+          "index": 27,
+          "time_ms": 2470,
+          "duration_to_next_ms": 50,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 670,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 450,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-027-2470ms-128x64.png",
+          "sha256": "48b05ca1902c28bf4a26167a19255ba38f917401510e3bf390db7fd88aec8747"
+        },
+        {
+          "index": 28,
+          "time_ms": 2520,
+          "duration_to_next_ms": 110,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 720,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-028-2520ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 29,
+          "time_ms": 2630,
+          "duration_to_next_ms": 70,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 830,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 610,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-029-2630ms-128x64.png",
+          "sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+        },
+        {
+          "index": 30,
+          "time_ms": 2700,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 680,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-030-2700ms-128x64.png",
+          "sha256": "1a1bbb820c86c142636b69780b16ffd882361956b6bcdf7a68779768831e6f00"
+        },
+        {
+          "index": 31,
+          "time_ms": 2800,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1000,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 780,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-031-2800ms-128x64.png",
+          "sha256": "74fb6b4b003c19022da91a3ac6c216de4068554ac201868db3c552762d62b3e2"
+        },
+        {
+          "index": 32,
+          "time_ms": 2920,
+          "duration_to_next_ms": 50,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1120,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-032-2920ms-128x64.png",
+          "sha256": "32ff9182e678b1976e9170d74247746c5db8892db318825105707dc763bebd13"
+        },
+        {
+          "index": 33,
+          "time_ms": 2970,
+          "duration_to_next_ms": 130,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1170,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 950,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-033-2970ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        },
+        {
+          "index": 34,
+          "time_ms": 3100,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1080,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-034-3100ms-128x64.png",
+          "sha256": "03a0940ca9f97dadd3ac1bdd62cac6f4a6e9d92d51f7ec51009c908a363b4005"
+        },
+        {
+          "index": 35,
+          "time_ms": 3130,
+          "duration_to_next_ms": 170,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1330,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1110,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-035-3130ms-128x64.png",
+          "sha256": "48b05ca1902c28bf4a26167a19255ba38f917401510e3bf390db7fd88aec8747"
+        },
+        {
+          "index": 36,
+          "time_ms": 3300,
+          "duration_to_next_ms": 20,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1280,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-036-3300ms-128x64.png",
+          "sha256": "03a0940ca9f97dadd3ac1bdd62cac6f4a6e9d92d51f7ec51009c908a363b4005"
+        },
+        {
+          "index": 37,
+          "time_ms": 3320,
+          "duration_to_next_ms": 150,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1520,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-037-3320ms-128x64.png",
+          "sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+        },
+        {
+          "index": 38,
+          "time_ms": 3470,
+          "duration_to_next_ms": 10,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1670,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1450,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-038-3470ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 39,
+          "time_ms": 3480,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 1460,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-039-3480ms-128x64.png",
+          "sha256": "988a123584de5add7f5004e5cde3843049f24e16297e4f9575ebf61d9866edc6"
+        },
+        {
+          "index": 40,
+          "time_ms": 3600,
+          "duration_to_next_ms": 30,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1580,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-040-3600ms-128x64.png",
+          "sha256": "e03bf7e4698891bbed96cc7aecc526928a0f1bc1fb447bc623e441f2b63cb896"
+        },
+        {
+          "index": 41,
+          "time_ms": 3630,
+          "duration_to_next_ms": 70,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 30,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1610,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-041-3630ms-128x64.png",
+          "sha256": "ad36665ba8192fd39e4f49a28e6f3d2436b4e5258c727051d8aad08bc44d5a57"
+        },
+        {
+          "index": 42,
+          "time_ms": 3700,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-042-3700ms-128x64.png",
+          "sha256": "91003dcb639388b7048383af18f5b28999cffb655ecbb7379c5707360edc7e4e"
+        },
+        {
+          "index": 43,
+          "time_ms": 3800,
+          "duration_to_next_ms": 20,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": false,
+              "age_ms": 1780,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-baby/frame-043-3800ms-128x64.png",
+          "sha256": "05ea1213ca22351076dde8f1f15a97170182eef1abf45f1bb8e7c3e9aa7116c2"
+        },
+        {
+          "index": 44,
+          "time_ms": 3820,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 220,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-baby/frame-044-3820ms-128x64.png",
+          "sha256": "74fb6b4b003c19022da91a3ac6c216de4068554ac201868db3c552762d62b3e2"
+        },
+        {
+          "index": 45,
+          "time_ms": 3920,
+          "duration_to_next_ms": 50,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 320,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-045-3920ms-128x64.png",
+          "sha256": "32ff9182e678b1976e9170d74247746c5db8892db318825105707dc763bebd13"
+        },
+        {
+          "index": 46,
+          "time_ms": 3970,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 370,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 150,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-046-3970ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        },
+        {
+          "index": 47,
+          "time_ms": 4000,
+          "duration_to_next_ms": null,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 400,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 180,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-baby/frame-047-4000ms-128x64.png",
+          "sha256": "c4a03f145bacca7940c1506f0e3e1d57de231fce525a1a1106230800a72c5cf7"
+        }
+      ],
+      "frame_directory": "wyvern-baby",
+      "all_body_and_hud_pixels_identical_to_v4": true,
+      "no_both_hidden_1ms_audit": true,
+      "first_visible_heart": "H0",
+      "second_visible_heart": "H1"
+    },
+    {
+      "role": "wyvern-adult",
+      "hearts": [
+        {
+          "id": "H0",
+          "v4_local_rectangle_exclusive": [
+            5,
+            19,
+            12,
+            25
+          ],
+          "v4_oled_origin": [
+            37,
+            25
+          ],
+          "white_pixel_count": 27,
+          "delay_ms": 160,
+          "first_float_ms": 260,
+          "first_disappear_ms": 1840,
+          "first_reappear_ms": 1960,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "002718aa3a065d7999890c48f94a4b890acb5226b85361f09a57bbb8ff61165d"
+        },
+        {
+          "id": "H1",
+          "v4_local_rectangle_exclusive": [
+            55,
+            10,
+            60,
+            15
+          ],
+          "v4_oled_origin": [
+            87,
+            16
+          ],
+          "white_pixel_count": 16,
+          "delay_ms": 0,
+          "first_float_ms": 100,
+          "first_disappear_ms": 1680,
+          "first_reappear_ms": 1800,
+          "allowed_displacements": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              -1
+            ]
+          ],
+          "mask_sha256": "3983865606613b8775f2e8fadabbae4a63195e58f45cca63200d4b5c8eba70b6"
+        }
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "time_ms": 0,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-000-0000ms-128x64.png",
+          "sha256": "a0518975aeca8dea4c8d6d4ab171ba9b2c140593bfa9db017ac195e29e9221cc"
+        },
+        {
+          "index": 1,
+          "time_ms": 100,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-001-0100ms-128x64.png",
+          "sha256": "0eb532bf5be50ed6bd431ec3f98a466404cf1370ccb7e9ca47e2e6c22893cba5"
+        },
+        {
+          "index": 2,
+          "time_ms": 130,
+          "duration_to_next_ms": 30,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": null,
+              "cycle": null,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 130,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-002-0130ms-128x64.png",
+          "sha256": "d251199bc5c7ce6811502f8c707385e0ee81345b6652e29c3e4a73e59ca78d3f"
+        },
+        {
+          "index": 3,
+          "time_ms": 160,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 160,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-003-0160ms-128x64.png",
+          "sha256": "ab24b837c47b85323b9f1be670d596bc90e47efa0a2780e10dd32253b77685fd"
+        },
+        {
+          "index": 4,
+          "time_ms": 260,
+          "duration_to_next_ms": 40,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 260,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-004-0260ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 5,
+          "time_ms": 300,
+          "duration_to_next_ms": 170,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 140,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 300,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-005-0300ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        },
+        {
+          "index": 6,
+          "time_ms": 470,
+          "duration_to_next_ms": 30,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 310,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 470,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-006-0470ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 7,
+          "time_ms": 500,
+          "duration_to_next_ms": 130,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 340,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-007-0500ms-128x64.png",
+          "sha256": "3a9e2d0b9beac02dedb26b782fdde7599dbbf4a40e8b7691ce0ff49fac5aff49"
+        },
+        {
+          "index": 8,
+          "time_ms": 630,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 470,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 630,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-008-0630ms-128x64.png",
+          "sha256": "6598354747d48dd4aebe341d25b7a1c48018b0b9fbcaa1d4a189ded2862fdd3d"
+        },
+        {
+          "index": 9,
+          "time_ms": 660,
+          "duration_to_next_ms": 140,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 660,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-009-0660ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 10,
+          "time_ms": 800,
+          "duration_to_next_ms": 100,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 640,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 800,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-010-0800ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 11,
+          "time_ms": 900,
+          "duration_to_next_ms": 70,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 740,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-011-0900ms-128x64.png",
+          "sha256": "ab24b837c47b85323b9f1be670d596bc90e47efa0a2780e10dd32253b77685fd"
+        },
+        {
+          "index": 12,
+          "time_ms": 970,
+          "duration_to_next_ms": 90,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 810,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 970,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-012-0970ms-128x64.png",
+          "sha256": "e42748bf02431364b5fe1b5a050de1a5abbbf60c024aacf794cb7bb60b5a82f3"
+        },
+        {
+          "index": 13,
+          "time_ms": 1060,
+          "duration_to_next_ms": 70,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1060,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-013-1060ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        },
+        {
+          "index": 14,
+          "time_ms": 1130,
+          "duration_to_next_ms": 170,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 970,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1130,
+              "cycle": 0,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-014-1130ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 15,
+          "time_ms": 1300,
+          "duration_to_next_ms": 160,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1140,
+              "cycle": 0,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-015-1300ms-128x64.png",
+          "sha256": "6598354747d48dd4aebe341d25b7a1c48018b0b9fbcaa1d4a189ded2862fdd3d"
+        },
+        {
+          "index": 16,
+          "time_ms": 1460,
+          "duration_to_next_ms": 10,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1460,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-016-1460ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 17,
+          "time_ms": 1470,
+          "duration_to_next_ms": 160,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1310,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1470,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-017-1470ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 18,
+          "time_ms": 1630,
+          "duration_to_next_ms": 50,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1470,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1630,
+              "cycle": 0,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-018-1630ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 19,
+          "time_ms": 1680,
+          "duration_to_next_ms": 120,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1520,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-adult/frame-019-1680ms-128x64.png",
+          "sha256": "2b3d19778b8ad4ed4c97d06d35e0a962216a16a8f28b6e5335c203f18cae7ecc"
+        },
+        {
+          "index": 20,
+          "time_ms": 1800,
+          "duration_to_next_ms": 40,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1640,
+              "cycle": 0,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-020-1800ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 21,
+          "time_ms": 1840,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 40,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-021-1840ms-128x64.png",
+          "sha256": "60d045b2cfe2193e86ae5b58f078df13f4b66f7f8a14cc8e7998136c072511ae"
+        },
+        {
+          "index": 22,
+          "time_ms": 1900,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1740,
+              "cycle": 0,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-022-1900ms-128x64.png",
+          "sha256": "d251199bc5c7ce6811502f8c707385e0ee81345b6652e29c3e4a73e59ca78d3f"
+        },
+        {
+          "index": 23,
+          "time_ms": 1960,
+          "duration_to_next_ms": 10,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 160,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-023-1960ms-128x64.png",
+          "sha256": "ab24b837c47b85323b9f1be670d596bc90e47efa0a2780e10dd32253b77685fd"
+        },
+        {
+          "index": 24,
+          "time_ms": 1970,
+          "duration_to_next_ms": 90,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 10,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 170,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-024-1970ms-128x64.png",
+          "sha256": "e42748bf02431364b5fe1b5a050de1a5abbbf60c024aacf794cb7bb60b5a82f3"
+        },
+        {
+          "index": 25,
+          "time_ms": 2060,
+          "duration_to_next_ms": 70,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 260,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-025-2060ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        },
+        {
+          "index": 26,
+          "time_ms": 2130,
+          "duration_to_next_ms": 170,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 170,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 330,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-026-2130ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 27,
+          "time_ms": 2300,
+          "duration_to_next_ms": 160,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 340,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-027-2300ms-128x64.png",
+          "sha256": "6598354747d48dd4aebe341d25b7a1c48018b0b9fbcaa1d4a189ded2862fdd3d"
+        },
+        {
+          "index": 28,
+          "time_ms": 2460,
+          "duration_to_next_ms": 10,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 500,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 660,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-028-2460ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 29,
+          "time_ms": 2470,
+          "duration_to_next_ms": 160,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 510,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 670,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-029-2470ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 30,
+          "time_ms": 2630,
+          "duration_to_next_ms": 70,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 670,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 830,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-030-2630ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 31,
+          "time_ms": 2700,
+          "duration_to_next_ms": 100,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 740,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-031-2700ms-128x64.png",
+          "sha256": "e42748bf02431364b5fe1b5a050de1a5abbbf60c024aacf794cb7bb60b5a82f3"
+        },
+        {
+          "index": 32,
+          "time_ms": 2800,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 840,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1000,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-032-2800ms-128x64.png",
+          "sha256": "ab24b837c47b85323b9f1be670d596bc90e47efa0a2780e10dd32253b77685fd"
+        },
+        {
+          "index": 33,
+          "time_ms": 2860,
+          "duration_to_next_ms": 110,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 900,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1060,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-033-2860ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 34,
+          "time_ms": 2970,
+          "duration_to_next_ms": 130,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1010,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1170,
+              "cycle": 1,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-034-2970ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        },
+        {
+          "index": 35,
+          "time_ms": 3100,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1140,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-035-3100ms-128x64.png",
+          "sha256": "6598354747d48dd4aebe341d25b7a1c48018b0b9fbcaa1d4a189ded2862fdd3d"
+        },
+        {
+          "index": 36,
+          "time_ms": 3130,
+          "duration_to_next_ms": 130,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1170,
+              "cycle": 1,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 1330,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-036-3130ms-128x64.png",
+          "sha256": "3a9e2d0b9beac02dedb26b782fdde7599dbbf4a40e8b7691ce0ff49fac5aff49"
+        },
+        {
+          "index": 37,
+          "time_ms": 3260,
+          "duration_to_next_ms": 40,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1300,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1460,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-037-3260ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 38,
+          "time_ms": 3300,
+          "duration_to_next_ms": 170,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1340,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1500,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-038-3300ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 39,
+          "time_ms": 3470,
+          "duration_to_next_ms": 10,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1510,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 1670,
+              "cycle": 1,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-039-3470ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 40,
+          "time_ms": 3480,
+          "duration_to_next_ms": 120,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1520,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            }
+          ],
+          "png": "wyvern-adult/frame-040-3480ms-128x64.png",
+          "sha256": "9072fd9b3a0fc6980029ade2866a1c216f8d01cc4c986b02e8d07873d6063f70"
+        },
+        {
+          "index": 41,
+          "time_ms": 3600,
+          "duration_to_next_ms": 30,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1640,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-041-3600ms-128x64.png",
+          "sha256": "0f11b0f8f3ddb8e82b7511275fd0c0afaf943f116bc957bb746f5bfb386c379b"
+        },
+        {
+          "index": 42,
+          "time_ms": 3630,
+          "duration_to_next_ms": 10,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 1670,
+              "cycle": 1,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 30,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-042-3630ms-128x64.png",
+          "sha256": "64a13b3e091a65a784196a946b75b1072a9b11b34aeea9e058e311b3ae9fd35e"
+        },
+        {
+          "index": 43,
+          "time_ms": 3640,
+          "duration_to_next_ms": 60,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1680,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 40,
+              "cycle": 2,
+              "dy": 0
+            }
+          ],
+          "png": "wyvern-adult/frame-043-3640ms-128x64.png",
+          "sha256": "a0518975aeca8dea4c8d6d4ab171ba9b2c140593bfa9db017ac195e29e9221cc"
+        },
+        {
+          "index": 44,
+          "time_ms": 3700,
+          "duration_to_next_ms": 60,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": false,
+              "age_ms": 1740,
+              "cycle": 1,
+              "dy": null
+            },
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-044-3700ms-128x64.png",
+          "sha256": "0eb532bf5be50ed6bd431ec3f98a466404cf1370ccb7e9ca47e2e6c22893cba5"
+        },
+        {
+          "index": 45,
+          "time_ms": 3760,
+          "duration_to_next_ms": 40,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 0,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 160,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-045-3760ms-128x64.png",
+          "sha256": "e42748bf02431364b5fe1b5a050de1a5abbbf60c024aacf794cb7bb60b5a82f3"
+        },
+        {
+          "index": 46,
+          "time_ms": 3800,
+          "duration_to_next_ms": 60,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 40,
+              "cycle": 2,
+              "dy": 0
+            },
+            {
+              "visible": true,
+              "age_ms": 200,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-046-3800ms-128x64.png",
+          "sha256": "ab24b837c47b85323b9f1be670d596bc90e47efa0a2780e10dd32253b77685fd"
+        },
+        {
+          "index": 47,
+          "time_ms": 3860,
+          "duration_to_next_ms": 110,
+          "body_pose": 1,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 100,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 260,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-047-3860ms-128x64.png",
+          "sha256": "345be363298283aecbd795a5ec5dc4af716d4e846ebe72b6f43732ac1f21ffda"
+        },
+        {
+          "index": 48,
+          "time_ms": 3970,
+          "duration_to_next_ms": 30,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 210,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 370,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-048-3970ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        },
+        {
+          "index": 49,
+          "time_ms": 4000,
+          "duration_to_next_ms": null,
+          "body_pose": 0,
+          "hearts": [
+            {
+              "visible": true,
+              "age_ms": 240,
+              "cycle": 2,
+              "dy": -1
+            },
+            {
+              "visible": true,
+              "age_ms": 400,
+              "cycle": 2,
+              "dy": -1
+            }
+          ],
+          "png": "wyvern-adult/frame-049-4000ms-128x64.png",
+          "sha256": "33a9d04d1f3b6451de357755bc31f92017ed974f03164762dcbd911f9d9b784d"
+        }
+      ],
+      "frame_directory": "wyvern-adult",
+      "all_body_and_hud_pixels_identical_to_v4": true,
+      "no_both_hidden_1ms_audit": true,
+      "first_visible_heart": "H1",
+      "second_visible_heart": "H0"
+    }
+  ],
+  "total_png_frames_native": 158
+}
