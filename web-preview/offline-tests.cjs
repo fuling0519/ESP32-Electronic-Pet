@@ -12,6 +12,30 @@ function boot(storage=new Map()){
  return {c:context,m:context.petDataManager,storage,elements};
 }
 const status=(overrides={})=>({v:1,type:'status',device_id:'esp32-AABBCCDDEEFF',pet:{id:'18446744073709551615',name:'Tamama',life_stage:'baby',satiety:80,mood:70,cleanliness:95,age_seconds:'18446744073709551615',health:'healthy',is_dead:false,sleep:'awake',...overrides}});
+
+test('memorial postcard keeps a terminal pet photo across reload without changing identity or accepting external URLs',()=>{
+ const {c,m,storage}=boot();m.preview('adult','awake');m.farewell();const pet=m.read().pet;
+ const before=JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId);
+ assert.equal(c.PetMemorials.savePhoto(pet,'https://example.com/photo.png'),false);
+ assert.equal(c.PetMemorials.savePhoto({...pet,petId:'other'},'data:image/png;base64,YQ=='),false);
+ assert.equal(c.PetMemorials.savePhoto(pet,'data:image/png;base64,'+'A'.repeat(400000)),false);
+ assert.equal(c.PetMemorials.savePhoto(pet,'data:image/png;base64,YQ=='),true);
+ const after=JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId);
+ assert.deepEqual({...after,photo:undefined},{...before,photo:undefined});
+ const resumed=boot(storage);resumed.elements.get('#memorial-category').value='departed';
+ resumed.c.PetMemorials.open('mock:展示花園');
+ const card=resumed.elements.get('#memorial-list').children[0];
+ assert.equal(card.className,'memorial-card postcard-card');assert.equal(card.children[0].textContent,'遠行');
+ assert.equal(card.children[1].children[0].src,'data:image/png;base64,YQ==');
+ assert(!card.children.some(child=>child.className==='mini-stone'));
+ card.children.at(-1).onclick();
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,true);
+ const hiddenReload=boot(storage);hiddenReload.elements.get('#memorial-category').value='departed';hiddenReload.c.PetMemorials.open('mock:展示花園');
+ const undo=hiddenReload.elements.get('#memorial-list').children.find(child=>child.textContent.startsWith('復原明信片：'));
+ assert(undo);undo.onclick();
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,false);
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).photo,'data:image/png;base64,YQ==');
+});
 test('complete demo lifecycle reloads consistently from egg through farewell and new identity',()=>{
  const storage=new Map(),m=boot(storage).m;m.preview('adult','dead');m.adopt();const egg=m.read().pet,id=egg.petId,species=egg.speciesId;
  for(let i=0;i<6;i++)m.tick(50);assert.equal(m.read().pet.stage,'baby');assert.equal(m.read().pet.petId,id);
@@ -20,6 +44,27 @@ test('complete demo lifecycle reloads consistently from egg through farewell and
  const before=resumed.read().pet.exp;resumed.startGame('rps',0);resumed.cancelGame();assert.equal(resumed.read().pet.exp,before);
  resumed.farewell();assert.equal(resumed.read().pet.isDeparted,true);resumed=boot(storage).m;assert.equal(resumed.read().pet.isDeparted,true);assert.throws(()=>resumed.command('feed'));
  resumed.adopt();assert.notEqual(resumed.read().pet.petId,id);assert.equal(resumed.read().pet.stage,'egg');
+});
+
+test('long sleep retains its original gravestone while travel retains its postcard',()=>{
+ const {c,m,elements}=boot();m.preview('adult','dead');c.PetMemorials.remember(m.read().pet,'mock','test');
+ elements.get('#memorial-category').value='dead';c.PetMemorials.open('mock:展示花園');
+ const card=elements.get('#memorial-list').children.find(child=>child.className==='memorial-card');
+ assert(card);assert.equal(card.children[0].className,'mini-stone');assert.equal(card.children[0].textContent,'長眠');
+ assert(!card.children.some(child=>child.className==='postcard-photo'||child.className==='postcard-caption'));
+});
+test('pet and poke change mood only, share cooldown, persist and never write BLE',()=>{
+ const {m,c,storage}=boot();let now=10000;c.Date=class extends Date{static now(){return now;}};const before=m.read().pet;
+ assert.equal(m.command('pet').actual,3);assert.equal(m.read().pet.mood,before.mood+3);assert.equal(m.read().pet.exp,before.exp);assert.throws(()=>m.command('poke'),/3秒/);
+ now+=3000;assert.equal(m.command('poke').actual,-3);assert.equal(boot(storage).m.read().pet.mood,before.mood);
+ c.PetSources.mock.pet.mood=100;now+=3000;assert.equal(m.command('pet').actual,0);c.PetSources.mock.pet.mood=1;now+=3000;assert.equal(m.command('poke').actual,-1);assert.equal(m.read().pet.mood,0);
+ m.select('ble');assert.throws(()=>m.command('pet'),/唯讀/);
+});
+test('touch rejects egg, sleep, sickness, games and terminal pets',()=>{
+ const {m}=boot();m.startGame('rps',0);assert.throws(()=>m.command('pet'),/遊戲/);m.cancelGame();m.preview('adult','sleep');assert.throws(()=>m.command('poke'));m.preview('adult','sick');assert.throws(()=>m.command('pet'));m.preview('adult','dead');assert.throws(()=>m.command('poke'));m.adopt();assert.throws(()=>m.command('pet'));
+});
+test('RPS countdown exposes 3 2 1 only, memory prepares five seconds and uses 2 3 5 notes',()=>{
+ const {m,c}=boot();m.startGame('rps',0);m.answerGame(0,0);for(const [time,n] of [[0,3],[349,3],[350,2],[700,1]]){const s=m.gameState(time);assert.equal(s.countdown,n);assert.equal(s.opponent,undefined);}assert.equal(m.gameState(1050).phase,'round-result');m.cancelGame();m.startGame('memory',0);assert.equal(m.gameState(4999).phase,'prepare');assert.equal(m.gameState(4999).lit,undefined);assert.equal(m.gameState(5000).phase,'show');assert.equal(c.PetSources.mock.game.sequence.length,2);const g=c.PetSources.mock.game;g.round=2;g.next(6000);assert.equal(g.sequence.length,3);g.round=3;g.next(7000);assert.equal(g.sequence.length,5);
 });
 test('legacy demo migrates, canonical state survives reload, reads cannot mutate adapters',()=>{
  const storage=new Map([['aviary.demo',JSON.stringify({version:1,data:{petId:'old',name:'Tamama',stage:'baby',condition:'sick',ageSeconds:300,satiety:80,mood:70,cleanliness:95}})]]);
@@ -61,7 +106,7 @@ test('fragmented UTF-8 snapshot is reassembled, malformed data never replaces ca
 test('UI boots and care, death/adoption, source switch run through DataManager',()=>{
  const {c,m,elements}=boot();const get=s=>c.document.querySelector(s);const buttons=['feed','clean','play','treat'].map(kind=>({dataset:{action:kind},addEventListener(type,fn){this.click=fn;}}));
  const drawing=new Proxy({createRadialGradient:()=>({addColorStop(){}}),createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});
- const decorate=el=>Object.assign(el,{style:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},removeAttribute(){},focus(){},close(){},getContext:()=>drawing,clientWidth:384});
+ const decorate=el=>Object.assign(el,{dataset:{},style:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},removeAttribute(){},focus(){},close(){},getContext:()=>drawing,clientWidth:384});
  for(const id of fs.readFileSync(__dirname+'/index.html','utf8').matchAll(/id="([^"]+)"/g))decorate(get('#'+id[1]));get('#aviary').querySelector=()=>decorate({});
  get('#stage').options=['egg','baby','adult'].map(value=>({value}));c.document.querySelectorAll=()=>buttons;c.document.addEventListener=()=>{};
  c.Image=class{constructor(){this.complete=true;this.naturalWidth=2172;this.naturalHeight=724;}};c.ResizeObserver=class{observe(){}};c.matchMedia=()=>({matches:false});c.devicePixelRatio=1;c.performance={now:()=>0};c.__intervals=[];c.setInterval=fn=>{c.__intervals.push(fn);return c.__intervals.length;};c.clearInterval=()=>{};c.document.dispatchEvent=()=>{};let frame;c.requestAnimationFrame=fn=>{frame=fn;};c.checkBleReadiness=()=>{};const createElement=c.document.createElement;c.document.createElement=()=>decorate(createElement());for(const file of ['shared-sprites.js','shared-view.js','bird-view.js','growth-view.js','egg-view.js','sad-view.js','game-keys.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),c,{filename:file});
@@ -114,7 +159,7 @@ test('10/9 mood multipliers, weighted sleep and same-second ordering',()=>{
 });
 test('wyvern uses all 19 original 64x44 masks and exact FPS boundaries',()=>{
  const {c}=boot(),frames=Object.values(c.WyvernFrames).flat();assert.equal(frames.length,19);assert.equal(frames.reduce((n,f)=>n+f.length,0),6688);assert.ok(frames.every(f=>f.length===352));
- for(const bits of frames){const pixels=[],ctx={fillStyle:'',fillRect:(...args)=>pixels.push({args,color:ctx.fillStyle})};c.WyvernView.paint(ctx,bits,0,0,1);const foreground=pixels.filter(p=>p.color!=='#211b2e');let count=0;for(let row=0;row<44;row++)for(let col=0;col<64;col++)if(!(bits[row*8+(col>>3)]&(128>>(col%8)))){assert.deepEqual(foreground[count++].args,[col,row,1,1]);}assert.equal(foreground.length,count);assert.ok(pixels.some(p=>p.color==='#211b2e'));assert.ok(pixels.every(p=>p.args[2]===1&&p.args[3]===1));}
+ for(const bits of frames){const pixels=[],ctx={fillStyle:'',fillRect:(...args)=>pixels.push({args,color:ctx.fillStyle})};c.WyvernView.paint(ctx,bits,0,0,1);const foreground=pixels.filter(p=>{const [x,y]=p.args;return x>=0&&x<64&&y>=0&&y<44&&!(bits[y*8+(x>>3)]&(128>>(x%8)));});let count=0;for(let row=0;row<44;row++)for(let col=0;col<64;col++)if(!(bits[row*8+(col>>3)]&(128>>(col%8)))){assert.deepEqual(foreground[count++].args,[col,row,1,1]);}assert.equal(foreground.length,count);assert.ok(pixels.some(p=>p.color==='#211b2e'));assert.ok(pixels.every(p=>p.args[2]===1&&p.args[3]===1));}
  const p={stage:'baby',healthState:'healthy',sleepMode:'awake',satiety:80,mood:80,cleanliness:100};const frame=(now,action,elapsed)=>c.WyvernView.frameFor({...p},now,action,elapsed);
  assert.equal(frame(166).index,0);assert.equal(frame(167).index,1);p.sleepMode='normal';assert.equal(frame(999).index,0);assert.equal(frame(1000).index,1);p.stage='adult';assert.equal(frame(1000).index,0);p.sleepMode='awake';p.healthState='sick';assert.equal(frame(1000).name,'kWyvernSadFrames');assert.equal(frame(2000,'treat',.5).index,0);assert.equal(frame(0,'feed',.374).index,0);assert.equal(frame(0,'feed',.375).index,1);assert.equal(frame(0,'feed',1.5).index,0);
 });
@@ -125,7 +170,7 @@ test('both games settle once, cancelled games give nothing, new species does not
   assert.equal(m.read().pet.mood,65);assert.equal(m.read().pet.exp,15);m.gameState(9000);assert.equal(m.read().pet.exp,15);
   m.startGame('rps',10000);m.cancelGame();m.gameState(20000);assert.equal(m.read().pet.exp,15);
  }
- const {c,m}=boot();m.startGame('memory',0);let now=0;for(let round=0;round<5;round++){const g=c.PetSources.mock.game;while(g.phase==='show'){now=g.nextAt;m.gameState(now);}for(const choice of g.sequence)m.answerGame(choice,now);m.gameState(now+179);assert.equal(m.read().pet.exp,0);now+=180;m.gameState(now);if(round<4){now+=800;m.nextRound(now);}}
+ const {c,m}=boot();m.startGame('memory',0);assert.equal(m.gameState(4999).phase,'prepare');assert.equal(m.gameState(4999).lit,undefined);m.gameState(5000);let now=5000;for(let round=0;round<3;round++){const g=c.PetSources.mock.game;while(g.phase==='show'){now=g.nextAt;m.gameState(now);}for(const choice of g.sequence)m.answerGame(choice,now);m.gameState(now+179);assert.equal(m.read().pet.exp,0);now+=180;m.gameState(now);if(round<2){now+=800;m.nextRound(now);}}
  assert.equal(m.read().pet.mood,65);assert.equal(m.read().pet.exp,15);m.gameState(now+1000);assert.equal(m.read().pet.exp,15);
 });
 test('storage backoff keeps latest data, allows explicit retry and resets after success',()=>{

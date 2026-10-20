@@ -52,8 +52,30 @@
 #game-inputs,#game-picker{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
 #game-inputs button{min-width:64px;min-height:48px}
 .memorial-card canvas{width:128px;height:88px;image-rendering:pixelated}
+.postcard-card{position:relative;box-sizing:border-box;min-width:0;max-width:100%;overflow:hidden;background:#fffaf0;border:1px solid #dbc7aa;border-radius:4px;padding:16px;box-shadow:0 5px 12px #5a453514}
+.postcard-stamp{position:absolute;right:22px;top:22px;z-index:1;padding:6px 9px;background:#fff7e8ed;border:2px dotted #a58d72;color:#7d6557;font-size:12px;letter-spacing:2px}
+.postcard-photo{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;min-width:0;aspect-ratio:3/2;border:5px solid #fff;box-shadow:0 1px 5px #66543a30;background:#dae8b8 url('assets/garden-detailed-day.png') center/cover;overflow:hidden;margin-bottom:15px}
+.postcard-photo canvas{width:85%;height:auto;image-rendering:pixelated;max-height:190px;object-fit:contain}
+.postcard-photo img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;object-fit:contain;image-rendering:pixelated}
+.postcard-card h3{margin:8px 0;color:#665043;font-size:16px}.postcard-card .postcard-caption{border-top:1px dashed #cbb79b;padding-top:12px;color:#927663;line-height:1.7}
 
 /* New baked day/night artwork keeps its authored palette and crisp pixels. */
+#game-dialog{width:min(94vw,680px);border:3px solid #bd9e9f;border-radius:26px;padding:26px;background:linear-gradient(145deg,#fffaf0,#fff1db);box-shadow:0 18px 80px #46354d55;color:#654b55;font-family:'Microsoft JhengHei',sans-serif}
+#game-dialog h2{font-size:26px;text-align:center;color:#79546b;margin:0 0 18px}#game-dialog button{border-radius:16px;border-color:#c8a7a7;box-shadow:0 4px 0 #dbc1b8;transition:transform .15s,background .15s}
+#game-picker{justify-content:center}#game-picker button{background:#e6f1e7;flex:1;min-height:62px}#game-picker button+button{background:#eee5f8}
+.game-stage{min-height:120px;border:2px dashed #dac7bd;border-radius:22px;display:grid;place-items:center;font-size:38px;background:radial-gradient(ellipse,#fffdf6,#f5e9f1);margin:16px 0;color:#b983a4;white-space:pre-wrap;text-align:center}
+.game-stage.is-countdown{font:bold 76px/1 sans-serif;color:#b27b91;background:#ffefd3}.game-stage.is-note-lit{background:#dcefe7;color:#668d84}
+#game-message{text-align:center;font-weight:bold;padding:10px;border-radius:12px;background:#fffaf2;min-height:48px}
+#game-inputs{gap:12px}#game-inputs button{background:#e5f1fa;min-height:145px;border:2px solid #bfccdc}#game-inputs button:nth-child(2){background:#fff0c8;border-color:#decfa4}#game-inputs button:nth-child(3){background:#e3f0d9;border-color:#b8cda8}#game-inputs button:nth-child(4){background:#eee4f6;border-color:#c8b7da}
+#game-inputs button[aria-pressed=true]{outline:3px solid #b981a2;outline-offset:3px}#game-inputs button:disabled{opacity:.65}#game-inputs button.note-active{opacity:1;transform:translateY(-6px);outline:3px solid #e7b557;box-shadow:0 8px 20px #e9c97b66}
+.game-hand{display:block;width:110px;height:110px;max-width:100%;background-image:url('assets/rps-pastel-20261020.png');background-size:300% 100%;background-repeat:no-repeat}#game-inputs canvas{display:none}.cloud-note{font-size:30px;line-height:1.7;color:#8b759e;text-shadow:0 3px #fff}
+.game-duel{display:flex;justify-content:center;gap:24px}.duel-card{display:grid;justify-items:center;padding:12px 20px;background:#fff9ef;border:2px solid #ead4c7;border-radius:20px}#game-next{display:block;margin:16px auto}#game-next[hidden]{display:none}
+@media(max-width:420px){#game-dialog{padding:16px}.game-hand{width:75px;height:75px}#game-inputs button{min-height:110px;flex-basis:25%;padding:8px}.game-stage{min-height:95px;font-size:30px}.duel-card{padding:8px}.game-duel{gap:10px}}
+@media(prefers-reduced-motion:reduce){#game-dialog button{transition:none}#game-inputs button.note-active{transform:none}}
+.pet-interactions{margin:16px 0;padding:14px;border:2px solid var(--line);background:var(--panel);display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.pet-interactions p{flex-basis:100%;font-size:13px}.pet-interactions button[aria-pressed=true]{background:var(--pink);outline:2px solid var(--ink);outline-offset:2px}
+#bird{pointer-events:auto;touch-action:pan-y}.scene .touch-effects{pointer-events:none;image-rendering:pixelated}
+@media(max-width:420px){.pet-interactions button{flex:1 1 40%;padding:8px}}
 /* Local Web usability pass; no device acceptance implied. */
 header>div,.details>div,.meters label,footer>*{min-width:0}
 #sad-reason{overflow-wrap:anywhere;line-height:1.7;padding:8px 10px;background:var(--panel);border-left:3px solid var(--line)}
@@ -61,7 +83,8 @@ dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
 dialog button,dialog select{max-width:100%;white-space:normal}
 #game-inputs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1 1 90px}
 #game-inputs canvas{max-width:100%;height:auto}
-#memorial-list{grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr))}
+#cemetery-dialog{box-sizing:border-box;width:min(760px,calc(100vw - 32px))}
+#memorial-list{min-width:0;padding:6px;box-sizing:border-box;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr))}
 .memorial-card canvas{max-width:100%;height:auto}
 @media(max-width:420px){
  main{padding:10px;border-width:2px}header{gap:10px}header>div{flex-basis:100%}

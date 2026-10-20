@@ -56,6 +56,8 @@ class MockSource {
     g.advance(now);
     if(g.phase==='complete'&&!g.settled&&!g.cancelled){g.settled=true;g.reward=g.rewards();g.reward.mood=Math.min(g.reward.mood,100-p.mood);p.mood+=g.reward.mood;const beforeExp=PetRules.totalExp(p);g.levelsGained=PetRules.addExp(p,g.reward.exp);g.reward.exp=PetRules.totalExp(p)-beforeExp;PetRules.updateSad(p);this.persist();}
     const state={kind:g.kind,phase:g.phase,round:g.round,score:g.score,index:g.index,correct:g.correct,reward:g.reward,levelsGained:g.levelsGained||0};
+    if(g.kind==='rps'&&g.phase==='countdown')state.countdown=Math.max(1,Math.min(3,Math.ceil((g.until-now)/350)));
+    if(g.kind==='memory'){state.totalRounds=3;state.noteCount=[2,3,5][g.round-1];if(g.phase==='prepare')state.prepareSeconds=Math.max(1,Math.ceil((g.prepareUntil-now)/1000));}
     // Opponent is hidden until reveal. Memory input never contains the answer sequence.
     if(g.phase==='round-result'||g.phase==='complete'){state.player=g.player;state.opponent=g.opponent;state.outcome=g.outcome;}
     state.demoIndex=g.noteIndex;if(g.phase==='show')state.lit=g.noteOn?g.sequence[g.noteIndex]:null;state.canContinue=g.phase==='round-result'&&now>=g.readyAt;
@@ -71,6 +73,14 @@ class MockSource {
       if(p.healthState!=='sick')throw new Error('健康時不需治療');
       p.healthState='healthy';if(p.timers){p.timers.danger=0;p.timers.sick=0;}
       if(p.stage==='baby'&&p.ageSeconds>=3900)p.stage='adult';const levelsGained=PetRules.addExp(p,5);PetRules.updateSad(p);this.persist();return {treated:true,levelsGained};
+    }
+    if(kind==='pet'||kind==='poke'){
+      if(p.healthState!=='healthy')throw new Error('寵物不舒服，請先治療再互動');
+      if(this.game&&!['complete','cancelled'].includes(this.game.phase))throw new Error('請先結束遊戲');
+      const now=Date.now();if(this.lastInteraction?.petId===p.petId&&now-this.lastInteraction.at<3000)throw new Error('讓牠休息一下，互動間隔為3秒');
+      const before=p.mood;p.mood=Math.max(0,Math.min(100,p.mood+(kind==='pet'?3:-3)));
+      this.lastInteraction={petId:p.petId,at:now};PetRules.updateSad(p);this.persist();
+      return {key:'mood',actual:p.mood-before,levelsGained:0,interaction:kind};
     }
     const rules={feed:['satiety',20],clean:['cleanliness',30]},rule=rules[kind];if(!rule)throw new Error('不支援的展示操作');
     const [key,gain]=rule,actual=Math.min(gain,100-p[key]);p[key]+=actual;

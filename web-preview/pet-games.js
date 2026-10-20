@@ -5,13 +5,13 @@ class PetGame {
   if(!['rps','memory'].includes(kind))throw new Error('未知遊戲');
   this.kind=kind;this.petId=pet.petId;this.stage=pet.stage;this.random=random;this.round=1;this.wins=0;this.losses=0;this.score=0;this.settled=false;this.cancelled=false;this.next(now);
  }
- next(now){this.phase=this.kind==='rps'?'choose':'show';this.startedAt=now;this.index=0;if(this.kind==='rps')this.opponent=this.random()%3;if(this.kind==='memory'){this.noteIndex=0;this.noteOn=true;this.nextAt=now+250;this.sequence=Array.from({length:this.round+1},()=>this.random()%4);}}
+ next(now){this.phase=this.kind==='rps'?'choose':this.round===1?'prepare':'show';this.startedAt=now;this.index=0;if(this.kind==='rps')this.opponent=this.random()%3;if(this.kind==='memory'){this.noteIndex=0;this.noteOn=true;this.nextAt=now+250;if(this.phase==='prepare')this.prepareUntil=now+5000;this.sequence=Array.from({length:[2,3,5][this.round-1]},()=>this.random()%4);}}
  advance(now){
   if(this.kind==='rps'&&this.phase==='countdown'&&now>=this.until){this.phase='round-result';this.readyAt=now+800;if(this.round===3)this.phase='complete';}
   if(this.kind==='memory'){
-   if(this.phase==='show'&&now>=this.nextAt){if(this.noteOn){this.noteOn=false;this.nextAt=now+450;}else if(++this.noteIndex===this.sequence.length){this.phase='answer';this.until=now+5000;}else{this.noteOn=true;this.nextAt=now+250;}}
-   if(this.phase==='answer'&&now>=this.until){this.correct=false;this.readyAt=now+800;this.phase=this.round===5?'complete':'round-result';}
-   if(this.phase==='last-note'&&now>=this.until){this.correct=true;this.score++;this.readyAt=now+800;this.phase=this.round===5?'complete':'round-result';}
+   if(this.phase==='prepare'&&now>=this.prepareUntil){this.phase='show';this.noteOn=true;this.nextAt=now+250;}else if(this.phase==='show'&&now>=this.nextAt){if(this.noteOn){this.noteOn=false;this.nextAt=now+450;}else if(++this.noteIndex===this.sequence.length){this.phase='answer';this.until=now+5000;}else{this.noteOn=true;this.nextAt=now+250;}}
+   if(this.phase==='answer'&&now>=this.until){this.correct=false;this.readyAt=now+800;this.phase=this.round===3?'complete':'round-result';}
+   if(this.phase==='last-note'&&now>=this.until){this.correct=true;this.score++;this.readyAt=now+800;this.phase=this.round===3?'complete':'round-result';}
   }
   return this;
  }
@@ -20,13 +20,13 @@ class PetGame {
   if(this.kind==='rps'&&this.phase==='choose'){
    this.player=choice;const delta=(choice-this.opponent+3)%3;this.outcome=delta===0?'draw':delta===1?'win':'loss';if(delta===1)this.wins++;if(delta===2)this.losses++;this.phase='countdown';this.until=now+1050;
   }else if(this.kind==='memory'&&this.phase==='answer'){
-   if(choice!==this.sequence[this.index]){this.correct=false;this.readyAt=now+800;this.phase=this.round===5?'complete':'round-result';}
+   if(choice!==this.sequence[this.index]){this.correct=false;this.readyAt=now+800;this.phase=this.round===3?'complete':'round-result';}
    else if(++this.index===this.sequence.length){this.phase='last-note';this.until=now+180;}
    else this.until=now+5000;
   }
  }
  continue(now){this.advance(now);if(this.phase==='round-result'&&now>=this.readyAt){this.round++;this.next(now);}}
- rewards(){if(this.kind==='rps')return this.wins>this.losses?{mood:10,exp:15}:this.wins===this.losses?{mood:6,exp:10}:{mood:3,exp:5};return {mood:this.score===5?10:this.score===4?8:this.score>=2?6:3,exp:this.score>=4?15:this.score>=2?10:5};}
+ rewards(){if(this.kind==='rps')return this.wins>this.losses?{mood:10,exp:15}:this.wins===this.losses?{mood:6,exp:10}:{mood:3,exp:5};return {mood:this.score===3?10:this.score===2?6:3,exp:this.score===3?15:this.score===2?10:5};}
 }
 window.PetGame=PetGame;
 })();

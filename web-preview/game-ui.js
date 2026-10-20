@@ -2,6 +2,10 @@
 const dialog=document.querySelector('#game-dialog'),message=document.querySelector('#game-message'),inputs=document.querySelector('#game-inputs'),next=document.querySelector('#game-next');
 let timer=null,lastLevel=false,toneKey=null,audio=null;const activeTones=new Set();
 const resultArt=document.createElement('div');message.after(resultArt);
+resultArt.className='game-duel';
+const stageBoard=document.createElement('div');stageBoard.className='game-stage';message.before(stageBoard);
+const gameTitle=document.querySelector('#game-dialog h2');
+function handIcon(index){const art=document.createElement('span');art.className='game-hand';art.style.backgroundPosition=(index*50)+'% center';art.setAttribute('aria-hidden','true');return art;}
 let selectedMove=0;
 const keyboardHint=document.createElement('p');keyboardHint.textContent='鍵盤：猜拳左右選招、Enter確認；記憶音符用方向鍵作答。Esc退出。';message.before(keyboardHint);
 document.addEventListener('keydown',event=>{
@@ -25,24 +29,27 @@ function render(){
  const s=petDataManager.gameState(performance.now());if(!s)return;
  if(s.kind==='memory'&&s.phase==='show'&&s.lit!=null){const key=s.round+':'+s.demoIndex;if(key!==toneKey){toneKey=key;tone([587,659,784,523][s.lit],250);}}
  const names=s.kind==='rps'?['石頭','布','剪刀']:['↑','→','↓','←'];
- if(s.phase==='show')message.textContent='第 '+s.round+'／5 回合 · 記住箭頭順序：'+(s.lit==null?'·':names[s.lit]);
- else if(s.phase==='answer')message.textContent='第 '+s.round+'／5 回合 · 回答第 '+(s.index+1)+' 個方向（每步 5 秒）';
+ dialog.dataset.kind=s.kind;dialog.dataset.phase=s.phase;
+ gameTitle.textContent=s.kind==='rps'?'猜拳小擂台':'雲朵記憶音符';
+ stageBoard.textContent=s.phase==='prepare'?'☁ '+s.prepareSeconds+' ♫':s.phase==='countdown'?String(s.countdown):s.phase==='complete'?'✧ 完成挑戰 ✧':s.kind==='rps'?'✊  ×  ✋  ×  ✌':s.phase==='show'&&s.lit!=null?'☁ '+names[s.lit]+' ♫':'☁  ♫  ☀';
+ stageBoard.className='game-stage'+(s.phase==='countdown'?' is-countdown':'')+(s.kind==='memory'&&s.phase==='show'&&s.lit!=null?' is-note-lit':'');
+ if(s.phase==='prepare')message.textContent='準備一下，5秒後開始！第一回合記住2個音符。';else if(s.phase==='show')message.textContent='第 '+s.round+'／3 回合 · 記住'+s.noteCount+'個音符：'+(s.lit==null?'·':names[s.lit]);
+ else if(s.phase==='answer')message.textContent='第 '+s.round+'／3 回合 · 回答第 '+(s.index+1)+' 個方向（每步 5 秒）';
  else if(s.phase==='choose')message.textContent='第 '+s.round+'／3 回合 · 選擇出招';
- else if(s.phase==='countdown')message.textContent='剪刀、石頭、布……';
+ else if(s.phase==='countdown')message.textContent='準備揭曉！';
  else if(s.phase==='last-note')message.textContent='最後一個音符……';
  else if(s.phase==='round-result')message.textContent=s.kind==='rps'?names[s.player]+' 對 '+names[s.opponent]+' · '+{win:'贏了',draw:'平手',loss:'輸了'}[s.outcome]:s.correct?'答對！':'答錯或逾時，下回合再試。';
  else if(s.phase==='complete'){message.textContent='遊戲完成 · 心情 +'+s.reward.mood+' · EXP +'+s.reward.exp+(s.levelsGained?' · 升級！':'');if(!lastLevel){document.dispatchEvent(new Event('pet-game-complete'));lastLevel=true;}}
  else message.textContent='目前狀態已改變，遊戲中止，未發獎勵。';
  next.hidden=s.phase!=='round-result';next.disabled=!s.canContinue;
  resultArt.replaceChildren();
- if(s.kind==='rps'&&s.phase==='round-result'&&window.SharedPetView){
+ if(s.kind==='rps'&&['round-result','complete'].includes(s.phase)&&s.player!=null){
   for(const [label,move] of [['你',s.player],['對手',s.opponent]]){
-   const art=document.createElement('canvas');art.width=96;art.height=78;art.setAttribute('aria-label',label+'：'+names[move]);art.style.imageRendering='pixelated';
-   const pen=art.getContext('2d');SharedPetView.paint(pen,['kRock','kPaper','kScissors'][move],0,12,0,3,'#57483a');pen.fillStyle='#57483a';pen.font='14px sans-serif';pen.fillText(label,24,74);resultArt.append(art);
+   const card=document.createElement('div');card.className='duel-card';const caption=document.createElement('strong');caption.textContent=label+' · '+names[move];card.append(handIcon(move),caption);resultArt.append(card);
   }
  }
- if(inputs.children.length!==names.length){inputs.replaceChildren();names.forEach((name,i)=>{const b=document.createElement('button');b.textContent=name;if(s.kind==='rps'&&window.SharedPetView){const art=document.createElement('canvas');art.width=72;art.height=54;art.style.imageRendering='pixelated';art.setAttribute('aria-hidden','true');SharedPetView.paint(art.getContext('2d'),['kRock','kPaper','kScissors'][i],0,0,0,3,'#57483a');b.prepend(art);}b.onclick=()=>{if(s.kind==='memory'&&petDataManager.gameState(performance.now())?.phase==='answer')tone([587,659,784,523][i],180);petDataManager.answerGame(i,performance.now());render();};inputs.append(b);});}
- for(const [i,b] of Array.from(inputs.children).entries()){b.disabled=!['choose','answer'].includes(s.phase);if(s.kind==='rps')b.setAttribute('aria-pressed',String(i===selectedMove));}
+ if(inputs.children.length!==names.length){inputs.replaceChildren();names.forEach((name,i)=>{const b=document.createElement('button');b.textContent=name;if(s.kind==='rps')b.prepend(handIcon(i));else{const note=document.createElement('span');note.className='cloud-note';note.textContent=['☁ ♫','☀ ♪','☁ ♩','☾ ♬'][i];b.prepend(note);}if(s.kind==='rps'&&window.SharedPetView){const art=document.createElement('canvas');art.width=72;art.height=54;art.style.imageRendering='pixelated';art.setAttribute('aria-hidden','true');SharedPetView.paint(art.getContext('2d'),['kRock','kPaper','kScissors'][i],0,0,0,3,'#57483a');b.prepend(art);}b.onclick=()=>{if(s.kind==='memory'&&petDataManager.gameState(performance.now())?.phase==='answer')tone([587,659,784,523][i],180);petDataManager.answerGame(i,performance.now());render();};inputs.append(b);});}
+ for(const [i,b] of Array.from(inputs.children).entries()){b.className=s.kind==='memory'&&s.phase==='show'&&s.lit===i?'note-active':'';b.disabled=!['choose','answer'].includes(s.phase);if(s.kind==='rps')b.setAttribute('aria-pressed',String(i===selectedMove));}
 }
 window.PetWebSound={reminder(){if(!sound||!audio||audio.state!=='running'||document.hidden||activeTones.size)return false;for(const [i,freq] of [659,523,392].entries())setTimeout(()=>tone(freq,140),i*180);return true;}};document.addEventListener('pointerdown',initAudio,{once:true});
 function start(kind){try{initAudio();selectedMove=0;toneKey=null;lastLevel=false;petDataManager.startGame(kind,performance.now());document.querySelector('#game-picker').hidden=true;inputs.replaceChildren();render();if(kind==='rps')inputs.children[0]?.focus();clearInterval(timer);timer=setInterval(render,50);}catch(error){message.textContent=error.message;}}

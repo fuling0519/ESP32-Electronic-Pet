@@ -11,6 +11,7 @@ function drawBirdAppearance(cx,cy,scale=3){
 let speciesPreview=typeof location!=='undefined'&&/(?:[?&])preview=wyvern(?:&|$)/.test(location.search||'')?'2':typeof location!=='undefined'&&/(?:[?&])preview=bird(?:&|$)/.test(location.search||'')?'1':'auto',celebrationUntil=0,reminderPending=false,lastReminder=-Infinity,previousSad=null,previousHealth=null,previousSleep=null;let mode='mock';const manager=window.petDataManager;
 const defaults={satiety:60,mood:55,cleanliness:45};let state={...defaults},action=null,actionStart=0,treatmentResult=null,night=false,resetToken=0;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+let postcardAttemptAt=-Infinity,postcardSavedFor=null;
 const savedPreferences=PetLocalStore.read('preferences',PetLocalStore.validPreferences);
 let stage=manager.view('mock').pet.stage,condition=manager.view('mock').pet.condition,backdrop='garden';
 // Legacy background preferences resolve to the new day/night pixel farm pair.
@@ -99,6 +100,7 @@ function drawLifecycle(now){
    if(p.speciesId===2)WyvernView.paint(ctx,WyvernFrames[p.stage==='baby'?'kBabyWyvernIdleFrames':'kWyvernIdleFrames'][0]);
    else if(p.speciesId===1&&window.BirdView){BirdView.still(ctx,p.stage,!p.isDeparted,200,135,3);}else if(p.speciesId===1&&birdHybrid.complete&&birdHybrid.naturalWidth){ctx.imageSmoothingEnabled=false;drawBirdAppearance(200,135,3);}else if(p.speciesId===1&&characterSheet.complete&&characterSheet.naturalWidth){const f=characterSheet.naturalWidth/2172;ctx.drawImage(characterSheet,0,0,680*f,characterSheet.naturalHeight,140,82,100,106);}
    ctx.strokeStyle='#57483a';ctx.lineWidth=2;ctx.strokeRect(85,38,214,155);
+   if(complete&&mode==='mock'&&postcardSavedFor!==p.petId&&now-postcardAttemptAt>=5000&&canvas.toDataURL){postcardAttemptAt=now;try{if(PetMemorials.savePhoto(p,canvas.toDataURL('image/png')))postcardSavedFor=p.petId;}catch(error){/* Optional photo failure must not interrupt the farewell or its saved record. */}}
    if(!complete&&photoElapsed>=2600){ctx.fillStyle='#fff';ctx.fillRect(85,38,214,155);}
    ctx.fillStyle='#57483a';ctx.font='16px sans-serif';ctx.fillText(complete?'遠行明信片 · '+p.name:'留下這段陪伴',110,220);return true;
   }
@@ -157,7 +159,7 @@ document.querySelector('#ble-search').onclick=()=>{document.querySelector('#mode
 document.querySelector('#ble-disconnect').onclick=()=>manager.disconnect();
 document.querySelector('#mode').onchange=switchMode;
 document.querySelector('#connection').onclick=()=>{window.checkBleReadiness();document.querySelector('#device-dialog').showModal();};
-document.querySelector('#species-preview').value=speciesPreview;
+document.addEventListener('pet-interaction-complete',()=>{update();syncLifecycle();});document.querySelector('#species-preview').value=speciesPreview;
 document.querySelector('#species-preview').onchange=()=>{speciesPreview=document.querySelector('#species-preview').value;update();};
 document.querySelector('#farewell').onclick=()=>{const p=manager.read().pet;if(mode!=='mock'||p.isDeparted||p.healthState==='dead'||p.stage==='egg'||p.sleepMode!=='awake')return;document.querySelector('#farewell-description').textContent=p.name+' · 陪伴 '+PetMemorials.duration(String(p.ageSeconds));document.querySelector('#farewell-dialog').showModal();};
 document.querySelector('#confirm-farewell').onclick=()=>{try{manager.farewell();document.querySelector('#farewell-dialog').close();condition='departed';action=null;root.classList.remove('is-sick');document.querySelector('#illness-notice').hidden=true;syncHealth('departed');document.querySelector('#pet-description').textContent='已遠行 · 紀念冊已保存';syncLifecycle();busy(false);update();status.textContent='紀念冊已保存，牠已踏上旅程。';}catch(error){document.querySelector('#farewell-description').textContent=error.message;}};
