@@ -4,12 +4,14 @@
 
 ## 平常只需要看這幾份
 
+- 要生成／修改 Web 寵物精靈圖、動畫或接入角色素材：先讀 [精靈圖製作規則](web-sprite-workflow.md)，再看目標角色的素材說明。通用流程與小龍專屬設定分開維護。
 - 要知道完成了什麼、還缺什麼：看 [主進度台帳](project-plan.md#progress)。各項都有固定編號、實作狀態、驗證範圍與下一步。
 - 要開始建置或接線：看 [根 README](../README.md)；Flutter 啟動看 [App README](../esp32_pet_app/README.md)。
 - 韌體與 Web 要對接：看 [BLE 共用協定](../esp32_pet_app/PROTOCOL.md)；Web 功能與兩組分工看 [Web 計畫](web-phase-plan.md)。
 
 ## 每份文件的責任
 
+- [web-sprite-workflow.md](web-sprite-workflow.md)：Web 寵物精靈圖的通用美術、生成、整理、預覽及整合流程，以及獨立的角色專屬設定；相關 agent 任務開始前閱讀。實作與驗收進度仍回主台帳記錄。
 - [project-plan.md](project-plan.md)：產品需求＋唯一進度台帳。完成實作或得到測試回報時，只更新第 10 節對應項目；玩法改變才改需求段落。
 - [根 README](../README.md)：環境、建置、接線、素材與接手入口。只有操作方式或依賴改變時修改。
 - [App README](../esp32_pet_app/README.md)：Flutter 啟動及平台準備，不維護容量或完成清單。

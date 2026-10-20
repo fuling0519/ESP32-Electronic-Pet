@@ -1,0 +1,150 @@
+{
+  "source": "idle-subtle-source-v2.png",
+  "columns": 2,
+  "rows": 2,
+  "sourceSha256": "a205fa1098f2cd22b8a32a64850c70e425563b410fdcbf098c7769f779713f00",
+  "sourceSize": [
+    1402,
+    1122
+  ],
+  "previewSize": [
+    777,
+    777
+  ],
+  "sheetSize": [
+    1554,
+    1554
+  ],
+  "cellSize": [
+    777,
+    777
+  ],
+  "previewAnchor": [
+    388,
+    659
+  ],
+  "cycleMs": 920,
+  "status": "user-approved-idle-preview-2026-10-20",
+  "frames": [
+    {
+      "index": 0,
+      "sourceRect": [
+        0,
+        0,
+        701,
+        561
+      ],
+      "sourceAnchor": [
+        380,
+        559
+      ],
+      "bounds": [
+        90,
+        37,
+        667,
+        559
+      ],
+      "durationMs": 220,
+      "previewOffset": [
+        8,
+        100
+      ],
+      "sheetRect": [
+        0,
+        0,
+        777,
+        777
+      ]
+    },
+    {
+      "index": 1,
+      "sourceRect": [
+        701,
+        0,
+        701,
+        561
+      ],
+      "sourceAnchor": [
+        322,
+        559
+      ],
+      "bounds": [
+        8,
+        39,
+        627,
+        559
+      ],
+      "durationMs": 160,
+      "previewOffset": [
+        66,
+        100
+      ],
+      "sheetRect": [
+        777,
+        0,
+        777,
+        777
+      ]
+    },
+    {
+      "index": 2,
+      "sourceRect": [
+        0,
+        561,
+        701,
+        561
+      ],
+      "sourceAnchor": [
+        380,
+        543
+      ],
+      "bounds": [
+        90,
+        27,
+        667,
+        543
+      ],
+      "durationMs": 220,
+      "previewOffset": [
+        8,
+        116
+      ],
+      "sheetRect": [
+        0,
+        777,
+        777,
+        777
+      ]
+    },
+    {
+      "index": 3,
+      "sourceRect": [
+        701,
+        561,
+        701,
+        561
+      ],
+      "sourceAnchor": [
+        320,
+        543
+      ],
+      "bounds": [
+        38,
+        27,
+        583,
+        543
+      ],
+      "durationMs": 320,
+      "previewOffset": [
+        68,
+        116
+      ],
+      "sheetRect": [
+        777,
+        777,
+        777,
+        777
+      ]
+    }
+  ]
+}

@@ -13,7 +13,7 @@ function allowed(){const s=petDataManager.read(),p=s.pet;return s.metadata.sourc
 function hit(p){return ((p.x-190)/100)**2+((p.y-130)/90)**2<=1;}
 function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*384/r.width,y:(e.clientY-r.top)*256/r.height};}
 function interact(at={x:190,y:110}){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return;}
- try{const r=petDataManager.command(tool);effect={kind:tool,start:performance.now(),...at,petId:petDataManager.read().pet.petId};result.textContent=(tool==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠不高興了，別再戳牠啦！')+' 心情 '+(r.actual>=0?'+':'')+r.actual+'。';document.dispatchEvent(new Event('pet-interaction-complete'));}catch(e){result.textContent=e.message;}}
+ try{const r=petDataManager.command(tool);effect={kind:tool,start:performance.now(),...at,petId:petDataManager.read().pet.petId};result.textContent=(tool==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！')+' 心情 '+(r.actual>=0?'+':'')+r.actual+'。';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind:tool}}));}catch(e){result.textContent=e.message;}}
 once.onclick=()=>interact();
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0||!allowed())return;const p=point(e);if(!hit(p))return;down={...p,id:e.pointerId};canvas.setPointerCapture(e.pointerId);e.preventDefault();});
 canvas.addEventListener('pointermove',e=>{hover=point(e);});
@@ -23,7 +23,7 @@ function draw(now){pen.clearRect(0,0,384,256);once.disabled=!allowed();
  if(hover&&tool==='poke'&&allowed()){pen.strokeStyle='#795033';pen.lineWidth=3;pen.beginPath();pen.moveTo(hover.x+3,hover.y+3);pen.lineTo(hover.x+28,hover.y+32);pen.stroke();}
  if(effect){const p=petDataManager.read().pet,t=(now-effect.start)/1200;if(t>=1||!p||p.petId!==effect.petId||p.healthState==='dead'||p.isDeparted)effect=null;else{pen.globalAlpha=1-t;
  if(effect.kind==='pet'){pen.fillStyle='#ef9fb2';for(let i=0;i<3;i++){const x=Math.round(effect.x-20+i*20),y=Math.round(effect.y-20-t*28);for(const [dx,dy,w,h] of [[0,0,4,4],[6,0,4,4],[0,4,10,4],[2,8,6,3],[4,11,2,2]])pen.fillRect(x+dx,y+dy,w,h);}}
- else{pen.fillStyle='#c75348';const x=235,y=70;for(const [dx,dy,w,h] of [[0,0,3,10],[0,10,10,3],[17,0,3,10],[10,10,10,3],[0,18,3,10],[0,15,10,3],[17,18,3,10],[10,15,10,3]])pen.fillRect(x+dx,y+dy,w,h);pen.fillStyle='#664035';pen.fillRect(170,109,10,3);pen.fillRect(204,109,10,3);}
+ else{pen.fillStyle='#e6ba55';pen.fillRect(240,62,4,13);pen.fillRect(240,79,4,4);}
  pen.globalAlpha=1;}}
  requestAnimationFrame(draw);}
 requestAnimationFrame(draw);

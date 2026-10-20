@@ -1,4 +1,4 @@
-/* Web rendering of the original OLED masks; no generated replacement art. */
+/* Illustrated adult Web art, with original masks as the baby/loading fallback. */
 (()=>{'use strict';
 function frameFor(p,now,action,elapsed=0,reduced=false){
  const baby=p.stage==='baby',prefix=baby?'kBabyWyvern':'kWyvern';
@@ -38,7 +38,10 @@ function paint(ctx,bits,x=94,y=45,scale=3){
  }
 }
 function draw(ctx,p,now,action,elapsed,reduced){
- const frame=frameFor({...p},now,action,elapsed,reduced);paint(ctx,frame.bits);
+ const illustrated=window.WyvernAdultView?.draw(ctx,p,now,action,elapsed,reduced);
+ if(illustrated){if(illustrated.state==="sleep"){ctx.fillStyle="#57483a";ctx.font="bold 12px sans-serif";ctx.fillText(reduced?"Zzz":["Z","Zz","Zzz"][Math.floor(now/650)%3],248,82);}return illustrated;}
+ const fallback=window.PetSadView?.active(p)?{...p,healthState:"sick"}:p;
+ const frame=frameFor({...fallback},now,action,elapsed,reduced);paint(ctx,frame.bits);
  ctx.fillStyle='#57483a';ctx.font='bold 12px sans-serif';
  if(p.sleepMode==='normal')ctx.fillText(['Z','Zz','Zzz'][Math.floor(now/650)%3],p.stage==='baby'?226:247,p.stage==='baby'?96:72);
  if(PetRules.updateSad({...p})&&p.sleepMode!=='normal'&&action!=='treat'){

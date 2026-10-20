@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成年小飛龍 · 傷心、生病與開心</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8f5ec; color: #493952; font: 16px/1.7 system-ui, "Microsoft JhengHei", sans-serif; }
+    main { max-width: 1120px; margin: auto; padding: 28px 20px 48px; }
+    h1 { margin: 4px 0 12px; font-size: clamp(24px, 4vw, 32px); }
+    h2 { margin: 4px 0 12px; font-size: 21px; }
+    p { margin: 8px 0; }
+    a { color: #73518c; text-underline-offset: 3px; }
+    .note { font-size: 14px; color: #796e7b; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+    article { min-width: 0; padding: 16px; background: #fffdf8; border: 1px solid #ddd3e2; border-radius: 14px; }
+    .checker { display: grid; place-items: center; background-color: #f6f1f8; background-image: conic-gradient(#e7e0ec 25%, transparent 0 50%, #e7e0ec 0 75%, transparent 0); background-size: 24px 24px; border-radius: 8px; }
+    .checker img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+    details { padding: 18px; background: #fffdf8; border: 1px solid #ddd3e2; border-radius: 14px; }
+    summary { cursor: pointer; }
+    .sheet { max-width: 650px; margin: 20px auto 0; }
+    @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } article .checker { max-width: 380px; margin: auto; } main { padding: 20px 14px; } }
+    @media (prefers-reduced-motion: reduce) { .animation { display: none !important; } .fallback { display: block !important; } }
+    .fallback { display: none; }
+  </style>
+</head>
+<body>
+<main>
+  <p class="note">成年龍 · 六格表情候選 v1</p>
+  <h1>委屈、疲倦，還有被摸時的開心</h1>
+  <p>每種表情以睜眼／閉眼兩格播放。翅膀隨情緒低垂或輕展，沒有額外愛心、藥水或其他符號。</p>
+  <p class="note">本次表情與姿態仍待美術確認；此頁為獨立預覽，正式 Web 角色與存檔未變。</p>
+  <section class="cards" aria-label="三組表情動畫">
+    <article>
+      <h2>傷心</h2>
+      <div class="checker">
+        <img class="animation" src="assets/pets/wyvern/adult/sad-preview-v1.apng" alt="委屈的成年龍低垂翅膀，緩緩眨眼">
+        <img class="fallback" src="assets/pets/wyvern/adult/sad-still-v1.png" alt="委屈垂翼的成年龍靜態圖">
+      </div>
+      <p>內側眉毛微揚，小嘴下垂，翅膀失落地收攏。</p>
+      <p class="note">睜眼 2.2 秒，閉眼 0.24 秒。</p>
+      <a href="assets/pets/wyvern/adult/sad-preview-v1.apng" download>下載傷心動畫</a>
+    </article>
+    <article>
+      <h2>生病</h2>
+      <div class="checker">
+        <img class="animation" src="assets/pets/wyvern/adult/sick-preview-v1.apng" alt="疲倦的成年龍半睜眼，閉眼休息，翅膀貼近身體">
+        <img class="fallback" src="assets/pets/wyvern/adult/sick-still-v1.png" alt="疲倦半睜眼的成年龍靜態圖">
+      </div>
+      <p>眼皮低垂、雙手放鬆，翅膀更貼近身體。</p>
+      <p class="note">半睜眼 1.4 秒，閉眼休息 0.9 秒。</p>
+      <a href="assets/pets/wyvern/adult/sick-preview-v1.apng" download>下載生病動畫</a>
+    </article>
+    <article>
+      <h2>開心</h2>
+      <div class="checker">
+        <img class="animation" src="assets/pets/wyvern/adult/happy-preview-v1.apng" alt="開心的成年龍微笑，閉成滿足的笑眼，翅膀在身側輕展">
+        <img class="fallback" src="assets/pets/wyvern/adult/happy-still-v1.png" alt="開心微笑的成年龍靜態圖">
+      </div>
+      <p>保留小豆眼與小微笑，閉眼時露出舒服的笑眼。</p>
+      <p class="note">睜眼 1.8 秒，笑眼 0.65 秒。</p>
+      <a href="assets/pets/wyvern/adult/happy-preview-v1.apng" download>下載開心動畫</a>
+    </article>
+  </section>
+  <details>
+    <summary>查看完整透明圖集（兩欄 × 三列）</summary>
+    <div class="checker sheet"><img src="assets/pets/wyvern/adult/emotions-sheet-v1.png" alt="成年龍六格表情圖集，從上到下為傷心、生病、開心，每列左側睜眼、右側閉眼"></div>
+    <p><a href="assets/pets/wyvern/adult/emotions-sheet-v1.png" download>下載透明 PNG 圖集</a></p>
+  </details>
+  <p class="note">預覽時間為 Web 暫定節奏。生成原圖的留白不等寬，已依實際輪廓切格，再以整數平移及透明留白對齊，沒有縮放或重畫角色像素。生成畫格間仍有細節差異，對齊不代表美術已驗收。</p>
+</main>
+</body>
+</html>

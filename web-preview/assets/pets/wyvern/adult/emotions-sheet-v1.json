@@ -1,0 +1,210 @@
+{
+  "source": "emotions-source-v1.png",
+  "sourceSha256": "eb13cf14d67a111d5e92626feb3598dbd61b06da1d76e58fcb67cf7abe34380c",
+  "sourceSize": [
+    1295,
+    1215
+  ],
+  "columns": 2,
+  "rows": 3,
+  "sheetSize": [
+    940,
+    1410
+  ],
+  "cellSize": [
+    470,
+    470
+  ],
+  "anchor": [
+    234,
+    444
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "state": "sad",
+      "eyes": "open",
+      "sourceRect": [
+        180,
+        8,
+        380,
+        428
+      ],
+      "sourceAnchor": [
+        188,
+        423
+      ],
+      "durationMs": 2200,
+      "offset": [
+        46,
+        21
+      ],
+      "sheetRect": [
+        0,
+        0,
+        470,
+        470
+      ]
+    },
+    {
+      "index": 1,
+      "state": "sad",
+      "eyes": "closed",
+      "sourceRect": [
+        726,
+        8,
+        378,
+        428
+      ],
+      "sourceAnchor": [
+        188,
+        423
+      ],
+      "durationMs": 240,
+      "offset": [
+        46,
+        21
+      ],
+      "sheetRect": [
+        470,
+        0,
+        470,
+        470
+      ]
+    },
+    {
+      "index": 2,
+      "state": "sick",
+      "eyes": "open",
+      "sourceRect": [
+        178,
+        441,
+        382,
+        404
+      ],
+      "sourceAnchor": [
+        190,
+        399
+      ],
+      "durationMs": 1400,
+      "offset": [
+        44,
+        45
+      ],
+      "sheetRect": [
+        0,
+        470,
+        470,
+        470
+      ]
+    },
+    {
+      "index": 3,
+      "state": "sick",
+      "eyes": "closed",
+      "sourceRect": [
+        724,
+        441,
+        379,
+        404
+      ],
+      "sourceAnchor": [
+        189,
+        399
+      ],
+      "durationMs": 900,
+      "offset": [
+        45,
+        45
+      ],
+      "sheetRect": [
+        470,
+        470,
+        470,
+        470
+      ]
+    },
+    {
+      "index": 4,
+      "state": "happy",
+      "eyes": "open",
+      "sourceRect": [
+        155,
+        844,
+        442,
+        371
+      ],
+      "sourceAnchor": [
+        220,
+        368
+      ],
+      "durationMs": 1800,
+      "offset": [
+        14,
+        76
+      ],
+      "sheetRect": [
+        0,
+        940,
+        470,
+        470
+      ]
+    },
+    {
+      "index": 5,
+      "state": "happy",
+      "eyes": "closed",
+      "sourceRect": [
+        693,
+        845,
+        446,
+        370
+      ],
+      "sourceAnchor": [
+        222,
+        367
+      ],
+      "durationMs": 650,
+      "offset": [
+        12,
+        77
+      ],
+      "sheetRect": [
+        470,
+        940,
+        470,
+        470
+      ]
+    }
+  ],
+  "previews": [
+    {
+      "state": "sad",
+      "file": "sad-preview-v1.apng",
+      "stillFile": "sad-still-v1.png",
+      "durationsMs": [
+        2200,
+        240
+      ]
+    },
+    {
+      "state": "sick",
+      "file": "sick-preview-v1.apng",
+      "stillFile": "sick-still-v1.png",
+      "durationsMs": [
+        1400,
+        900
+      ]
+    },
+    {
+      "state": "happy",
+      "file": "happy-preview-v1.apng",
+      "stillFile": "happy-still-v1.png",
+      "durationsMs": [
+        1800,
+        650
+      ]
+    }
+  ],
+  "status": "user-approved-emotion-previews-web-integration-pending-visual-review-2026-10-21"
+}

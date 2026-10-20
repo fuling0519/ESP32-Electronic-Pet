@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成年小飛龍 · 小幅振翅待機 v2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8f5ec; color: #493952; font: 16px/1.7 system-ui, "Microsoft JhengHei", sans-serif; }
+    main { max-width: 1100px; margin: auto; padding: 28px 20px 48px; }
+    h1 { font-size: clamp(24px, 4vw, 32px); margin: 4px 0 12px; }
+    h2 { font-size: 19px; }
+    p { margin: 8px 0; }
+    a { color: #73518c; text-underline-offset: 3px; }
+    .note { color: #796e7b; font-size: 14px; }
+    .studio { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 24px 0; }
+    article { min-width: 0; padding: 16px; border: 1px solid #ddd3e2; border-radius: 14px; background: #fffdf8; }
+    .checker { display: grid; place-items: center; aspect-ratio: 1; background-color: #f6f1f8; background-image: conic-gradient(#e7e0ec 25%, transparent 0 50%, #e7e0ec 0 75%, transparent 0); background-size: 24px 24px; border-radius: 8px; }
+    .checker img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+    .garden { position: relative; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 8px; }
+    .background { display: block; width: 100%; height: 100%; filter: brightness(1.10) saturate(1.08); }
+    .pet { position: absolute; width: 37%; height: auto; left: 50%; bottom: 18%; transform: translateX(-50%); image-rendering: pixelated; }
+    .grounding { position: absolute; left: 50%; bottom: 23.2%; width: 18%; height: 2%; transform: translateX(-50%); border-radius: 50%; background: #302a4938; }
+    @media (max-width: 700px) { .studio { grid-template-columns: 1fr; } main { padding: 20px 14px; } }
+  </style>
+</head>
+<body>
+<main>
+  <p class="note">成年龍 · 待機動作候選 v2</p>
+  <h1>站在身側，輕輕振翅</h1>
+  <p>四格只做翼尖與翅膜的小幅收放，雙眼保持睜開。播放節奏為 Web 預覽設定，一次循環約 0.92 秒。</p>
+  <p class="note">正面、飛行側面及本次四格待機預覽已由使用者確認。尚未替換正式 Web 角色，瀏覽器實際整合仍待驗證。</p>
+  <section class="studio" aria-label="動畫與圖集">
+    <article>
+      <h2>循環播放 · 透明 APNG</h2>
+      <div class="checker"><img src="assets/pets/wyvern/adult/idle-subtle-preview-v2.apng" width="777" height="777" alt="成年龍站在原地小幅振翅的四格循環動畫"></div>
+      <p class="note">方格由頁面提供，未畫進素材；完整保留原圖像素，只切格並平移對齊。</p>
+      <a href="assets/pets/wyvern/adult/idle-subtle-preview-v2.apng" download>下載動畫預覽</a>
+    </article>
+    <article>
+      <h2>四格圖集 · A → B → C → D</h2>
+      <div class="checker"><img src="assets/pets/wyvern/adult/idle-subtle-sheet-v2.png" width="1554" height="1554" alt="成年龍待機四格圖集，左上自然展翼、右上輕展、左下回彈、右下微收"></div>
+      <p class="note">2 × 2 排列，每格 777 × 777；各格已補透明留白，腳底定位一致。</p>
+      <a href="assets/pets/wyvern/adult/idle-subtle-sheet-v2.png" download>下載透明 PNG 圖集</a>
+    </article>
+  </section>
+  <section class="studio" aria-label="現有花園試放">
+    <article>
+      <h2>午後花園</h2>
+      <div class="garden">
+        <img class="background" src="assets/garden-detailed-day.png" width="1536" height="1024" alt="現有午後像素花園">
+        <span class="grounding" aria-hidden="true"></span>
+        <img class="pet" src="assets/pets/wyvern/adult/idle-subtle-preview-v2.apng" width="777" height="777" alt="同一段成年龍待機動畫在午後草地上播放">
+      </div>
+    </article>
+    <article>
+      <h2>傍晚花園</h2>
+      <div class="garden">
+        <img class="background" src="assets/garden-detailed-night.png" width="1536" height="1024" alt="現有傍晚像素花園">
+        <span class="grounding" aria-hidden="true"></span>
+        <img class="pet" src="assets/pets/wyvern/adult/idle-subtle-preview-v2.apng" width="777" height="777" alt="同一段成年龍待機動畫在傍晚草地上播放">
+      </div>
+    </article>
+  </section>
+  <p class="note">此頁為獨立美術預覽，不連接養成資料，也不會寫入存檔。APNG 僅供查看；正式動畫可依圖集與畫格資料由 Canvas 播放。</p>
+</main>
+</body>
+</html>
