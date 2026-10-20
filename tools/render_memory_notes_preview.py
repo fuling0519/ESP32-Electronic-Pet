@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
+(ROOT / 'docs/previews/memory-notes').mkdir(parents=True, exist_ok=True)
 SOURCE = ROOT / '.pio/rps-preview'
 NAMES = [
     'notes-select', 'notes-ready', 'notes-play-0', 'notes-gap',
@@ -23,13 +24,13 @@ for i,name in enumerate(NAMES):
     x,y=(i%4)*276+10,(i//4)*174+8
     draw.text((x,y),name,fill='white')
     sheet.paste(load(name).resize((256,128),Image.Resampling.NEAREST),(x,y+24))
-sheet.save(ROOT/'docs/memory-notes-preview.png')
+sheet.save(ROOT/'docs/previews/memory-notes/memory-notes-preview.png')
 load('notes-summary-3').resize((768,384),Image.Resampling.NEAREST).save(
-    ROOT/'docs/memory-notes-summary-preview.png')
+    ROOT/'docs/previews/memory-notes/memory-notes-summary-preview.png')
 
 frames=[load(name).resize((512,256),Image.Resampling.NEAREST)
         for name in ['notes-play-0','notes-gap','notes-play-last','notes-gap-last',
                      'notes-answer','notes-answer-flash','notes-answer',
                      'notes-final-answer-first','notes-correct-first']]
-frames[0].save(ROOT/'docs/memory-notes-preview.gif',save_all=True,
+frames[0].save(ROOT/'docs/previews/memory-notes/memory-notes-preview.gif',save_all=True,
                append_images=frames[1:],duration=[250,450,250,450,800,180,600,180,1000],loop=0)

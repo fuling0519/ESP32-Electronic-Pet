@@ -3,7 +3,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "docs"
+OUTPUT = ROOT / "docs/previews/treatment"
+OUTPUT.mkdir(parents=True, exist_ok=True)
 FRAMEBUFFER = ROOT / ".pio/rps-preview"
 
 

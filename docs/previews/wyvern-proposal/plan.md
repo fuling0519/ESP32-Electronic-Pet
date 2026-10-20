@@ -1,6 +1,6 @@
 # 第二種寵物：小飛龍（實作前提案）
 
-本提案保存當時的設計討論；2026-10-09 使用者已批准並完成 1.8.0 程式接入。即時實作／自動檢查／實機邊界請看 [小飛龍驗收](../../wyvern-test.md) 與 [主企畫](../../project-plan.md)。下方「尚未實作」為提案當時的歷史狀態。
+本提案保存當時的設計討論；2026-10-09 使用者已批准並完成 1.8.0 程式接入。即時實作／自動檢查／實機邊界請看 [小飛龍驗收](../../testing/wyvern-test.md) 與 [主企畫](../../project-plan.md)。下方「尚未實作」為提案當時的歷史狀態。
 
 日期：2026-10-09。此輪只有素材盤點、方案及合成預覽，尚未修改韌體。
 
@@ -74,4 +74,4 @@ render.py 直接裁切原始圖集，疊在本機既有 .pio/rps-preview 畫面�
 - treatment-compare-v3.png：原藥水位置與調整位置對照。
 - treatment-frames-v3.png、treatment-baby-v3.gif、treatment-adult-v3.gif：五格倒藥提案，沿用原倒藥各段時間。
 
-尚未修改、編譯、燒錄韌體，也未提交。本輪未動既有 docs/memory-notes-plan.md 的本機修改。
+尚未修改、編譯、燒錄韌體，也未提交。本輪未動既有 docs/features/memory-notes-plan.md 的本機修改。

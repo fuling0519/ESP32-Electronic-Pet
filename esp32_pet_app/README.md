@@ -24,7 +24,7 @@ FlutterBluePlus 固定為 `2.3.13`，`pubspec.lock` 已產生並納入版控。�
 
 - [整體進度與下一步](../docs/project-plan.md#progress)：BLE-S2、FW-CAP、APP-NATIVE 與 W0～W8。
 - [共用協定](PROTOCOL.md)：UUID、JSON、裝置 ID、分片與睡眠連線約定。
-- [Web 需求](../docs/web-phase-plan.md)：網站功能與分工。
+- [Web 需求](../docs/features/web-phase-plan.md)：網站功能與分工。
 - [程式定位](docs/implementation-notes.md)。
 
 本文件只維護啟動與建置方法，容量、完成狀態及實機結果不重複記錄。

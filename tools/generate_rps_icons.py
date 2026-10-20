@@ -7,7 +7,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "src" / "ui" / "RpsIcons.h"
-PREVIEW = ROOT / "docs" / "rps-icons-preview.png"
+PREVIEW = ROOT / "docs/previews/rps/rps-icons-preview.png"
+PREVIEW.parent.mkdir(parents=True, exist_ok=True)
 WIDTH, HEIGHT = 24, 18
 SOURCE = ROOT / "assets" / "games" / "rps" / "gestures.png"
 CELLS = {"paper": (0, 0), "rock": (24, 0), "scissors": (0, 18)}

@@ -7,6 +7,7 @@ import re
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
+(ROOT / 'docs/previews/farewell').mkdir(parents=True, exist_ok=True)
 
 
 def frame(name):
@@ -75,10 +76,10 @@ def main():
         for col, resting in enumerate((False, True)):
             result = compose(stage, resting)
             kind = 'resting' if resting else 'departed'
-            result.save(ROOT / 'docs' / ('memorial-composite-' + kind + '-' + stage + '-proposal.png'))
+            result.save(ROOT / 'docs/previews/farewell' / ('memorial-composite-' + kind + '-' + stage + '-proposal.png'))
             sheet.paste(result.convert('RGB').resize((512,256), Image.Resampling.NEAREST), (6+col*524,24+row*300))
             labels.text((6+col*524,6+row*300), kind + ' / ' + stage + ' / 128x64 proposal', fill='white')
-    sheet.save(ROOT / 'docs/memorial-composite-proposal.png')
+    sheet.save(ROOT / 'docs/previews/farewell/memorial-composite-proposal.png')
 
 
 if __name__ == '__main__':

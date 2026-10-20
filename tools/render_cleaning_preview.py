@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
+(ROOT / 'docs/previews/cleaning').mkdir(parents=True, exist_ok=True)
 
 
 def read(name):
@@ -21,9 +22,9 @@ def main():
             draw.text((x, y), name, fill="white")
             sheet.paste(frame.resize((512, 256), Image.Resampling.NEAREST), (x, y + 22))
         large = [f.resize((512, 256), Image.Resampling.NEAREST) for f in frames]
-        large[0].save(ROOT / "docs" / f"cleaning-{stage}-preview.gif", save_all=True,
+        large[0].save(ROOT / "docs/previews/cleaning" / f"cleaning-{stage}-preview.gif", save_all=True,
                       append_images=large[1:], duration=[900, 400, 400, 400, 1200, 1600], loop=0)
-    sheet.save(ROOT / "docs/cleaning-preview.png")
+    sheet.save(ROOT / "docs/previews/cleaning/cleaning-preview.png")
 
 
 if __name__ == "__main__":

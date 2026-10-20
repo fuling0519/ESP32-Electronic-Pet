@@ -1,6 +1,6 @@
 # App 與 Web 分工入口
 
-文件角色：需求導覽；不另維護完成清單。進度唯一來源為 [主企畫第 10 節](../../docs/project-plan.md#progress)，Web 里程碑需求為 [Web 計畫](../../docs/web-phase-plan.md)。
+文件角色：需求導覽；不另維護完成清單。進度唯一來源為 [主企畫第 10 節](../../docs/project-plan.md#progress)，Web 里程碑需求為 [Web 計畫](../../docs/features/web-phase-plan.md)。
 
 - ESP32 負責寵物、計時、疾病／死亡與 NVS；App 只顯示快照並標示資料新鮮度。
 - App 關閉、失去網路或 BLE 時，ESP32 應可獨立養成。

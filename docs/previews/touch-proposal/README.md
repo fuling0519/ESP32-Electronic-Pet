@@ -4,14 +4,13 @@
 
 - [V9摸頭](user-art-v9-authored-timing/README.md)：使用者重繪角色與愛心時序；小鳥5 FPS、小飛龍7 FPS。2026-10-20使用者確認本版觀感。每個角色有128×64／512×256 GIF及全部原尺寸PNG。
 - [V3戳戳分鏡](user-art-v3/shock-storyboard.png)：500ms兩段水平反應；幼鳥／幼龍以shock第二幀復原。
-- [整合方案、狀態機與驗收計畫](../../touch-interaction-phase1.md)。
+- [整合方案、狀態機與驗收計畫](../../features/touch-interaction-phase1.md)。
 
 ## 歷史產物
 
-本目錄根層為第一版草圖，user-art-v2至user-art-v8-no-hidden保留每次迭代的
-PNG／GIF／時序與驗證紀錄，供比較與追溯。它們不代表目前採用的美術。
-[V8 Piskel編輯檔](user-art-v8-no-hidden/piskel/README.md)是舊V8 GIF轉換結果，
-並非新版V9的編輯檔；Piskel UI匯入尚未驗收。
+本目錄根層為第一版草圖，user-art-v2／user-art-v3／user-art-v4 保留歷史產物；它們不代表目前採用的摸頭美術。V3 戳戳仍為現行基準，V4 的四角色 Home framebuffer 仍是 V9 預覽底圖。
+
+2026-10-20 依使用者同意清除已被 V9 取代的 V5～V8 產物（含 V8 Piskel）與專用工具；歷史來源可由第一階段 Git 快照 `0a25af4` 查閱。現行預覽重建使用 `tools/render_touch_authored_timing_preview.py`。
 
 部分舊工具需要當時單幀happy原圖，目前assets/pets已由使用者改成V9多幀圖集。
 不要直接對目前素材執行這些舊工具期待重建舊版本；保存的舊產物與當時驗證結果仍可檢視。

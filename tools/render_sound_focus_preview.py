@@ -1,21 +1,63 @@
 """Preview only: two sound modes, using project glyphs and U8g2 fonts."""
 from pathlib import Path
-import re
 import subprocess
 from PIL import Image, ImageDraw, ImageOps
 import generate_ui_font as font
 
 ROOT = Path(__file__).resolve().parents[1]
+(ROOT / 'docs/previews/sound').mkdir(parents=True, exist_ok=True)
 OUT = ROOT / '.pio/sound-focus-preview'
 OUT.mkdir(parents=True, exist_ok=True)
 font.CHARACTERS = ''.join(dict.fromkeys('選單紀念冊送別聲音確定取消'))
 font.write_header(OUT / 'PreviewFont.h', font.parse_bdf(
     ROOT / '.pio/status-font-tools/wenquanyi_9pt.bdf'))
 
-# Reuse only the host renderer's text/base/capture helpers, never its main.
-reference = (ROOT / 'tools/render_volume_preview.py').read_text(encoding='utf-8')
-helpers = re.search(r"source = r'''(.*?)int main\(\)", reference, re.S).group(1)
-helpers = helpers.replace('.pio/volume-preview/', '.pio/sound-focus-preview/')
+# Shared native text/base/capture helpers retained from the retired proposal.
+helpers = r'''
+#include <u8g2.h>
+#include <array>
+#include <cstdio>
+#include "PreviewFont.h"
+static u8g2_t gfx{};
+static u8x8_display_info_t info{};
+static std::array<uint8_t,1024> pixels{};
+static unsigned decode(const char*& s) {
+    unsigned c=(unsigned char)*s++; if(c<128) return c;
+    unsigned b=(unsigned char)*s++, a=(unsigned char)*s++;
+    return ((c&15)<<12)|((b&63)<<6)|(a&63);
+}
+static void text(int x,int y,const char* s) {
+    while(*s) {
+        unsigned cp=decode(s);
+        if(cp<128) {
+            char ascii[2]={(char)cp,0};
+            u8g2_SetFont(&gfx,u8g2_font_6x10_tf);
+            u8g2_DrawStr(&gfx,x,y,ascii); x+=6;
+        } else {
+            const uint8_t* glyph=nullptr;
+            for(unsigned i=0;i<UiFont12::kGlyphCount;++i)
+                if(UiFont12::kGlyphs[i].codepoint==cp) glyph=UiFont12::kGlyphs[i].bitmap;
+            if(!glyph) { fprintf(stderr,"Missing glyph %u\n",cp); exit(1); }
+            for(int row=0;row<12;++row) for(int col=0;col<12;++col)
+                if(!(glyph[row*2+col/8]&(128>>(col%8))))
+                    u8g2_DrawPixel(&gfx,x+col,y-11+row);
+            x+=12;
+        }
+    }
+}
+static void base(const char* title) {
+    pixels.fill(0); u8g2_DrawFrame(&gfx,0,0,128,64);
+    text(9,14,title); u8g2_DrawHLine(&gfx,6,18,116);
+}
+static void capture(const char* name) {
+    char path[120]; snprintf(path,sizeof(path),".pio/sound-focus-preview/%s.pbm",name);
+    FILE* f=fopen(path,"wb"); fprintf(f,"P1\n128 64\n");
+    for(int y=0;y<64;++y) {
+        for(int x=0;x<128;++x) fprintf(f,"%d ",(pixels[(y/8)*128+x]>>(y%8))&1);
+        fprintf(f,"\n");
+    } fclose(f);
+}
+'''
 source = helpers + r'''
 int main() {
     info.tile_width=16; info.tile_height=8; info.pixel_width=128; info.pixel_height=64;
@@ -74,9 +116,9 @@ for row, mode in enumerate(('off', 'on')):
         name = mode+'-'+focus
         frame = ImageOps.invert(Image.open(OUT / (name+'.pbm')).convert('L'))
         assert frame.size == (128,64) and set(frame.tobytes()) <= {0,255}
-        frame.save(ROOT / 'docs' / ('sound-focus-'+name+'-proposal.png'))
+        frame.save(ROOT / 'docs/previews/sound' / ('sound-focus-'+name+'-proposal.png'))
         x,y=col*400+8,row*232
         draw.text((x,y+8),name.upper()+' / 128x64 PROPOSAL',fill='white')
         sheet.paste(frame.resize((384,192),Image.Resampling.NEAREST),(x,y+28))
-sheet.save(ROOT / 'docs/sound-focus-proposal.png')
+sheet.save(ROOT / 'docs/previews/sound/sound-focus-proposal.png')
 print('Created sound focus proposal; firmware unchanged.')

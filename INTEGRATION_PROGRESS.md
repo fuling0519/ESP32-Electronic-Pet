@@ -1,6 +1,6 @@
 # BLE 整合歷史紀錄（2026-09-30）
 
-文件角色：2026-09-30 的 Stage 0～2 建置歷史，保留當時工具版本與容量。**本檔不再追蹤當前進度**；請看 [主企畫](docs/project-plan.md#progress)。2026-10-01 的 NimBLE／device_id 結果見 [當日紀錄](docs/firmware-capacity-handoff.md)。
+文件角色：2026-09-30 的 Stage 0～2 建置歷史，保留當時工具版本與容量。**本檔不再追蹤當前進度**；請看 [主企畫](docs/project-plan.md#progress)。2026-10-01 的 NimBLE／device_id 結果見 [當日紀錄](docs/history/firmware-capacity-handoff.md)。
 
 ## Stage 0 — inventory
 

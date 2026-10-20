@@ -43,15 +43,15 @@
 
 ## 韌體轉換與尺寸
 
-- 觸摸預覽新增的`happy.png`／`shock.png`尚未轉入正式韌體。摸頭V9每格64×44、由左到右再由上到下：幼鳥192×220共14個有效幀、成鳥192×220共13個有效幀（各5 FPS，末尾1／2格透明填充）；幼龍／成龍128×176各8幀（7 FPS）。戳戳V3：幼鳥／幼龍shock為64×88，第一幀反應、第二幀復原；成鳥／成龍64×44單幀。最新預覽用`tools/render_touch_authored_timing_preview.py`；舊單幀happy工具需當時版本素材，不能直接以目前多幀圖集重建。參見[觸摸方案與預覽](../docs/touch-interaction-phase1.md)。
+- 觸摸預覽新增的`happy.png`／`shock.png`尚未轉入正式韌體。摸頭V9每格64×44、由左到右再由上到下：幼鳥192×220共14個有效幀、成鳥192×220共13個有效幀（各5 FPS，末尾1／2格透明填充）；幼龍／成龍128×176各8幀（7 FPS）。戳戳V3：幼鳥／幼龍shock為64×88，第一幀反應、第二幀復原；成鳥／成龍64×44單幀。最新預覽用`tools/render_touch_authored_timing_preview.py`；舊單幀happy工具需當時版本素材，不能直接以目前多幀圖集重建。參見[觸摸方案與預覽](../docs/features/touch-interaction-phase1.md)。
 - `tools/generate_bird_sprite.py`：讀取正式小鳥、蛋與飼料碗，產生 `src/ui/BirdSprite.h`；小鳥的睡眠圖目前由工具閉眼處理產生，沒有獨立的 `sleeping.png`。
 - 小鳥、蛋圖集為 64×88，上下兩幀各 64×44；飼料碗為三幀 21×15。
-- `tools/generate_wyvern_sprite.py`：產生 `src/ui/WyvernSprite.h`，保留原始像素；待機／傷心各為 64×88 上下兩格，餵食 128×88 為左上→右上→左下→右下四格，幼龍睡眠 64×88 兩格、成龍睡眠 64×44 單格，共 19 格、6688 bytes。龍原圖沒有手捧食物，餵食仍疊加共用碗。主畫面原點 (32,6)，待機 6 FPS、傷心與幼龍睡眠 1 FPS。實機步驟見 [小飛龍驗收](../docs/wyvern-test.md)。
+- `tools/generate_wyvern_sprite.py`：產生 `src/ui/WyvernSprite.h`，保留原始像素；待機／傷心各為 64×88 上下兩格，餵食 128×88 為左上→右上→左下→右下四格，幼龍睡眠 64×88 兩格、成龍睡眠 64×44 單格，共 19 格、6688 bytes。龍原圖沒有手捧食物，餵食仍疊加共用碗。主畫面原點 (32,6)，待機 6 FPS、傷心與幼龍睡眠 1 FPS。實機步驟見 [小飛龍驗收](../docs/testing/wyvern-test.md)。
 - `tools/generate_dirty_sprite.ps1`：讀取 `shared/effects/dirt.png`，產生 `src/ui/DirtySprite.h`。
 - `tools/generate_cleaning_sprite.py`：讀取 `shared/effects/cleaning.png`（196×114，左上／右上／左下／右下四格各 98×57），等比例以最近鄰縮成 84×49，產生 `src/ui/CleaningSprite.h`；右下全白格保留，沒有退水幀。
-- `tools/generate_rps_icons.py`：讀取 `games/rps/`，產生 `src/ui/RpsIcons.h` 和 `docs/rps-icons-preview.png`。
+- `tools/generate_rps_icons.py`：讀取 `games/rps/`，產生 `src/ui/RpsIcons.h` 和 `docs/previews/rps/rps-icons-preview.png`。
 - 治療藥水：`shared/items/potion.png` 為 42×63、每格 21×21 的 5 幀圖集，依左上、右上、左中、右中、左下播放；使用 `tools/generate_potion_sprite.py` 產生 `src/ui/PotionSprite.h`。
 - `shared/effects/soul.png` 為 30×56，上下兩幀各 30×28；目前點陣資料保存在 `src/ui/PetIcons.cpp`，尚無獨立生成工具。
-- `shared/effects/sad_lines.png` 為透明背景的 5×6 共用傷心效果，三條線各寬 1 像素、間隔 1 像素，長度由左到右為 5、5、6。依參考圖量測，疊加在 64×44 傷心幀的幼鳥座標 `(40,14)`、成鳥座標 `(39,9)`、幼龍 `(42,14)`、成龍 `(50,6)`；各幀使用相同位置。兩種寵物倒藥及空瓶期間都隱藏三條線。`tools/render_sad_effect_preview.py` 產生此圖示與 `previews/pets/bird/sad_lines_*` 預覽，保留原始鳥圖；`tools/generate_sad_effect.py` 由正式 PNG 生成 `src/ui/SadEffect.h`，由共用 `drawSadLines()` 繪製。`tools/render_sad_ui_preview.py` 檢查原生測試輸出的真實 UI 並產生 `docs/sad-state-preview.png`。
+- `shared/effects/sad_lines.png` 為透明背景的 5×6 共用傷心效果，三條線各寬 1 像素、間隔 1 像素，長度由左到右為 5、5、6。依參考圖量測，疊加在 64×44 傷心幀的幼鳥座標 `(40,14)`、成鳥座標 `(39,9)`、幼龍 `(42,14)`、成龍 `(50,6)`；各幀使用相同位置。兩種寵物倒藥及空瓶期間都隱藏三條線。`tools/render_sad_effect_preview.py` 產生此圖示與 `previews/pets/bird/sad_lines_*` 預覽，保留原始鳥圖；`tools/generate_sad_effect.py` 由正式 PNG 生成 `src/ui/SadEffect.h`，由共用 `drawSadLines()` 繪製。`tools/render_sad_ui_preview.py` 檢查原生測試輸出的真實 UI 並產生 `docs/previews/sad-state/sad-state-preview.png`。
 
 改動素材路徑時，要同步更新轉換工具及文件連結。`web-preview/assets/` 為網站展示自己的背景素材，與本目錄分開管理。

@@ -1,15 +1,22 @@
 # 文件導覽與更新方式
 
-核對日期：2026-10-02。開發進度只記在 [主企畫第 10 節](project-plan.md#progress)。
+整理日期：2026-10-20。產品需求與唯一開發進度仍在 [主企畫](project-plan.md)，所有實作、自動驗證及實機驗收狀態只維護於[主台帳](project-plan.md#progress)。
 
-## 平常只需要看這幾份
+## 從這裡開始
 
 - 要生成／修改 Web 寵物精靈圖、動畫或接入角色素材：先讀 [精靈圖製作規則](web-sprite-workflow.md)，再看目標角色的素材說明。通用流程與小龍專屬設定分開維護。
 - 要知道完成了什麼、還缺什麼：看 [主進度台帳](project-plan.md#progress)。各項都有固定編號、實作狀態、驗證範圍與下一步。
 - 要開始建置或接線：看 [根 README](../README.md)；Flutter 啟動看 [App README](../esp32_pet_app/README.md)。
 - 韌體與 Web 要對接：看 [BLE 共用協定](../esp32_pet_app/PROTOCOL.md)；Web 功能與兩組分工看 [Web 計畫](web-phase-plan.md)。
+- 看進度與下一步：[主台帳](project-plan.md#progress)。
+- 建置、接線與啟動：[根 README](../README.md)；[Flutter README](../esp32_pet_app/README.md)。
+- 閱讀程式：[架構與模組邊界](reference/architecture.md)。
+- 修改 OLED 畫面：[排版規則與核准座標](reference/ui-layout-guide.md)。
+- 執行驗收：下方「測試與驗收」；自動測試通過不代表實機驗收通過。
+- 韌體與 Web 對接：[共用 BLE 協定](../esp32_pet_app/PROTOCOL.md)與 [Web 計畫](features/web-phase-plan.md)。
+- 準備提交：[提交前企畫核對](commit-plan-review.md)。
 
-## 每份文件的責任
+## 資料夾用途
 
 - [web-sprite-workflow.md](web-sprite-workflow.md)：Web 寵物精靈圖的通用美術、生成、整理、預覽及整合流程，以及獨立的角色專屬設定；相關 agent 任務開始前閱讀。實作與驗收進度仍回主台帳記錄。
 - [project-plan.md](project-plan.md)：產品需求＋唯一進度台帳。完成實作或得到測試回報時，只更新第 10 節對應項目；玩法改變才改需求段落。
@@ -32,35 +39,45 @@
 - [database-erd.md](database-erd.md)：邏輯模型提案，含未來 Session 模型；不能當作 NVS 格式或已部署雲端資料庫。SQL 草案亦只供參考。
 - [App 分工入口](../esp32_pet_app/docs/project-plan.md)：導向主台帳、Web 需求及協定，不複製另一套階段狀態。
 - [App 實作定位](../esp32_pet_app/docs/implementation-notes.md)：Flutter 程式閱讀指南，程式結構改變才更新。
+- `reference/`：架構、OLED 排版與邏輯資料模型。修改對應規格時更新。
+- `features/`：功能規則、互動設計與分工；完成狀態回主台帳。
+- `testing/`：可重跑的自動檢查、燒錄、操作預期與實機驗收邊界。
+- `guides/`：素材預覽操作與存檔維護。
+- `history/`：日期化決策、過往方案與建置量測；保留當時條件，不改寫成最新數字。
+- `previews/`：依功能收納圖片、GIF 與 framebuffer 驗證產物；原始美術仍在 `assets/`。
 
-## 歷史與證據：有需要再讀
+## 參考規格與功能設計
 
-- [development-history.md](development-history.md)：從主企畫移出的日期化決策及使用者驗收回報；保留原本適用範圍。
-- [INTEGRATION_PROGRESS.md](../INTEGRATION_PROGRESS.md)：2026-09-30 BLE Stage 0～2 的歷史，內文 92.8% 是舊版數字。
-- [firmware-capacity-plan.md](firmware-capacity-plan.md)：容量改善前的原定方案；「下一步」是當時計畫，不是最新待辦。
-- [firmware-capacity-handoff.md](firmware-capacity-handoff.md)：2026-10-01 容量建置結果與硬體驗收操作。最新驗收結果更新主台帳，歷史量測不改成新數字。
+- [架構](reference/architecture.md)；[OLED 排版](reference/ui-layout-guide.md)。
+- [EXP／升級](features/exp-level-plan.md)；[猜拳](features/rps-game-plan.md)；[記憶音符](features/memory-notes-plan.md)。
+- [觸摸第一階段方案與保留歷史](features/touch-interaction-phase1.md)：現行美術採 V3 戳戳／V9 摸頭；正式觸摸輸入、UI 反應與音效尚未接入本次提交。
+- [Web 計畫與分工](features/web-phase-plan.md)。
+- [邏輯 ERD](reference/database-erd.md)與 [SQLite schema 草案](reference/database-schema.sql)：規劃參考，並非現行 NVS 格式或已部署雲端資料庫。
+- [App 分工入口](../esp32_pet_app/docs/project-plan.md)；[App 程式閱讀指南](../esp32_pet_app/docs/implementation-notes.md)。
 
-保留原有路徑，避免舊連結失效。新增一份建置報告後，只需將主台帳的證據連結指向新報告；不必在 README、Web 計畫和 App 文件逐份更新容量。
+## 測試與驗收
 
-## 一次工作如何收尾
+- 照顧與狀態：[清潔](testing/cleaning-test.md)、[治療](testing/treatment-test.md)、[心情](testing/mood-test.md)、[傷心提醒](testing/sad-state-test.md)。
+- 功能與硬體：[聲音設定](testing/volume-test.md)、[深度睡眠](testing/deep-sleep-test.md)。
+- 種類與生命週期：[小飛龍](testing/wyvern-test.md)、[送別與紀念冊](testing/farewell-test.md)。
+- 小遊戲：[猜拳驗收](testing/rps-game-test.md)；記憶音符與 EXP 的驗收方法各保留在功能文件內。
 
-1. 在主台帳找到項目編號，例如 FW-CAP、A6-S 或 W3。
-2. 更新「實作／驗證／下一步」。實機回報附日期、版本、操作與未測範圍；build 成功只算 build。
-3. 若介面、玩法、建置、架構或 UI 規格有變，才更新上方對應文件。
-4. 重大決策或完整量測另留有日期的歷史證據，主台帳連到它。
-5. 檢查文件連結；搜尋舊數字／舊名詞時，先區分歷史紀錄與現行規格。
+## 操作、歷史與預覽
 
-建議驗證紀錄格式：`日期｜版本或工作目錄｜操作／命令｜結果｜未驗證範圍｜證據連結`。如果沒有提交版本，明確寫「未提交工作目錄」，不要只以可重用的韌體版本字串當作唯一來源。
+- [存檔修復與維護](guides/storage-recovery.md)；[髒污預覽操作](guides/dirty-preview.md)。
+- [開發與驗收歷史](history/development-history.md)。
+- [容量改善原方案](history/firmware-capacity-plan.md)；[2026-10-01 容量交接與建置證據](history/firmware-capacity-handoff.md)。其中「下一步／待驗收」為當日狀態，最新結果只看主台帳。
+- [BLE Stage 0～2 歷史](../INTEGRATION_PROGRESS.md)：2026-09-30 紀錄，92.8% 是舊版量測。
+- 預覽入口：[畫面與產物索引](previews/README.md)。真實程式 framebuffer、設計提案與實體 OLED 驗收分開看待。
 
-## 本次審核修正
+## 文件維護規則
 
-- App README、App 企畫及實作說明仍稱目前容量 92.8%、要遷移 NimBLE：改為引用主台帳與當日報告。
-- 架構仍描述史萊姆、無法點選的狀態卡及尚未接上的畫面更新：依目前程式重寫。
-- 主企畫把手機連線與未做的感測器混為同一未完成項、把墓碑滿額程式與實機驗收混在一起：拆成獨立實作／驗證狀態。
-- petId 被描述為永久不重用、蛋的 species 可空、疾病僅計清醒：依程式修正為存檔內識別、蛋固定 Bird、清醒與一般睡眠皆計時。
-- 一般睡眠心情恢復餘數未進入 PetSnapshotV1：明列在 A5-SLEEP，沒有用「睡眠已驗收」涵蓋這個尚未確認的邊界。
-- Web 計畫引用不存在的 web-data-structure.md：改為本節分層原則並明示獨立規格尚未建立；選型階段統一為 W0。
-- 原生 App 尚未交付：修正為後續方向，避免把它當現成下載替代方案。
-- 舊驗收及原生測試紀錄與最新 NimBLE 版分開，沒有新增或推定實機通過。
+1. 功能實作或取得測試回報時，更新主台帳的實作／驗證／下一步；玩法、架構或介面改變時也核對主企畫相關段落。
+2. 專項文件保存詳細規則與操作方法，不複製另一套進度清單。BLE 規格只維護於共用協定。
+3. 量測另留有日期的證據，主台帳連到它；實機回報附日期、來源版本、操作與未測範圍。
+4. 新圖片依功能放入 `previews/`，工具輸出也使用相同路徑，不再寫到 `docs/` 根目錄。
+5. 搬移檔案時同步更新文件連結與產生／驗證工具；執行 `python tools/check_docs_links.py` 檢查本機 Markdown 連結。
 
-這次只整理文件；沒有變更韌體或 App 行為，也沒有重新燒錄或執行硬體驗收。
+驗證紀錄格式：`日期｜版本或工作目錄｜操作／命令｜結果｜未驗證範圍｜證據連結`。尚未提交時明寫「未提交工作目錄」，不只依韌體版本字串辨識來源。
+
+本次保留 `project-plan.md` 與 `commit-plan-review.md` 固定路徑。移除 22 張舊聲音圖片、觸摸 V5～V8 的 1,333 個歷史產物及七支退役工具；保留 V3、V4、V9 與現行 framebuffer 比對基準。歷史檔案可由 Git 查閱；整理不代表新增功能驗收。

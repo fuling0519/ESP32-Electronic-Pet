@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageOps, ImageChops
 
 ROOT = Path(__file__).resolve().parents[1]
+(ROOT / 'docs/previews/sad-state').mkdir(parents=True, exist_ok=True)
 sheet = Image.new('RGB', (1064, 600), '#202020')
 draw = ImageDraw.Draw(sheet)
 icon = Image.open(ROOT / 'assets/shared/effects/sad_lines.png').convert('RGBA')
@@ -19,5 +20,5 @@ for row, stage in enumerate(('baby', 'adult')):
         x, y = 12 + frame * 532, 12 + row * 300
         draw.text((x, y), name.upper(), fill='white')
         sheet.paste(actual.resize((512, 256), Image.Resampling.NEAREST), (x, y + 25))
-sheet.save(ROOT / 'docs/sad-state-preview.png')
+sheet.save(ROOT / 'docs/previews/sad-state/sad-state-preview.png')
 print('PASS: all four actual UI sprite regions match original birds + approved shared effect pixel-for-pixel.')
