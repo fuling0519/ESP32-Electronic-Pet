@@ -6,7 +6,7 @@ const sadImage=new Image();sadImage.src='assets/bird-sad-closed-20261019.png';
 const awakeImage=new Image();awakeImage.src='assets/bird-sad-open-20261019.png';
 function frame(p,now,action,elapsed=0,previewSad=false){
  if(action==='treat')return elapsed<1.4?2:0;
- if(action==='feed')return Math.floor(elapsed*1000/400)%2?5:0;
+ if(action==='feed')return Math.floor(elapsed*1000/250)%2?5:0;
  if(action==='clean')return 0;
  if(p.sleepMode==='normal')return 4;
  const blink=now%2600>=1600;

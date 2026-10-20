@@ -13,5 +13,13 @@ function clean(ctx,elapsed){
   ctx.fillStyle='#eaf9f8';ctx.fillRect(x,y,6,2);ctx.fillRect(x-2,y+2,2,4);ctx.fillRect(x+6,y+2,2,4);ctx.fillRect(x,y+6,6,2);
  }
 }
-window.SharedPetView={paint,clean};
+function potionFrame(seconds){const ms=seconds*1000;return ms<250?0:ms<500?1:ms<850?2:ms<1200?3:4;}
+function recovery(ctx,seconds){
+ const step=Math.min(15,Math.max(0,Math.floor((seconds-1.4)*1000/125)));
+ const left=[0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,0],right=[0,0,1,2,3,2,1,0,0,1,2,3,2,1,0,0];
+ for(const [x,y,light] of [[99,(step>=7&&step<=11?39:23)*3,left[step]],[282,(step>=9?25:37)*3,right[step]]]){
+  if(!light)continue;ctx.fillStyle='#fff1a6';ctx.fillRect(x,y,3,3);const n=light===3?6:light===2?3:0;if(n){ctx.fillRect(x-n,y,n*2+3,3);ctx.fillRect(x,y-n,3,n*2+3);}
+ }
+}
+window.SharedPetView={paint,clean,potionFrame,recovery};
 })();

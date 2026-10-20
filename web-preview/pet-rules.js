@@ -31,5 +31,11 @@ function tick(p,seconds){
  }
  updateSad(p);
 }
-window.PetRules={threshold,totalExp,lowCount,addExp,updateSad,tick};
+function sadnessReasons(p){
+ if(!p||p.stage==='egg'||p.isDeparted||p.healthState==='dead')return [];
+ const copy=JSON.parse(JSON.stringify(p));updateSad(copy);const reasons=[];
+ for(const [key,label,target] of [['mood','心情',45],['satiety','飽食度',30],['cleanliness','清潔度',30]])if(copy.sadReasons[key])reasons.push(label+' '+p[key]+'，恢復至 '+target+' 可解除');
+ if(p.healthState==='sick')reasons.push('生病中，需要治療');return reasons;
+}
+window.PetRules={threshold,totalExp,lowCount,addExp,updateSad,tick,sadnessReasons};
 })();

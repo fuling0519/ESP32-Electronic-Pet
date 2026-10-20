@@ -54,4 +54,23 @@
 .memorial-card canvas{width:128px;height:88px;image-rendering:pixelated}
 
 /* New baked day/night artwork keeps its authored palette and crisp pixels. */
+/* Local Web usability pass; no device acceptance implied. */
+header>div,.details>div,.meters label,footer>*{min-width:0}
+#sad-reason{overflow-wrap:anywhere;line-height:1.7;padding:8px 10px;background:var(--panel);border-left:3px solid var(--line)}
+dialog{max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain}
+dialog button,dialog select{max-width:100%;white-space:normal}
+#game-inputs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1 1 90px}
+#game-inputs canvas{max-width:100%;height:auto}
+#memorial-list{grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr))}
+.memorial-card canvas{max-width:100%;height:auto}
+@media(max-width:420px){
+ main{padding:10px;border-width:2px}header{gap:10px}header>div{flex-basis:100%}
+ header button{flex:1;padding:8px;font-size:13px}
+ .preview-controls label{flex-wrap:wrap;max-width:100%}.preview-controls select{max-width:100%}
+ .preview-controls span{overflow-wrap:anywhere}.meters{gap:10px;grid-template-columns:1fr}
+ .meters progress{margin-top:4px}.care button{min-height:64px}
+ dialog{padding:14px;width:calc(100% - 20px)}
+ footer button{flex:1 1 42%;min-height:44px}
+ #tombstone{padding:12px 8px;gap:3px}#tombstone strong{font-size:20px}
+}
 #aviary:not(.simple-background) .scene img,#aviary.simple-background.night .scene img,#aviary .scene img{filter:none;image-rendering:pixelated}
