@@ -10,9 +10,10 @@ const result=document.querySelector('#touch-result'),petButton=document.querySel
 function select(value){tool=value;petButton.setAttribute('aria-pressed',String(tool==='pet'));pokeButton.setAttribute('aria-pressed',String(tool==='poke'));canvas.style.cursor=tool==='pet'?'grab':'crosshair';}
 petButton.onclick=()=>select('pet');pokeButton.onclick=()=>select('poke');select('pet');
 function allowed(){const s=petDataManager.read(),p=s.pet;return s.metadata.source==='mock'&&p&&['baby','adult'].includes(p.stage)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!document.querySelector('[data-action="feed"]').disabled&&!document.querySelector('#game-dialog').open&&!document.querySelector('#farewell-dialog').open;}
-function hit(p){return ((p.x-190)/100)**2+((p.y-130)/90)**2<=1;}
+function touchTarget(){return window.WyvernAdultView?.interactionTarget(petDataManager.read().pet)||{x:190,y:130,rx:100,ry:90};}
+function hit(p){const t=touchTarget();return ((p.x-t.x)/t.rx)**2+((p.y-t.y)/t.ry)**2<=1;}
 function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*384/r.width,y:(e.clientY-r.top)*256/r.height};}
-function interact(at={x:190,y:110}){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return;}
+function interact(at=null){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return;}if(!at){const t=touchTarget();at={x:t.x,y:t.y-20};}
  try{const r=petDataManager.command(tool);effect={kind:tool,start:performance.now(),...at,petId:petDataManager.read().pet.petId};result.textContent=(tool==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！')+' 心情 '+(r.actual>=0?'+':'')+r.actual+'。';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind:tool}}));}catch(e){result.textContent=e.message;}}
 once.onclick=()=>interact();
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0||!allowed())return;const p=point(e);if(!hit(p))return;down={...p,id:e.pointerId};canvas.setPointerCapture(e.pointerId);e.preventDefault();});
@@ -23,7 +24,7 @@ function draw(now){pen.clearRect(0,0,384,256);once.disabled=!allowed();
  if(hover&&tool==='poke'&&allowed()){pen.strokeStyle='#795033';pen.lineWidth=3;pen.beginPath();pen.moveTo(hover.x+3,hover.y+3);pen.lineTo(hover.x+28,hover.y+32);pen.stroke();}
  if(effect){const p=petDataManager.read().pet,t=(now-effect.start)/1200;if(t>=1||!p||p.petId!==effect.petId||p.healthState==='dead'||p.isDeparted)effect=null;else{pen.globalAlpha=1-t;
  if(effect.kind==='pet'){pen.fillStyle='#ef9fb2';for(let i=0;i<3;i++){const x=Math.round(effect.x-20+i*20),y=Math.round(effect.y-20-t*28);for(const [dx,dy,w,h] of [[0,0,4,4],[6,0,4,4],[0,4,10,4],[2,8,6,3],[4,11,2,2]])pen.fillRect(x+dx,y+dy,w,h);}}
- else{pen.fillStyle='#e6ba55';pen.fillRect(240,62,4,13);pen.fillRect(240,79,4,4);}
+ else{pen.fillStyle='#e6ba55';pen.fillRect(effect.x+50,effect.y-48,4,13);pen.fillRect(effect.x+50,effect.y-31,4,4);}
  pen.globalAlpha=1;}}
  requestAnimationFrame(draw);}
 requestAnimationFrame(draw);

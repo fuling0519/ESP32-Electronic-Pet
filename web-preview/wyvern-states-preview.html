@@ -8,12 +8,12 @@
 <main><header><div><h1>成年小龍・全部狀態</h1><a href="index.html?preview=wyvern">進入花園互動展示</a></div><button id="light">切換夜晚</button></header>
 <p>使用花園展示相同的角色繪製程式。這裡只預覽外觀，不讀寫寵物存檔；死亡會保持顯示，方便比較。</p>
 <section class="grid" id="states"></section></main>
-<script src="wyvern-adult-view.js?v=adult-art-20261021"></script>
+<script src="wyvern-adult-view.js?v=flight-rest-20261021"></script>
 <script>
-const states=[['idle','待機','四格小幅振翅'],['sad','傷心','委屈、垂翼與眨眼'],['sick','生病','疲倦、半睜眼與閉眼休息'],['happy','開心','小豆眼與滿足笑眼'],['sleep','蜷縮睡眠','兩格呼吸，約兩秒一圈'],['dead','死亡','閉眼、嘴角下垂、側躺靜態'],['flight','飛行造型','目前為靜態圖，連續飛行畫格待補']];
+const states=[['idle','待機','四格小幅振翅'],['sad','傷心','委屈、垂翼與眨眼'],['sick','生病','疲倦、半睜眼與閉眼休息'],['happy','開心','小豆眼與滿足笑眼'],['sleep','蜷縮睡眠','兩格呼吸，約兩秒一圈'],['dead','死亡','閉眼、嘴角微垂、側躺靜態'],['flight','低空飛行','六格拍翼、起落與左右翻面；減少動態時回到地面待機']];
 const previews=states.map(([state,title,description])=>{const card=document.createElement('article'),heading=document.createElement('h2'),text=document.createElement('p'),scene=document.createElement('div'),canvas=document.createElement('canvas');heading.textContent=title;text.textContent=description;scene.className='scene';canvas.width=768;canvas.height=512;canvas.setAttribute('aria-label',title+'小龍');scene.append(canvas);card.append(scene,heading,text);document.querySelector('#states').append(card);const ctx=canvas.getContext('2d');ctx.scale(2,2);return {state,ctx};});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-function draw(now){for(const {state,ctx} of previews){ctx.clearRect(0,0,384,256);WyvernAdultView.paint(ctx,state,now,reduced.matches,{y:state==='flight'?143:177});}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+function draw(now){for(const {state,ctx} of previews){ctx.clearRect(0,0,384,256);if(state==='flight')WyvernAdultView.paintTravel(ctx,now,reduced.matches);else WyvernAdultView.paint(ctx,state,now,reduced.matches);}requestAnimationFrame(draw);}requestAnimationFrame(draw);
 document.querySelector('#light').onclick=()=>{const night=document.body.classList.toggle('night');document.querySelector('#light').textContent=night?'切換白天':'切換夜晚';};
 </script>
 </html>

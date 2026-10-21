@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>成年小飛龍・低空飛行</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f5ec;color:#493952;font:16px/1.7 system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:24px}h1{margin:0}a{color:#73518c}header,nav{display:flex;align-items:center;gap:14px;flex-wrap:wrap}header{justify-content:space-between}button{font:inherit;padding:8px 14px;border:1px solid #cdbfd5;border-radius:10px;background:white;cursor:pointer}.scene{position:relative;aspect-ratio:3/2;max-width:768px;margin:20px auto;background:center/cover url('assets/garden-detailed-day.png');border-radius:16px;overflow:hidden}.night .scene{background-image:url('assets/garden-detailed-night.png')}canvas{display:block;width:100%;height:100%;image-rendering:pixelated}p{margin:8px 0}.note{font-size:14px;color:#756879}
+</style>
+<main><header><h1>成年小飛龍・低空飛行</h1><a href="index.html?preview=wyvern">進入花園互動展示</a></header>
+<p>地面停留 → 離地 → 向右飛 → 減速翻面 → 向左飛 → 回到中央落地。</p>
+<nav><button id="light">切換夜晚</button><button id="pause">暫停</button><button id="left">向左試放</button><button id="right">向右試放</button><label><input id="reduce" type="checkbox">減少動態</label><a href="wyvern-states-preview.html">查看全部狀態</a></nav>
+<div class="scene"><canvas id="flight" width="768" height="512" aria-label="小飛龍低空左右飛行預覽"></canvas></div>
+<p class="note">大部分時間在地面：待機約 24 秒，偶爾飛約 6.5 秒，再回地面。六格拍翼仍為每圈 0.9 秒。使用花園主頁相同的繪製與翻面邏輯；這裡不讀寫寵物存檔。</p></main>
+<script src="wyvern-adult-view.js?v=flight-rest-20261021"></script>
+<script>
+const ctx=document.querySelector('#flight').getContext('2d');ctx.scale(2,2);
+const media=matchMedia('(prefers-reduced-motion: reduce)'),reduce=document.querySelector('#reduce');reduce.checked=media.matches;
+media.addEventListener('change',e=>{reduce.checked=e.matches;});
+let paused=false,elapsed=0,previous=null;
+document.querySelector('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'繼續播放':'暫停';};
+for(const [id,time] of [['left',27240],['right',25200]])document.querySelector('#'+id).onclick=()=>{elapsed=time;paused=false;reduce.checked=false;document.querySelector('#pause').textContent='暫停';};
+document.querySelector('#light').onclick=e=>{const night=document.body.classList.toggle('night');e.target.textContent=night?'切換白天':'切換夜晚';};
+function draw(now){if(previous!==null&&!paused&&!document.hidden)elapsed+=Math.min(100,now-previous);previous=now;ctx.clearRect(0,0,384,256);WyvernAdultView.paintTravel(ctx,elapsed,reduce.checked,{withRest:true});requestAnimationFrame(draw);}requestAnimationFrame(draw);
+</script>
+</html>

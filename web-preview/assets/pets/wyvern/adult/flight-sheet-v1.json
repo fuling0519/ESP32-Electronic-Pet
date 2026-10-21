@@ -1,0 +1,148 @@
+{
+  "source": "flight-source-v1.png",
+  "sourceSha256": "293203fc7959c9ffd4fdf125fd82f439530e38250fe63dfafe1568d3e88bd0a8",
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "cellSize": [
+    560,
+    448
+  ],
+  "columns": 3,
+  "rows": 2,
+  "previewAnchor": [
+    351,
+    232
+  ],
+  "cycleMs": 900,
+  "loop": 0,
+  "status": "flight-cycle-authorized-for-web-integration-20261021",
+  "renderAnchor": [
+    280,
+    310
+  ],
+  "renderScale": 0.33268858800773693,
+  "operations": [
+    "crop",
+    "integer-translation",
+    "transparent-padding"
+  ],
+  "gifNote": "Cream viewing copy, shared 256-color palette; APNG retains exact RGBA.",
+  "verified": [
+    "6 exact RGBA APNG frame round trips",
+    "6 exact GIF palette frame round trips",
+    "frame timing",
+    "infinite loop"
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "sourceRect": [
+        24,
+        74,
+        479,
+        409
+      ],
+      "sourceAnchor": [
+        360,
+        294
+      ],
+      "previewOffset": [
+        15,
+        12
+      ],
+      "durationMs": 170
+    },
+    {
+      "index": 1,
+      "sourceRect": [
+        514,
+        120,
+        509,
+        363
+      ],
+      "sourceAnchor": [
+        846,
+        291
+      ],
+      "previewOffset": [
+        19,
+        61
+      ],
+      "durationMs": 130
+    },
+    {
+      "index": 2,
+      "sourceRect": [
+        1024,
+        127,
+        512,
+        363
+      ],
+      "sourceAnchor": [
+        1363,
+        294
+      ],
+      "previewOffset": [
+        12,
+        65
+      ],
+      "durationMs": 130
+    },
+    {
+      "index": 3,
+      "sourceRect": [
+        14,
+        609,
+        513,
+        345
+      ],
+      "sourceAnchor": [
+        342,
+        772
+      ],
+      "previewOffset": [
+        23,
+        69
+      ],
+      "durationMs": 170
+    },
+    {
+      "index": 4,
+      "sourceRect": [
+        527,
+        599,
+        517,
+        362
+      ],
+      "sourceAnchor": [
+        848,
+        771
+      ],
+      "previewOffset": [
+        30,
+        60
+      ],
+      "durationMs": 130
+    },
+    {
+      "index": 5,
+      "sourceRect": [
+        1054,
+        558,
+        476,
+        403
+      ],
+      "sourceAnchor": [
+        1385,
+        772
+      ],
+      "previewOffset": [
+        20,
+        18
+      ],
+      "durationMs": 170
+    }
+  ]
+}
