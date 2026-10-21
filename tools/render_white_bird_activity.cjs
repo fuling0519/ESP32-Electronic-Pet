@@ -1,0 +1,10 @@
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),{createCanvas,loadImage}=require('@napi-rs/canvas');
+const root=path.resolve(__dirname,'../web-preview');
+(async()=>{const image=await loadImage(path.join(root,'assets/pets/bird/white-activity-sheet-v1.png')),bg=await loadImage(path.join(root,'assets/garden-detailed-day.png'));
+Object.defineProperty(image,'src',{set(){}});Object.defineProperty(image,'naturalWidth',{value:image.width});
+const c={Image:class{constructor(){return image;}}};c.window=c;vm.createContext(c);
+for(const f of ['assets/pets/bird/white-activity-data-v1.js','white-bird-activity.js'])vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),c);
+const out=createCanvas(768,512),ctx=out.getContext('2d');
+[3000,5280,5800,8200].forEach((t,i)=>{ctx.save();ctx.translate(i%2*384,Math.floor(i/2)*256);ctx.drawImage(bg,0,0,384,256);c.WhiteBirdActivity.draw(ctx,{stage:'adult'},t,190,126);ctx.restore();});
+fs.writeFileSync(path.join(root,'assets/pets/bird/white-activity-contact-v1.png'),out.toBuffer('image/png'));
+})();

@@ -1,0 +1,1 @@
+window.WhiteBirdSadData={"cell":879,"anchor":[347,846],"visibleHeight":822,"times":[2200,240],"frames":[{"crop":{"left":30,"top":51,"width":830,"height":822},"head":323,"offset":{"left":24,"top":24}},{"crop":{"left":917,"top":51,"width":830,"height":822},"head":322,"offset":{"left":25,"top":24}}]};

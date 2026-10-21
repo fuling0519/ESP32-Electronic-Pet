@@ -11,9 +11,10 @@ function frame(p,now,action,elapsed=0,previewSad=false){
  if(p.sleepMode==='normal')return 4;
  const blink=now%2600>=1600;
  // User-approved Web change: healthy sadness keeps the awake character art.
- return p.healthState==='sick'?(blink?3:2):(blink?1:0);
+ return p.healthState==='sick'?(now%2600>=700?3:2):(blink?1:0);
 }
-function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3){
+function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3,headDip=0){
+ if(window.WhiteBirdView)return WhiteBirdView.draw(ctx,p,now,action,elapsed,previewSad,cx,cy,scale);
  scale*=p.stage==='adult'?1.45:1.2;
  const image=p.stage==='adult'?adultImage:babyImage;
  if(!image.complete||!image.naturalWidth)return false;
@@ -30,7 +31,27 @@ function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3)
  // Generated columns can contain the preceding tail at their extreme left edge.
  // Trim only that boundary strip, preserving the frame's original placement.
  const trim=index>0?Math.round(sw*.045):0;
- ctx.imageSmoothingEnabled=false;ctx.drawImage(image,index*sw+trim,0,sw-trim,sh,cx-w/2+trim*fit,cy-h/2,w-trim*fit,h);
+ ctx.imageSmoothingEnabled=false;
+ const render=()=>ctx.drawImage(image,index*sw+trim,0,sw-trim,sh,cx-w/2+trim*fit,cy-h/2,w-trim*fit,h);
+ if(headDip>0&&ctx.clip){
+  // Keep the original torso and feet stationary; articulate only the head.
+  const left=cx-w/2,top=cy-h/2,dip=Math.min(1,Math.max(0,headDip));
+  const points=[[0,0],[1,0],[1,.48],[.79,.48],[.76,.52],[.18,.54],[.02,.52],[0,.50]];
+  const headPath=()=>{ctx.moveTo(left+points[0][0]*w,top+points[0][1]*h);for(const [a,b] of points.slice(1))ctx.lineTo(left+a*w,top+b*h);ctx.closePath();};
+  ctx.save();ctx.beginPath();ctx.rect(left-2,top-2,w+4,h+4);headPath();ctx.clip('evenodd');render();ctx.restore();
+  const neckX=left+.43*w,neckY=top+.50*h;
+  ctx.save();ctx.translate(neckX,neckY+dip*12);ctx.rotate(-.48*dip);ctx.translate(-neckX,-neckY);ctx.beginPath();headPath();ctx.clip();render();ctx.restore();
+ }else render();
+ if(p.healthState==='sick'&&p.sleepMode!=='normal'&&!action){
+  // Existing tired face, with heavy brows and a small separate cold-sweat drop.
+  const unit=Math.max(1,Math.round(w/40)),left=cx-w/2,top=cy-h/2;
+  ctx.fillStyle='#574039';
+  for(const [bx,direction] of [[.23,-1],[.56,1]])for(let i=0;i<3;i++)ctx.fillRect(Math.round(left+bx*w+i*unit),Math.round(top+.435*h+(direction<0?2-i:i)*unit),unit,unit);
+  const drop=unit*2,dx=Math.round(left+.86*w),dy=Math.round(top+.35*h);
+  ctx.fillStyle='#438dac';ctx.fillRect(dx,dy,drop,drop*2);ctx.fillRect(dx-drop,dy+drop*2,drop*3,drop*2);ctx.fillRect(dx,dy+drop*4,drop,drop);
+  ctx.fillStyle='#9fdaef';ctx.fillRect(dx,dy+drop,drop,drop*3);ctx.fillRect(dx-drop/2,dy+drop*2,drop*2,drop);
+  ctx.fillStyle='#effbff';ctx.fillRect(dx,dy+drop*2,unit,drop);
+ }
  if(faceOnly&&p.stage!=='adult'){
   // Keep every body pixel from the awake frame; replace only the eye patches.
   const unit=Math.max(1,Math.round(w/48));

@@ -1,0 +1,1 @@
+window.WhiteBirdSickData={"cell":896,"anchor":[364,831],"visibleHeight":807,"times":[1400,900],"frames":[{"crop":{"left":33,"top":62,"width":838,"height":807},"head":330,"offset":{"left":34,"top":24}},{"crop":{"left":931,"top":64,"width":828,"height":806},"head":340,"offset":{"left":24,"top":25}}]};
