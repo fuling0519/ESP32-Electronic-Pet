@@ -1,0 +1,62 @@
+{
+  "status": "REAL_UI_FRAMEBUFFER_VERIFIED_NOT_HARDWARE_ACCEPTANCE",
+  "roles": [
+    {
+      "role": "bird-baby",
+      "fps": 5,
+      "authored_frames": 14,
+      "happy_matches_v9_and_source": true,
+      "shock_matches_v3": true,
+      "happy_source_sha256": "d47b75f312eebd0b70bc182fa4e05e140263d68fe442fff6439fb6d46aaa9f98",
+      "gif": "bird-baby-happy-512x256.gif",
+      "gif_sha256": "eca23e0c71655e85609b5e2360951ddf3bc69aaeab8348aa643c257b35a22c33",
+      "duration_ms": 2800
+    },
+    {
+      "role": "bird-adult",
+      "fps": 5,
+      "authored_frames": 13,
+      "happy_matches_v9_and_source": true,
+      "shock_matches_v3": true,
+      "happy_source_sha256": "0334b7c29af1ceb2644b1d08c01b66c1fd16e0f763c97705c2920702a0c245e1",
+      "gif": "bird-adult-happy-512x256.gif",
+      "gif_sha256": "7053e640b09eebdc9ec927d9c3e2d895976f018e285b6a32ea1b5df2407d1a76",
+      "duration_ms": 2600
+    },
+    {
+      "role": "wyvern-baby",
+      "fps": 7,
+      "authored_frames": 8,
+      "happy_matches_v9_and_source": true,
+      "shock_matches_v3": true,
+      "happy_source_sha256": "35b4d267fb0f099668dba2ebde3babda7bcb46260a903bd7bc00a46627964a06",
+      "gif": "wyvern-baby-happy-512x256.gif",
+      "gif_sha256": "3982ef88978096b7cd25c57b4bb34e10e1ce49db21fd5cc5504ab08a6bde182b",
+      "duration_ms": 8000
+    },
+    {
+      "role": "wyvern-adult",
+      "fps": 7,
+      "authored_frames": 8,
+      "happy_matches_v9_and_source": true,
+      "shock_matches_v3": true,
+      "happy_source_sha256": "77600f2b7d72839bacbcdb8681ecca18fe9229fb5f4ffb0cfd8857edc084c154",
+      "gif": "wyvern-adult-happy-512x256.gif",
+      "gif_sha256": "4856de1c476bcf52e08a41810e54634251a001609b177e1ee86755c18ef24a6c",
+      "duration_ms": 8000
+    }
+  ],
+  "implementation_sha256": {
+    "include/HardwareConfig.h": "6c40318b22ff26b5e5425ecb7f9694d7a05b173aca58aa893d1fad7c6743fba2",
+    "src/main.cpp": "85f906cea333eef9e62ff2d22dbc51f61b8801e2d4c691471a4da6345d41e790",
+    "src/ui/UiController.cpp": "9e5c83929693f9b2c740947b9942e6228fd52481a0d05d579afec80bd720238a",
+    "src/ui/UiController.h": "d072a6640403610a43dc5d38ee6ce1b9dbe730b67c3ce3ae2f2979ec90f916ab",
+    "src/ui/PetIcons.cpp": "9ed9b9e3aab3b2171150b89a66b60a020610dd5c50feea42148b61e7b32931cb",
+    "src/ui/TouchSprite.h": "01494cbeb1132e840dbd99e0e76880bf5aaca90328a5c90e8ac60282dde45ffd",
+    "src/hardware/TouchGesture.cpp": "0ab758b88fe85331f6f13ae56b2f5504757a5d42eb1594013437a59ffb7e2074",
+    "src/hardware/TouchGesture.h": "5aecdf71e0c0904752217bab534e544aaabe84a8a5ec9e34ca89c8d4ee806bb3",
+    "src/hardware/TouchInput.cpp": "fafa6ae4e8928dbe015348c1154ecfc4829e0c5958e8ad1a3237e4dcb3f52156",
+    "src/hardware/TouchInput.h": "8cbc5ca7c66f21d636872e1e6c409b8e6a52c0d0f12f1ad13af88f446c599ad8",
+    "src/hardware/Sound.cpp": "f404a7cfd83687e7a7a3cf382065fe1dafcde9ab6604f0abc2aa5dddedb10e0c"
+  }
+}

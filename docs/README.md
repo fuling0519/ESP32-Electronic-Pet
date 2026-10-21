@@ -1,19 +1,16 @@
 # 文件導覽與更新方式
 
-整理日期：2026-10-20。產品需求與唯一開發進度仍在 [主企畫](project-plan.md)，所有實作、自動驗證及實機驗收狀態只維護於[主台帳](project-plan.md#progress)。
+整理日期：2026-10-20；合併後核對：2026-10-21。產品需求與唯一開發進度仍在 [主企畫](project-plan.md)，所有實作、自動驗證及實機驗收狀態只維護於[主台帳](project-plan.md#progress)。
 
 ## 從這裡開始
 
 - 要生成／修改 Web 寵物精靈圖、動畫或接入角色素材：先讀 [精靈圖製作規則](web-sprite-workflow.md)，再看目標角色的素材說明。通用流程與小龍專屬設定分開維護。
 - 要知道完成了什麼、還缺什麼：看 [主進度台帳](project-plan.md#progress)。各項都有固定編號、實作狀態、驗證範圍與下一步。
 - 要開始建置或接線：看 [根 README](../README.md)；Flutter 啟動看 [App README](../esp32_pet_app/README.md)。
-- 韌體與 Web 要對接：看 [BLE 共用協定](../esp32_pet_app/PROTOCOL.md)；Web 功能與兩組分工看 [Web 計畫](web-phase-plan.md)。
-- 看進度與下一步：[主台帳](project-plan.md#progress)。
-- 建置、接線與啟動：[根 README](../README.md)；[Flutter README](../esp32_pet_app/README.md)。
+- 韌體與 Web 要對接：看 [BLE 共用協定](../esp32_pet_app/PROTOCOL.md)；Web 功能與兩組分工看 [Web 計畫](features/web-phase-plan.md)。
 - 閱讀程式：[架構與模組邊界](reference/architecture.md)。
 - 修改 OLED 畫面：[排版規則與核准座標](reference/ui-layout-guide.md)。
 - 執行驗收：下方「測試與驗收」；自動測試通過不代表實機驗收通過。
-- 韌體與 Web 對接：[共用 BLE 協定](../esp32_pet_app/PROTOCOL.md)與 [Web 計畫](features/web-phase-plan.md)。
 - 準備提交：[提交前企畫核對](commit-plan-review.md)。
 
 ## 資料夾用途
@@ -23,20 +20,20 @@
 - [根 README](../README.md)：環境、建置、接線、素材與接手入口。只有操作方式或依賴改變時修改。
 - [App README](../esp32_pet_app/README.md)：Flutter 啟動及平台準備，不維護容量或完成清單。
 - [PROTOCOL.md](../esp32_pet_app/PROTOCOL.md)：UUID、命令、欄位、分片及相容性要求。兩組修改介面時共同更新；規格要求不代表驗收通過。
-- [web-phase-plan.md](web-phase-plan.md)：W0～W8 工作範圍、依賴及驗收條件。進度在主台帳，改需求／分工才改本檔。
-- [architecture.md](architecture.md)：原始碼責任與資料流，模組邊界改變時更新。
-- [touch-interaction-phase1.md](touch-interaction-phase1.md)：電容觸摸第一階段的來源分析、事件狀態機、四種角色戳戳／摸頭預覽及待審核決定；正式功能未接入，進度見主台帳 TOUCH-P1。
-- [ui-layout-guide.md](ui-layout-guide.md)：OLED 排版規則與已接受的座標基準，版面規格改變時更新；驗收結果回主台帳。
-- [dirty-preview.md](dirty-preview.md)：髒污預覽操作與素材產生方法，操作或素材配置改變時更新。
-- [farewell-test.md](farewell-test.md)：送別、紀念冊、存檔升級及中斷恢復驗收；含實際 UI 動畫預覽。
-- [volume-test.md](volume-test.md)：靜音／有聲音、舊四級偏好相容、實際 UI 預覽、自動測試與上板步驟；進度只在 A5-SOUND。
-- [cleaning-test.md](cleaning-test.md)：首頁清潔動畫的自動檢查、實際畫面預覽與實機操作步驟；進度及驗收回報仍在主台帳清潔動畫增量（A5-CARE／A5-VIS）。
-- [wyvern-test.md](wyvern-test.md)：小飛龍種類抽選、動畫、存檔相容、固定龍測試版與實際 UI 預覽；實機回報仍在主台帳 A5-PET。
-- [storage-recovery.md](storage-recovery.md)：持續存檔失敗的退避、容量提示、限定舊測試資料清理與備份；進度只在主台帳 A6-SAVE。
-- [exp-level-plan.md](exp-level-plan.md)：EXP、升級、滿等與畫面規則，以及 1.4.0 驗證證據及上板步驟；進度仍在 A3-EXP。
-- [rps-game-plan.md](rps-game-plan.md)：猜拳規則、畫面座標及素材分工；[rps-game-test.md](rps-game-test.md) 保存可重跑的測試方法與本次證據，進度仍在 A5-GAME。
-- [memory-notes-plan.md](memory-notes-plan.md)：記憶音符五回合玩法、四方向／回中操作、獎勵、像素座標與上板驗收；進度仍在 A5-GAME。
-- [database-erd.md](database-erd.md)：邏輯模型提案，含未來 Session 模型；不能當作 NVS 格式或已部署雲端資料庫。SQL 草案亦只供參考。
+- [Web 計畫](features/web-phase-plan.md)：W0～W8 工作範圍、依賴及驗收條件。進度在主台帳，改需求／分工才改本檔。
+- [架構](reference/architecture.md)：原始碼責任與資料流，模組邊界改變時更新。
+- [觸摸第一階段方案](features/touch-interaction-phase1.md)：保存來源分析與已確認美術；觸摸功能已實作，使用者已部分實機觸發，完整驗收因焊接未完成而待補，最新結果見主台帳 TOUCH-HW-PARTIAL 及[觸摸驗收](testing/touch-test.md)。
+- [OLED 排版](reference/ui-layout-guide.md)：OLED 排版規則與已接受的座標基準，版面規格改變時更新；驗收結果回主台帳。
+- [髒污預覽](guides/dirty-preview.md)：髒污預覽操作與素材產生方法，操作或素材配置改變時更新。
+- [送別驗收](testing/farewell-test.md)：送別、紀念冊、存檔升級及中斷恢復驗收；含實際 UI 動畫預覽。
+- [聲音設定驗收](testing/volume-test.md)：靜音／有聲音、舊四級偏好相容、實際 UI 預覽、自動測試與上板步驟；進度只在 A5-SOUND。
+- [清潔驗收](testing/cleaning-test.md)：首頁清潔動畫的自動檢查、實際畫面預覽與實機操作步驟；進度及驗收回報仍在主台帳清潔動畫增量（A5-CARE／A5-VIS）。
+- [小飛龍驗收](testing/wyvern-test.md)：小飛龍種類抽選、動畫、存檔相容、固定龍測試版與實際 UI 預覽；實機回報仍在主台帳 A5-PET。
+- [存檔修復](guides/storage-recovery.md)：持續存檔失敗的退避、容量提示、限定舊測試資料清理與備份；進度只在主台帳 A6-SAVE。
+- [經驗與升級](features/exp-level-plan.md)：EXP、升級、滿等與畫面規則，以及 1.4.0 驗證證據及上板步驟；進度仍在 A3-EXP。
+- [猜拳規則](features/rps-game-plan.md)：猜拳規則、畫面座標及素材分工；[猜拳驗收](testing/rps-game-test.md) 保存可重跑的測試方法與本次證據，進度仍在 A5-GAME。
+- [記憶音符](features/memory-notes-plan.md)：記憶音符五回合玩法、四方向／回中操作、獎勵、像素座標與上板驗收；進度仍在 A5-GAME。
+- [邏輯 ERD](reference/database-erd.md)：邏輯模型提案，含未來 Session 模型；不能當作 NVS 格式或已部署雲端資料庫。SQL 草案亦只供參考。
 - [App 分工入口](../esp32_pet_app/docs/project-plan.md)：導向主台帳、Web 需求及協定，不複製另一套階段狀態。
 - [App 實作定位](../esp32_pet_app/docs/implementation-notes.md)：Flutter 程式閱讀指南，程式結構改變才更新。
 - `reference/`：架構、OLED 排版與邏輯資料模型。修改對應規格時更新。
@@ -50,7 +47,7 @@
 
 - [架構](reference/architecture.md)；[OLED 排版](reference/ui-layout-guide.md)。
 - [EXP／升級](features/exp-level-plan.md)；[猜拳](features/rps-game-plan.md)；[記憶音符](features/memory-notes-plan.md)。
-- [觸摸第一階段方案與保留歷史](features/touch-interaction-phase1.md)：現行美術採 V3 戳戳／V9 摸頭；正式觸摸輸入、UI 反應與音效尚未接入本次提交。
+- [觸摸第一階段方案與保留歷史](features/touch-interaction-phase1.md)：現行美術採 V3 戳戳／V9 摸頭；目前實作與硬體待驗收狀態見[觸摸驗收](testing/touch-test.md)。
 - [Web 計畫與分工](features/web-phase-plan.md)。
 - [邏輯 ERD](reference/database-erd.md)與 [SQLite schema 草案](reference/database-schema.sql)：規劃參考，並非現行 NVS 格式或已部署雲端資料庫。
 - [App 分工入口](../esp32_pet_app/docs/project-plan.md)；[App 程式閱讀指南](../esp32_pet_app/docs/implementation-notes.md)。
@@ -58,7 +55,7 @@
 ## 測試與驗收
 
 - 照顧與狀態：[清潔](testing/cleaning-test.md)、[治療](testing/treatment-test.md)、[心情](testing/mood-test.md)、[傷心提醒](testing/sad-state-test.md)。
-- 功能與硬體：[聲音設定](testing/volume-test.md)、[深度睡眠](testing/deep-sleep-test.md)。
+- 功能與硬體：[聲音設定](testing/volume-test.md)、[觸摸](testing/touch-test.md)、[深度睡眠](testing/deep-sleep-test.md)。
 - 種類與生命週期：[小飛龍](testing/wyvern-test.md)、[送別與紀念冊](testing/farewell-test.md)。
 - 小遊戲：[猜拳驗收](testing/rps-game-test.md)；記憶音符與 EXP 的驗收方法各保留在功能文件內。
 

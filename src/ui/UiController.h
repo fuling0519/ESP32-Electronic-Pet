@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "hardware/Input.h"
+#include "hardware/TouchGesture.h"
 #include "games/RpsGame.h"
 #include "games/MemoryNotes.h"
 
@@ -108,8 +109,19 @@ public:
     void onAdoptionSucceeded(uint32_t now);
     void onMemorialDeleteResult(bool success);
     void onVolumeSaveResult(bool success);
+    bool touchContextAllowed() const;
+    uint32_t touchContextRevision() const { return touchContextRevision_; }
+    bool onTouchEvent(Hardware::TouchEvent event, uint32_t now);
+    void cancelTouchReaction();
 
 private:
+    enum class TouchReaction : uint8_t { None, Poke, Petting, Tail };
+    void invalidateTouchContext();
+    void updateTouchReaction(uint32_t now);
+    TouchReaction touchReaction_ = TouchReaction::None;
+    uint32_t touchStartedAt_ = 0, touchTailAt_ = 0, touchContextRevision_ = 0;
+    uint8_t touchFrame_ = 0;
+    bool pokeRecovered_ = false;
     void updateSadState();
     bool sadMood_ = false, sadSatiety_ = false, sadCleanliness_ = false;
     bool sad_ = false, observedSick_ = false, observedSleeping_ = false;

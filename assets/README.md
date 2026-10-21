@@ -43,7 +43,7 @@
 
 ## 韌體轉換與尺寸
 
-- 觸摸預覽新增的`happy.png`／`shock.png`尚未轉入正式韌體。摸頭V9每格64×44、由左到右再由上到下：幼鳥192×220共14個有效幀、成鳥192×220共13個有效幀（各5 FPS，末尾1／2格透明填充）；幼龍／成龍128×176各8幀（7 FPS）。戳戳V3：幼鳥／幼龍shock為64×88，第一幀反應、第二幀復原；成鳥／成龍64×44單幀。最新預覽用`tools/render_touch_authored_timing_preview.py`；舊單幀happy工具需當時版本素材，不能直接以目前多幀圖集重建。參見[觸摸方案與預覽](../docs/features/touch-interaction-phase1.md)。
+- 觸摸`happy.png`／`shock.png`由`tools/generate_touch_sprite.py`轉成`src/ui/TouchSprite.h`，49幀17248 bytes，`--check`逐像素核對；已接入工作目錄韌體，實機待驗收。摸頭V9每格64×44、由左到右再由上到下：幼鳥192×220共14個有效幀、成鳥192×220共13個有效幀（各5 FPS，末尾1／2格透明填充）；幼龍／成龍128×176各8幀（7 FPS）。戳戳V3：幼鳥／幼龍shock為64×88，第一幀反應、第二幀復原；成鳥／成龍64×44單幀。第一階段預覽用`tools/render_touch_authored_timing_preview.py`；正式C++畫面用`tools/test_touch.ps1`＋`tools/verify_touch_frames.py`。舊單幀happy工具需當時版本素材。參見[觸摸驗收](../docs/testing/touch-test.md)。
 - `tools/generate_bird_sprite.py`：讀取正式小鳥、蛋與飼料碗，產生 `src/ui/BirdSprite.h`；小鳥的睡眠圖目前由工具閉眼處理產生，沒有獨立的 `sleeping.png`。
 - 小鳥、蛋圖集為 64×88，上下兩幀各 64×44；飼料碗為三幀 21×15。
 - `tools/generate_wyvern_sprite.py`：產生 `src/ui/WyvernSprite.h`，保留原始像素；待機／傷心各為 64×88 上下兩格，餵食 128×88 為左上→右上→左下→右下四格，幼龍睡眠 64×88 兩格、成龍睡眠 64×44 單格，共 19 格、6688 bytes。龍原圖沒有手捧食物，餵食仍疊加共用碗。主畫面原點 (32,6)，待機 6 FPS、傷心與幼龍睡眠 1 FPS。實機步驟見 [小飛龍驗收](../docs/testing/wyvern-test.md)。

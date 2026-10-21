@@ -1,12 +1,14 @@
 # 架構與模組邊界
 
-文件角色：程式結構說明；2026-10-02 已核對原始碼。功能與驗收進度只在 [主企畫第 10 節](../project-plan.md#progress)。
+文件角色：程式結構說明；觸摸整合於2026-10-20核對原始碼。功能與驗收進度只在 [主企畫第 10 節](../project-plan.md#progress)。
 
 ## 資料流
 
 `main.cpp` 的 Application 擁有唯一 `PetData`，協調 Input、PetClock、UiController、Sound、Save、Memorials 與 Ble::Link。輸入轉成抽象事件，UI 回傳操作意圖，應用層執行照顧／保存。UI 持有唯讀寵物參考，不自行建立另一份養成狀態。治療由 UI 非阻塞播放藥水，倒完只送出一次 Treat；Application 呼叫 `pet.treat()` 重新檢查資格並結算，再以 `onTreatResult` 回傳結果。成功後才播放恢復閃光，沿用既有保存及 BLE 通知路徑；汙點暫時隱藏只屬顯示狀態，不改清潔值。
 
 `PetClock` 把 millis 差值轉成整秒；Application 依清醒或一般睡眠呼叫 PetData 推進需求、年齡及疾病。UiController 依 displayRevision 更新畫面。真正斷電沒有可信時長時只恢復快照。
+
+觸摸獨立於搖桿Input：`TouchInput`每30ms讀取GPIO32，`TouchGesture`以純raw／millis判定Poke／PettingStarted／PettingReleased。Application在UI更新前取樣、之後比對資格／UI情境修訂／petId／階段，搖桿及特殊流程優先，失效即取消到穩定放開。UiController統一管理可互動狀態及非阻塞反應，PetIcons繪製TouchSprite的V3／V9原像素，Sound忙碌時略過低優先觸摸音。UI不讀GPIO，硬體層不操作UI；觸摸不產生養成獎勵、NVS寫入或額外BLE命令，PetClock正常推進。詳見[觸摸驗收](../testing/touch-test.md)。
 
 ## 模組責任
 

@@ -22,6 +22,8 @@ public:
     void playDeath();
     void playLevelUp();
     void playCareReminder();
+    bool tryPlayPoke();
+    bool tryPlayPetting();
 private:
     void startCurrentStep();
     void applyCurrentOutput();

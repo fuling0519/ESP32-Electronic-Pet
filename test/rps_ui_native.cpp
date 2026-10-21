@@ -29,6 +29,8 @@ static unsigned successSounds = 0;
 static unsigned careReminders = 0;
 static unsigned confirmSounds = 0;
 static unsigned cancelSounds = 0;
+static unsigned pokeSounds = 0, pettingSounds = 0;
+static unsigned displayUpdates = 0;
 static bool feedbackActive = false;
 static uint8_t feedbackVolume = 0;
 static uint32_t randomMove() { return opponent; }
@@ -41,10 +43,12 @@ static unsigned decode(const char*& s) {
     return ((c & 15) << 12) | ((b & 63) << 6) | (a & 63);
 }
 namespace Hardware {
+bool Sound::tryPlayPoke() { if (isPlaying()) return false; ++pokeSounds; return true; }
+bool Sound::tryPlayPetting() { if (isPlaying()) return false; ++pettingSounds; return true; }
 void Sound::setVolume(uint8_t level) { volume_=level<kVolumeCount?level:kDefaultVolume; }
 bool Display::isInitialized() const { return true; }
 void Display::clear() { pixels.fill(0); }
-void Display::update() {}
+void Display::update() { ++displayUpdates; }
 void Display::drawLine(int16_t x, int16_t y, int16_t xx, int16_t yy) {
     point(x,y); point(xx,yy); u8g2_DrawLine(&gfx,x,y,xx,yy);
 }
@@ -1252,4 +1256,5 @@ int main() {
     puts("PASS: real UI flow, preview glyphs/bounds, single completion, cap, replay, egg/sick/growth/death interruptions.");
     checkWyvernUi();
     checkStorageStatusUi();
+    return 0;
 }

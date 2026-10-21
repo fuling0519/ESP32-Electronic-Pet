@@ -13,6 +13,7 @@ constexpr int JoystickX = 34;
 constexpr int JoystickY = 35;
 constexpr int JoystickSwitch = 26;
 constexpr int Buzzer = 27;
+constexpr int Touch = 32; // Classic ESP32 T9; not a wake source.
 }  // namespace Pins
 
 namespace Oled {
@@ -41,6 +42,28 @@ namespace Sound {
 constexpr uint8_t LedcChannel = 0;
 constexpr uint8_t LedcResolutionBits = 8;
 }  // namespace Sound
+namespace Touch {
+// MODE 1: measurement cycles use the ESP32 8 MHz clock (~5 ms).
+// Sleep cycles use RTC_SLOW_CLK; keep the original inter-measurement setting.
+constexpr uint16_t MeasureCycles = 40000;
+constexpr uint16_t SleepCycles = 0x1000;
+// Provisional thresholds from the assembled-shell MODE 1 readings.
+constexpr uint16_t TouchBelow = 820;
+constexpr uint16_t ReleaseAbove = 830;
+constexpr uint8_t ConfirmSamples = 3;
+constexpr uint32_t SampleIntervalMs = 30;
+constexpr uint32_t MaximumSampleGapMs = 150;
+constexpr uint32_t MinPokeMs = 100;
+constexpr uint32_t PettingMs = 700;
+constexpr uint32_t PettingReleaseGraceMs = 120;
+constexpr uint32_t PokeFirstPhaseMs = 160;
+constexpr uint32_t PokeAnimationMs = 500;
+constexpr uint32_t PettingMaxAnimationMs = 5000;
+constexpr uint32_t PettingTailMs = 250;
+constexpr uint8_t BirdFramesPerSecond = 5;
+constexpr uint8_t WyvernFramesPerSecond = 7;
+constexpr bool Debug = true;
+}  // namespace Touch
 namespace Sleep {
 #if defined(PET_DEEP_SLEEP_TEST_MODE)
 constexpr uint32_t TimerSeconds = 60;

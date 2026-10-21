@@ -30,6 +30,11 @@ void drawStatusCard(Hardware::Display& display, int16_t x, int16_t y);
 void drawPet(Hardware::Display& display, int16_t x, int16_t y,
              Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame,
              Pet::SpeciesId species = Pet::SpeciesId::Bird);
+uint8_t touchHappyFrameCount(Pet::LifeStage stage, Pet::SpeciesId species);
+void drawTouchHappy(Hardware::Display& display, uint8_t frame,
+                    Pet::LifeStage stage, Pet::SpeciesId species);
+void drawTouchPoke(Hardware::Display& display, bool shifted, bool recovered,
+                   Pet::LifeStage stage, Pet::SpeciesId species);
 void drawMemorialPet(Hardware::Display& display, Pet::LifeStage stage, bool resting = false,
                      Pet::SpeciesId species = Pet::SpeciesId::Bird);
 void drawCenteredPostcardPet(Hardware::Display& display, Pet::LifeStage stage,

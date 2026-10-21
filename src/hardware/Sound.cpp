@@ -12,6 +12,8 @@ const ToneStep kFailure[] = {{330, 120}, {262, 160}};
 const ToneStep kHatch[] = {{523, 70}, {659, 70}, {784, 110}};
 const ToneStep kLevelUp[] = {{659, 90}, {784, 90}, {1047, 90}, {1319, 180}};
 const ToneStep kCareReminder[] = {{659, 120}, {0, 40}, {523, 120}, {0, 40}, {392, 180}};
+const ToneStep kPoke[] = {{1047, 45}, {784, 55}};
+const ToneStep kPetting[] = {{659, 60}, {784, 80}};
 // User-selected D4, C#4, D4, B3 farewell. The rests separate each bell-like note.
 const ToneStep kDeath[] = {
     {294, 500}, {0, 50}, {277, 500}, {0, 50},
@@ -49,6 +51,14 @@ void Sound::playFailure() { playSequence(kFailure, 2); }
 void Sound::playHatch() { playSequence(kHatch, 3); }
 void Sound::playLevelUp() { playSequence(kLevelUp, 4); }
 void Sound::playCareReminder() { playSequence(kCareReminder, 5); }
+bool Sound::tryPlayPoke() {
+    if (isPlaying()) return false;
+    playSequence(kPoke, 2); return true;
+}
+bool Sound::tryPlayPetting() {
+    if (isPlaying()) return false;
+    playSequence(kPetting, 2); return true;
+}
 void Sound::playDeath() { playSequence(kDeath, sizeof(kDeath) / sizeof(kDeath[0])); }
 void Sound::startCurrentStep() {
     applyCurrentOutput();

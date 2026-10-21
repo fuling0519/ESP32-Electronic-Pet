@@ -59,5 +59,22 @@ int main() {
         if(mode) assert(frequency==392);
         now=100; sound.update(); assert(!sound.isPlaying() && duty==0);
     }
-    puts("PASS: actual non-blocking care reminder frequencies/rests, 500ms duration, stop and clock rollover.");
+    for(uint8_t mode=0;mode<2;++mode) {
+        sound.setVolume(mode); now=0;
+        assert(sound.tryPlayPoke() && sound.isPlaying());
+        assert(duty==(mode?128u:0u)); if(mode) assert(frequency==1047);
+        assert(!sound.tryPlayPetting());
+        now=45; sound.update(); if(mode) assert(frequency==784);
+        now=100; sound.update(); assert(!sound.isPlaying());
+        assert(sound.tryPlayPetting()); if(mode) assert(frequency==659);
+        now=160; sound.update(); if(mode) assert(frequency==784);
+        now=240; sound.update(); assert(!sound.isPlaying());
+    }
+    sound.setVolume(1); now=0; sound.playCareReminder();
+    assert(!sound.tryPlayPoke() && !sound.tryPlayPetting() && frequency==659);
+    now=120; sound.update(); assert(frequency==0); // original high-priority sequence still running
+    sound.stopTone(); assert(sound.tryPlayPetting()); sound.playLevelUp();
+    now=210; sound.update(); assert(frequency==784); // celebration preempts touch
+    sound.stopTone();
+    puts("PASS: actual non-blocking care reminder and touch tones, mute timing, busy rejection, priority preemption and clock rollover.");
 }

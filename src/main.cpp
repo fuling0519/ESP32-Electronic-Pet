@@ -4,6 +4,7 @@
 
 #include "hardware/Display.h"
 #include "hardware/Input.h"
+#include "hardware/TouchInput.h"
 #include "hardware/Sound.h"
 #include "pet/PetData.h"
 #include "pet/PetName.h"
@@ -59,6 +60,7 @@ private:
 
     Hardware::Display display;
     Hardware::Input input;
+    Hardware::TouchInput touch;
     Hardware::Sound sound;
     Storage::Save save;
     Storage::Adoption adoption;
@@ -198,6 +200,7 @@ void Application::setup() {
     int retainedX = -1, retainedY = -1;
     Power::retainedCalibration(retainedX, retainedY);
     input.init(retainedX, retainedY);
+    touch.init();
     sound.init();
     if (!settings.init()) Serial.println("Device settings unavailable; sound enabled by default.");
     sound.setVolume(settings.volume());
@@ -461,6 +464,12 @@ void Application::loop() {
         Serial.print("Physical/Input event: ");
         Serial.println(inputEventName(event));
     }
+    const bool touchAllowedBefore = !deepPending && ui.touchContextAllowed();
+    const uint32_t touchContextBefore = ui.touchContextRevision();
+    const uint64_t touchPetBefore = pet.petId();
+    const Pet::LifeStage touchStageBefore = pet.lifeStage();
+    const Hardware::TouchEvent touchEvent = touch.update(millis(),
+        touchAllowedBefore && event == Hardware::InputEvent::None);
     const bool changed = ui.update(event, now, input.directionNeutral());
     const uint32_t revisionBeforeAction = pet.displayRevision();
     const Pet::LifeStage stageBeforeAction = pet.lifeStage();
@@ -549,6 +558,17 @@ void Application::loop() {
     }
     if (action == Ui::UiAction::Feed || action == Ui::UiAction::Clean ||
         action == Ui::UiAction::Treat) ui.onCareRewardApplied(levelBeforeAction, now);
+    // Recheck after navigation and callbacks, even when both ends of this loop
+    // are Home. A gesture begun on a forbidden page must be released first.
+    if (!touchAllowedBefore || deepPending || !ui.touchContextAllowed() ||
+        event != Hardware::InputEvent::None || action != Ui::UiAction::None ||
+        touchContextBefore != ui.touchContextRevision() || touchPetBefore != pet.petId() ||
+        touchStageBefore != pet.lifeStage()) {
+        touch.cancel();
+        ui.cancelTouchReaction();
+    } else if (touchEvent != Hardware::TouchEvent::None) {
+        ui.onTouchEvent(touchEvent, millis());
+    }
     if (actionSavedImmediately) {
         // Entering and leaving sleep already wrote a verified checkpoint.
     } else if (pet.lifeStage() != stageBeforeAction) {

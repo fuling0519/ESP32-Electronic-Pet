@@ -13,6 +13,7 @@
 #include "ui/RpsIcons.h"
 #include "ui/PotionSprite.h"
 #include "ui/CleaningSprite.h"
+#include "HardwareConfig.h"
 
 namespace Ui {
 namespace {
@@ -142,6 +143,10 @@ UiController::UiController(Hardware::Display& display, Hardware::Sound& sound,
     : display_(display), sound_(sound), pet_(pet), memorials_(memorials), game_(random), memoryNotes_(random) {}
 
 void UiController::init(uint32_t now) {
+    touchReaction_ = TouchReaction::None;
+    touchFrame_ = 0;
+    pokeRecovered_ = false;
+    ++touchContextRevision_;
     screen_ = ScreenId::Boot;
     homeFocus_ = HomeFocus::None;
     menuIndex_ = 0;
@@ -229,8 +234,78 @@ uint8_t UiController::eggCrackStage(uint32_t now) const {
     return 0;
 }
 
+bool UiController::touchContextAllowed() const {
+    return screen_ == ScreenId::Home && !pet_.isEnded() && !pet_.isSick() && !sad_ &&
+        pet_.lifeStage() != Pet::LifeStage::Egg && pet_.lifeStage() == observedLifeStage_ &&
+        pet_.petId() == observedPetId_ && pet_.sleepMode() == Pet::SleepMode::Awake &&
+        pet_.mood() > 40 && pet_.satiety() > 25 && pet_.cleanliness() > 25 &&
+        !feeding_ && !cleaning_ && !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
+        !careReminderPending_ && !treatmentNotice_ && !deepSleepPending_ &&
+        pendingAction_ == UiAction::None;
+}
+
+void UiController::cancelTouchReaction() {
+    if (touchReaction_ != TouchReaction::None || pokeRecovered_) dirty_ = true;
+    touchReaction_ = TouchReaction::None;
+    pokeRecovered_ = false;
+}
+
+void UiController::invalidateTouchContext() {
+    ++touchContextRevision_;
+    cancelTouchReaction();
+}
+
+bool UiController::onTouchEvent(Hardware::TouchEvent event, uint32_t now) {
+    if (event == Hardware::TouchEvent::Cancelled) { cancelTouchReaction(); return false; }
+    if (!touchContextAllowed()) { cancelTouchReaction(); return false; }
+    if (event == Hardware::TouchEvent::PettingReleased) {
+        if (touchReaction_ != TouchReaction::Petting) return false;
+        touchReaction_ = TouchReaction::Tail; touchTailAt_ = now;
+        return true;
+    }
+    if (touchReaction_ != TouchReaction::None ||
+        (event != Hardware::TouchEvent::Poke && event != Hardware::TouchEvent::PettingStarted)) return false;
+    touchReaction_ = event == Hardware::TouchEvent::Poke ? TouchReaction::Poke : TouchReaction::Petting;
+    touchStartedAt_ = now; touchFrame_ = 0; pokeRecovered_ = false; dirty_ = true;
+    if (event == Hardware::TouchEvent::Poke) sound_.tryPlayPoke();
+    else sound_.tryPlayPetting();
+    return true;
+}
+
+void UiController::updateTouchReaction(uint32_t now) {
+    namespace T = HardwareConfig::Touch;
+    const uint32_t elapsed = now - touchStartedAt_;
+    if (touchReaction_ == TouchReaction::Poke) {
+        if (elapsed >= T::PokeAnimationMs) {
+            touchReaction_ = TouchReaction::None;
+            pokeRecovered_ = pet_.lifeStage() == Pet::LifeStage::Baby;
+            dirty_ = true;
+        } else {
+            const uint8_t frame = elapsed >= T::PokeFirstPhaseMs;
+            if (frame != touchFrame_) { touchFrame_ = frame; dirty_ = true; }
+        }
+    } else if (touchReaction_ == TouchReaction::Petting || touchReaction_ == TouchReaction::Tail) {
+        if (touchReaction_ == TouchReaction::Petting && elapsed >= T::PettingMaxAnimationMs) {
+            touchReaction_ = TouchReaction::Tail;
+            touchTailAt_ = touchStartedAt_ + T::PettingMaxAnimationMs;
+        }
+        if (touchReaction_ == TouchReaction::Tail &&
+            static_cast<uint32_t>(now - touchTailAt_) >= T::PettingTailMs) {
+            cancelTouchReaction();
+        } else {
+            const uint8_t fps = pet_.speciesId() == Pet::SpeciesId::Wyvern ?
+                T::WyvernFramesPerSecond : T::BirdFramesPerSecond;
+            const uint8_t count = PetIcons::touchHappyFrameCount(pet_.lifeStage(), pet_.speciesId());
+            const uint8_t frame = static_cast<uint8_t>((static_cast<uint64_t>(elapsed) * fps / 1000) % count);
+            if (frame != touchFrame_) { touchFrame_ = frame; dirty_ = true; }
+        }
+    }
+}
+
 bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directionNeutral) {
     updateSadState();
+    if (event != Hardware::InputEvent::None) invalidateTouchContext();
+    if (!touchContextAllowed()) cancelTouchReaction();
     const ScreenId previousScreen = screen_;
     const HomeFocus previousHomeFocus = homeFocus_;
     const uint8_t previousMenuIndex = menuIndex_;
@@ -420,6 +495,9 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                     ((now % kBirdIdleCycleMs) >= kBirdIdleSecondFrameAtMs ? 1 : 0);
                 if (frame != homeAnimationFrame_) {
                     homeAnimationFrame_ = frame;
+                    // Show the authored baby recovery pose until the next
+                    // ordinary idle transition, then resume its live phase.
+                    pokeRecovered_ = false;
                     dirty_ = true;
                 }
             }
@@ -765,6 +843,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             break;
     }
 
+    if (touchContextAllowed()) updateTouchReaction(now);
     // Only idle Home can deliver a reminder: no input, care action, celebration,
     // sleep, or game audio is interrupted. Recheck live needs on each update.
     if (careReminderPending_ && sad_ && screen_ == ScreenId::Home &&
@@ -791,6 +870,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
 
 void UiController::render() {
     updateSadState();
+    if (!touchContextAllowed()) cancelTouchReaction();
     if ((screen_ == ScreenId::Home || screen_ == ScreenId::Sleeping ||
          screen_ == ScreenId::DetailedStatus ||
          screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
@@ -965,6 +1045,7 @@ void UiController::onWakeSucceeded() {
 }
 
 void UiController::onDeepSleepPending(bool pending, bool failed) {
+    if (pending) invalidateTouchContext();
     deepSleepPending_ = pending;
     deepSleepFailed_ = failed;
     dirty_ = true;
@@ -1025,6 +1106,7 @@ void UiController::cancelTo(ScreenId screen) {
 }
 
 void UiController::setScreen(ScreenId screen) {
+    invalidateTouchContext();
     if (screen_ == screen) return;
     if (screen_ == ScreenId::Volume) {
         // Saving updates originalVolume_ first. All other exits, including
@@ -1081,6 +1163,12 @@ void UiController::renderHome() {
         PetIcons::drawSadPet(display_, 32, 6,
                             treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
                             treating_ ? 0 : homeAnimationFrame_, pet_.speciesId(), !treating_);
+    } else if (!treating_ && touchReaction_ == TouchReaction::Poke) {
+        PetIcons::drawTouchPoke(display_, touchFrame_ == 0, false, pet_.lifeStage(), pet_.speciesId());
+    } else if (!treating_ && (touchReaction_ == TouchReaction::Petting || touchReaction_ == TouchReaction::Tail)) {
+        PetIcons::drawTouchHappy(display_, touchFrame_, pet_.lifeStage(), pet_.speciesId());
+    } else if (!treating_ && pokeRecovered_) {
+        PetIcons::drawTouchPoke(display_, false, true, pet_.lifeStage(), pet_.speciesId());
     } else {
         PetIcons::drawPet(display_, 32, 6,
                           treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
@@ -1137,6 +1225,7 @@ void UiController::renderPetFooter() {
 
 void UiController::onCareRewardApplied(uint8_t previousLevel, uint32_t now) {
     if (pet_.level() <= previousLevel) return;
+    invalidateTouchContext();
     levelUpPreviousLevel_ = previousLevel;
     levelUpFinalLevel_ = pet_.level();
     careRewardAt_ = now;

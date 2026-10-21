@@ -89,3 +89,4 @@ if ($LASTEXITCODE) { throw 'Wyvern storage tests failed.' }
 if ($LASTEXITCODE) { throw 'Storage retry test build failed.' }
 & "$outputPath/storage-retry.exe"
 if ($LASTEXITCODE) { throw 'Storage retry tests failed.' }
+& "$PSScriptRoot/test_touch.ps1"

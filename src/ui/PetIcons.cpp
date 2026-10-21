@@ -7,6 +7,7 @@
 #include "ui/WyvernSprite.h"
 #include "ui/SadEffect.h"
 #include "ui/DirtySprite.h"
+#include "ui/TouchSprite.h"
 
 namespace Ui {
 namespace PetIcons {
@@ -164,6 +165,34 @@ void drawPet(Hardware::Display& d, int16_t x, int16_t y,
              Pet::LifeStage lifeStage, uint8_t eggCrackStage, uint8_t frame, Pet::SpeciesId species) {
     d.drawGlyph(x, y, petFrame(lifeStage, eggCrackStage, frame, species),
                 kBirdFrameWidth, kBirdFrameHeight);
+}
+
+uint8_t touchHappyFrameCount(Pet::LifeStage stage, Pet::SpeciesId species) {
+    if (stage == Pet::LifeStage::Egg) return 0;
+    if (species == Pet::SpeciesId::Wyvern) return stage == Pet::LifeStage::Baby ?
+        kTouchBabyWyvernHappyCount : kTouchWyvernHappyCount;
+    return stage == Pet::LifeStage::Baby ? kTouchBabyBirdHappyCount : kTouchBirdHappyCount;
+}
+
+void drawTouchHappy(Hardware::Display& d, uint8_t frame,
+                    Pet::LifeStage stage, Pet::SpeciesId species) {
+    const uint8_t count = touchHappyFrameCount(stage, species);
+    if (!count) return;
+    frame %= count;
+    const uint8_t* bits = species == Pet::SpeciesId::Wyvern ?
+        (stage == Pet::LifeStage::Baby ? kTouchBabyWyvernHappy[frame] : kTouchWyvernHappy[frame]) :
+        (stage == Pet::LifeStage::Baby ? kTouchBabyBirdHappy[frame] : kTouchBirdHappy[frame]);
+    d.drawGlyph(32, 6, bits, 64, 44);
+}
+
+void drawTouchPoke(Hardware::Display& d, bool shifted, bool recovered,
+                   Pet::LifeStage stage, Pet::SpeciesId species) {
+    if (stage == Pet::LifeStage::Egg) return;
+    const uint8_t frame = recovered && stage == Pet::LifeStage::Baby ? 1 : 0;
+    const uint8_t* bits = species == Pet::SpeciesId::Wyvern ?
+        (stage == Pet::LifeStage::Baby ? kTouchBabyWyvernShock[frame] : kTouchWyvernShock[0]) :
+        (stage == Pet::LifeStage::Baby ? kTouchBabyBirdShock[frame] : kTouchBirdShock[0]);
+    d.drawGlyph(32 + (shifted && !recovered ? 1 : 0), 6, bits, 64, 44);
 }
 
 // Center the visible pixels; sprite sheets can contain asymmetric black padding.

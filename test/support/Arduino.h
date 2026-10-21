@@ -9,6 +9,8 @@ struct SerialStub {
 };
 extern SerialStub Serial;
 uint32_t millis();
+uint16_t touchRead(uint8_t pin);
+void touchSetCycles(uint16_t measure, uint16_t sleep);
 double ledcSetup(uint8_t channel, double frequency, uint8_t resolution);
 void ledcAttachPin(uint8_t pin, uint8_t channel);
 double ledcWriteTone(uint8_t channel, double frequency);
