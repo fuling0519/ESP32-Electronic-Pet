@@ -988,6 +988,47 @@ erDiagram
 - 瀏覽器有限檢查：在雲端以無頭 Chromium 開啟花園主頁 `index.html?preview=wyvern`，實際按餵食／清潔、切換素材選單、將飽食度與清潔度設為 100 再操作，無頁面錯誤；逐格畫面確認三口與食盆遞減、待機與吃飯大小一致。使用者在本機主頁確認選單吃飯與食盆顯示，並回覆「很好！！很棒～～」。此確認僅限本輪吃飯呈現、碗位、台詞與滿值照顧，不延伸為其他互動流程或硬體驗收；未新增硬體驗收。
 - 待辦：被戳驚嚇專用圖、待機眨眼、新版共用靈魂及幼年小龍新美術仍待製作。
 
+## 2026-10-22 — ESP32-PET BLE 實機驗證進度
+
+### 1. 已完成
+
+- [x] 修復 PlatformIO Arduino-ESP32 framework 中缺失的 `pins_arduino.h`，保留原 framework 備份。
+- [x] ESP32 韌體編譯成功，產生 `firmware.bin`。
+- [x] 編譯資源使用量：Flash 58.2%，RAM 16.8%。
+- [x] 執行 `node web-preview/offline-tests.cjs`：29 項測試通過，0 項失敗。
+- [x] 將韌體燒錄至實體 ESP32（依實機操作回報）。
+- [x] iPhone BLE App 掃描到裝置 `ESP32-PET`。
+- [x] 確認 Primary Service UUID：`7D2A0001-8B7C-4F3A-9C2D-1E5F6A7B8C90`。
+- [x] 觀察到 `LAST READ VALUE` 顯示十六進位資料，例如 `04 05 02`，且未手動按 Read 時畫面仍會更新。
+
+### 2. 目前狀態
+
+**實體 BLE 連線驗證進行中，尚未完成 Characteristic 與資料協定確認。**
+
+- Characteristic UUID：待確認。
+- Characteristic Properties（READ / NOTIFY / WRITE）：待確認。
+- 是否已啟用 BLE Notify：待確認。
+- `04 05 02` 等位元組的實際欄位定義：待比對韌體程式碼。
+- 尚未確認資料是否完整對應電子寵物狀態。
+
+注意：畫面自動更新可能來自 Notify，也可能是 App 的其他更新機制，不能僅憑此現象判定 Notify 已正常運作。
+
+### 3. 下一步
+
+1. 在 iPhone BLE App 展開 Primary Service。
+2. 記錄各 Characteristic 的完整 UUID 與 Properties。
+3. 確認是否有 NOTIFY，以及通知啟用後資料是否持續更新。
+4. 對照 `src/ble/BleLink.cpp` 與相關協定程式，確認資料封包格式與欄位意義。
+5. 驗證成功後，再進行狀態同步、斷線重連及錯誤資料處理測試。
+
+### 4. 安全與變更原則
+
+- 本階段以唯讀檢查為主，不隨意向 BLE Characteristic 寫入資料。
+- 保留既有備份及未提交的本機變更。
+- 不將編譯成功視為硬體 BLE 協定驗證成功。
+- 後續變更應先確認現有程式碼與測試結果，再更新計畫及提交紀錄。
+
+
 ## 11. 待團隊決定與追蹤方式
 
 ### 已確認的產品決定
