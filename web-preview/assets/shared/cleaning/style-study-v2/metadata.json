@@ -1,0 +1,74 @@
+{
+  "kind": "static art study; not finished animation",
+  "soap": {
+    "source": "soap-source-v2.png",
+    "sha256": "0f91b6c03764dfd2b68170d129512bf94195fecc42008868ededff94e3f8d3fd",
+    "sourceSize": [
+      1586,
+      992
+    ],
+    "crop": [
+      76,
+      81,
+      1557,
+      960
+    ],
+    "width": 1481,
+    "height": 879
+  },
+  "foam": {
+    "source": "foam-source-v2.png",
+    "sha256": "2afb0ed00620619ec377d8ab7b821e2756298e6bb36d62dcf5a220e1b7bc2c48",
+    "sourceSize": [
+      2172,
+      724
+    ],
+    "cell": 641,
+    "highVisibleWidth": 625,
+    "frames": [
+      {
+        "sourceCrop": [
+          136,
+          206,
+          555,
+          515
+        ],
+        "translatedTo": [
+          111,
+          166
+        ],
+        "visibleWidth": 419,
+        "visibleHeight": 309
+      },
+      {
+        "sourceCrop": [
+          801,
+          121,
+          1360,
+          584
+        ],
+        "translatedTo": [
+          41,
+          89
+        ],
+        "visibleWidth": 559,
+        "visibleHeight": 463
+      },
+      {
+        "sourceCrop": [
+          1500,
+          77,
+          2125,
+          627
+        ],
+        "translatedTo": [
+          8,
+          45
+        ],
+        "visibleWidth": 625,
+        "visibleHeight": 550
+      }
+    ],
+    "sameScale": true
+  }
+}

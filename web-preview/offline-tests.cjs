@@ -103,6 +103,12 @@ test('fragmented UTF-8 snapshot is reassembled, malformed data never replaces ca
  for(let i=0;i<count;i++){const fragment=new Uint8Array(4+Math.min(16,bytes.length-i*16));fragment.set([1,0,i,count]);fragment.set(bytes.slice(i*16,i*16+16),4);ble.receive(new DataView(fragment.buffer));}
  assert.equal(m.read('ble').pet.name,'山雀');ble.receive(new DataView(new Uint8Array([2,0,1,2,1]).buffer));assert.equal(m.read('ble').pet.name,'山雀');assert.equal(ble.partial,null);
 });
+test('main page loads the reviewed cleaning player before the application',()=>{
+ const html=fs.readFileSync(__dirname+'/index.html','utf8'),app=fs.readFileSync(__dirname+'/app.js','utf8');
+ const data=html.indexOf('assets/shared/cleaning/animation-v1/animation-data.js'),foam=html.indexOf('assets/shared/cleaning/foam-study-v2/foam-data.js'),view=html.indexOf('cleaning-animation-view.js'),main=html.lastIndexOf('app.js');
+ assert.ok(data>=0&&data<foam&&foam<view&&view<main,'cleaning data and player load before the main app');
+ assert.match(app,/window\.CleaningAnimationView/);assert.match(app,/view\.draw\(ctx,elapsed/);assert.match(app,/action==='clean'\?cleanDuration\(\):3\.4/);
+});
 test('UI boots and care, death/adoption, source switch run through DataManager',()=>{
  const {c,m,elements}=boot();const get=s=>c.document.querySelector(s);const buttons=['feed','clean','play','treat'].map(kind=>({dataset:{action:kind},addEventListener(type,fn){this.click=fn;}}));
  const artCalls=[];const drawing=new Proxy({drawImage(im){artCalls.push(im.src);},createRadialGradient:()=>({addColorStop(){}}),createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});

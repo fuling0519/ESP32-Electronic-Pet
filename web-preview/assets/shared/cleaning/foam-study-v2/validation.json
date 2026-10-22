@@ -1,0 +1,77 @@
+{
+  "kind": "file and alpha checks, not art acceptance",
+  "size": [
+    1536,
+    1024
+  ],
+  "alphaExtrema": [
+    0,
+    254
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "visibleBounds": [
+        135,
+        201,
+        375,
+        378
+      ],
+      "alphaArea": 28874.392156862745
+    },
+    {
+      "index": 1,
+      "visibleBounds": [
+        65,
+        161,
+        412,
+        404
+      ],
+      "alphaArea": 54761.59607843137
+    },
+    {
+      "index": 2,
+      "visibleBounds": [
+        17,
+        120,
+        475,
+        421
+      ],
+      "alphaArea": 88576.77647058823
+    },
+    {
+      "index": 3,
+      "visibleBounds": [
+        65,
+        139,
+        464,
+        374
+      ],
+      "alphaArea": 60745.85490196078
+    },
+    {
+      "index": 4,
+      "visibleBounds": [
+        160,
+        184,
+        351,
+        327
+      ],
+      "alphaArea": 17361.266666666666
+    },
+    {
+      "index": 5,
+      "visibleBounds": [
+        177,
+        191,
+        352,
+        327
+      ],
+      "alphaArea": 12998.145098039216
+    }
+  ],
+  "sourceSha256": "4ba1a5bc0e83a848600b750b4a8b0a0271801a80a3ea024e49dca9bf7b3a5c5b",
+  "atlasSha256": "6aedb1f33b1c698f03edc6a34de65a9c87f991bbb100a4c8b0032e6a7276c6b3",
+  "sourceRgbaPreserved": true,
+  "transform": "none"
+}

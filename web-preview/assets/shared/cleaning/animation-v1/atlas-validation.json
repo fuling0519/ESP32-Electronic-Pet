@@ -1,0 +1,342 @@
+{
+  "kind": "file/atlas validation, not visual acceptance",
+  "effectiveFrames": 28,
+  "assets": {
+    "sponge": {
+      "file": "group-a/sponge-sheet-v1.png",
+      "size": [
+        2112,
+        704
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "sha256": "a2af569a83f1b957d90e9386bd4cb3aa0603114d8727e0103eeacf6d7520aafd",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            50,
+            50,
+            652,
+            653
+          ]
+        },
+        {
+          "index": 1,
+          "visibleBounds": [
+            61,
+            52,
+            644,
+            653
+          ]
+        },
+        {
+          "index": 2,
+          "visibleBounds": [
+            50,
+            50,
+            653,
+            653
+          ]
+        }
+      ]
+    },
+    "foam": {
+      "file": "group-a/foam-sheet-v1.png",
+      "size": [
+        2048,
+        1024
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "sha256": "26de6ab45258624e75237282c2cb18b471f5e7c762ac8407e763ace2616f7549",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            181,
+            162,
+            356,
+            340
+          ]
+        },
+        {
+          "index": 1,
+          "visibleBounds": [
+            138,
+            157,
+            377,
+            349
+          ]
+        },
+        {
+          "index": 2,
+          "visibleBounds": [
+            93,
+            105,
+            424,
+            398
+          ]
+        },
+        {
+          "index": 3,
+          "visibleBounds": [
+            62,
+            71,
+            453,
+            418
+          ]
+        },
+        {
+          "index": 4,
+          "visibleBounds": [
+            68,
+            84,
+            459,
+            426
+          ]
+        },
+        {
+          "index": 5,
+          "visibleBounds": [
+            98,
+            112,
+            413,
+            405
+          ]
+        },
+        {
+          "index": 6,
+          "visibleBounds": [
+            148,
+            153,
+            379,
+            353
+          ]
+        },
+        {
+          "index": 7,
+          "visibleBounds": [
+            190,
+            165,
+            374,
+            343
+          ]
+        }
+      ]
+    },
+    "shower": {
+      "file": "group-b/shower-sheet-v1.png",
+      "size": [
+        1073,
+        1023
+      ],
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "sha256": "61bc4074abd9c1afc0846182f48434c1f0ed4bfbc005ccd6cc3f9aa66ec2523b",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            12,
+            12,
+            1061,
+            1011
+          ]
+        }
+      ]
+    },
+    "water": {
+      "file": "group-b/water-sheet-v1.png",
+      "size": [
+        1920,
+        1280
+      ],
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "2ff062661af59b49e12a473b15f9ea969d78b8d7458cdff7efbd72f0a88a7769",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            163,
+            89,
+            431,
+            454
+          ]
+        },
+        {
+          "index": 1,
+          "visibleBounds": [
+            146,
+            89,
+            446,
+            465
+          ]
+        },
+        {
+          "index": 2,
+          "visibleBounds": [
+            144,
+            89,
+            448,
+            465
+          ]
+        },
+        {
+          "index": 3,
+          "visibleBounds": [
+            132,
+            89,
+            458,
+            474
+          ]
+        },
+        {
+          "index": 4,
+          "visibleBounds": [
+            131,
+            89,
+            465,
+            474
+          ]
+        },
+        {
+          "index": 5,
+          "visibleBounds": [
+            157,
+            89,
+            448,
+            464
+          ]
+        }
+      ]
+    },
+    "drops": {
+      "file": "group-c/drops-sheet-v1.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "aa21d9666e2b2c8d385554353f2db8b870bd9eec1eadddf88559b9589317c69e",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            178,
+            176,
+            338,
+            338
+          ]
+        },
+        {
+          "index": 1,
+          "visibleBounds": [
+            182,
+            143,
+            329,
+            372
+          ]
+        },
+        {
+          "index": 2,
+          "visibleBounds": [
+            61,
+            43,
+            441,
+            259
+          ]
+        },
+        {
+          "index": 3,
+          "visibleBounds": [
+            81,
+            47,
+            435,
+            261
+          ]
+        },
+        {
+          "index": 4,
+          "visibleBounds": [
+            124,
+            131,
+            409,
+            264
+          ]
+        }
+      ]
+    },
+    "sparkle": {
+      "file": "group-c/sparkle-sheet-v1.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "547d832aa8adfa78c9b834834d5bf9f837a6501d7ac965f3cf0ae811da2fc6e4",
+      "frames": [
+        {
+          "index": 0,
+          "visibleBounds": [
+            208,
+            206,
+            305,
+            306
+          ]
+        },
+        {
+          "index": 1,
+          "visibleBounds": [
+            154,
+            156,
+            359,
+            356
+          ]
+        },
+        {
+          "index": 2,
+          "visibleBounds": [
+            82,
+            61,
+            431,
+            453
+          ]
+        },
+        {
+          "index": 3,
+          "visibleBounds": [
+            152,
+            155,
+            360,
+            357
+          ]
+        },
+        {
+          "index": 4,
+          "visibleBounds": [
+            209,
+            208,
+            304,
+            305
+          ]
+        }
+      ]
+    }
+  }
+}

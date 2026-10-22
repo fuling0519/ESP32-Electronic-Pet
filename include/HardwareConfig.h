@@ -47,9 +47,10 @@ namespace Touch {
 // Sleep cycles use RTC_SLOW_CLK; keep the original inter-measurement setting.
 constexpr uint16_t MeasureCycles = 40000;
 constexpr uint16_t SleepCycles = 0x1000;
-// Provisional thresholds from the assembled-shell MODE 1 readings.
-constexpr uint16_t TouchBelow = 820;
-constexpr uint16_t ReleaseAbove = 830;
+// 2026-10-22 soldered MODE 1: touched 592-642, released 718-745.
+// Thresholds still require gesture/long-run hardware acceptance.
+constexpr uint16_t TouchBelow = 670;
+constexpr uint16_t ReleaseAbove = 690;
 constexpr uint8_t ConfirmSamples = 3;
 constexpr uint32_t SampleIntervalMs = 30;
 constexpr uint32_t MaximumSampleGapMs = 150;

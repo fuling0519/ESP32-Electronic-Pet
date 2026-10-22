@@ -47,7 +47,7 @@
     }
   ],
   "implementation_sha256": {
-    "include/HardwareConfig.h": "6c40318b22ff26b5e5425ecb7f9694d7a05b173aca58aa893d1fad7c6743fba2",
+    "include/HardwareConfig.h": "a175593c0c6e756f13502d31093895286c5bb572296f465a2e4bcba34f891cc8",
     "src/main.cpp": "85f906cea333eef9e62ff2d22dbc51f61b8801e2d4c691471a4da6345d41e790",
     "src/ui/UiController.cpp": "9e5c83929693f9b2c740947b9942e6228fd52481a0d05d579afec80bd720238a",
     "src/ui/UiController.h": "d072a6640403610a43dc5d38ee6ce1b9dbe730b67c3ce3ae2f2979ec90f916ab",

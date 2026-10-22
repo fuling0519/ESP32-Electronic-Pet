@@ -1,0 +1,30 @@
+{
+  "assets": {
+    "drops": {
+      "file": "group-c/drops-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 3,
+      "frameCount": 5,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 379,
+      "suggestedWidth": 18
+    },
+    "sparkle": {
+      "file": "group-c/sparkle-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 3,
+      "frameCount": 5,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 348,
+      "suggestedWidth": 22
+    }
+  }
+}

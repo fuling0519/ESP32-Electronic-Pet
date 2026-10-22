@@ -1,0 +1,31 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>共用清潔・海綿與淋浴動畫</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f5ed;color:#403e48;font:15px/1.65 system-ui,sans-serif}main{max-width:840px;margin:auto;padding:24px}h1{font-size:24px;margin:0}h2{font-size:16px;margin:9px 12px}p{margin:8px 0 16px}.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 0}label{display:flex;gap:6px;align-items:center}button,select{font:inherit;padding:7px 11px;background:white;color:inherit;border:1px solid #b8b4bf;border-radius:6px}button{cursor:pointer}.timeline{width:100%}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.scene{display:block;width:100%;image-rendering:pixelated;background:center/cover url('assets/garden-detailed-day.png')}.night .scene{background-image:url('assets/garden-detailed-night.png')}article{border:1px solid #d7d4d4;background:white}.note{font-size:13px;color:#655f6c}a{color:#4a6274}details{margin:16px 0}details img{max-width:100%;image-rendering:pixelated}#state{font-variant-numeric:tabular-nums}@media(max-width:650px){main{padding:16px}.grid{grid-template-columns:1fr}}
+</style>
+<main><h1>共用清潔・海綿與淋浴動畫</h1><p>海綿由上到下左右擦洗 → 接觸處起泡 → 蓮蓬頭掃過、局部沖散 → 水滴與亮點收尾。目前先測試一種泡團的6格生滅動畫。</p>
+<div class="controls"><button id="pause">暫停</button><button id="restart">重新播放</button><label>速度<select id="speed"><option value="1">正常</option><option value="0.5">慢速 0.5×</option></select></label><label>場景<select id="light"><option value="day">白天</option><option value="night">夜晚</option></select></label><label><input id="reduced" type="checkbox">減少動態</label><label><input id="loop" type="checkbox" checked>循環</label></div>
+<label for="time">播放位置 <output id="state">載入素材中…</output></label><input class="timeline" id="time" type="range" min="0" max="4200" step="10" value="0">
+<p class="note">泡沫小樣：一種輪廓、6格，先放入5個胸腹位置，測試接觸起泡、不同泡量與局部沖散；另外兩種輪廓尚未製作。海綿原姿態基準寬60 px，幼年不縮小。四種角色沿用現有繪圖程式；幼龍仍是原有遮罩。</p>
+<p class="note">海綿按胸腹大小由上往下，右→左→右→左擦洗，轉向減速；接觸後稍晚起泡。沖洗沿中央→左→右→中央掃動，泡團接觸水流後才鬆散、剩下殘泡、破泡消失。這輪沿用4.2秒節奏，供比較新素材與出現／消失方式。</p>
+<section id="grid" class="grid"></section>
+<p id="load" role="status">載入圖片中…</p>
+<section><h2>泡沫六格小樣・32 px 基準寬</h2><canvas id="foam-study" width="720" height="90" style="display:block;width:100%;image-rendering:pixelated" aria-label="泡沫少量、中量、飽滿、沖鬆、殘泡、破泡六格對照"></canvas></section>
+<details><summary>查看六份精靈圖</summary><section id="sheets"></section></details>
+<p><a href="cleaning-style-preview.html">回到已確認造型的靜態比較</a> · <a href="assets/shared/cleaning/foam-study-v2/README.md">泡沫小樣、提示詞與驗證紀錄</a> · <a href="assets/shared/cleaning/animation-v1/README.md">整體素材紀錄</a></p>
+<p class="note">這裡供確認整段節奏與各寵物的遮擋比例。生成與檔案檢查不等於美術驗收；尚未替換花園主頁的正式清潔流程。</p></main>
+<script>window.PetRules={updateSad:()=>false};</script>
+<script src="assets/pets/bird/white-idle-data-v4.js"></script><script src="assets/pets/bird/white-sad-data-v1.js"></script><script src="assets/pets/bird/white-sick-data-v1.js"></script><script src="white-bird-view.js"></script><script src="wyvern-sprites.js"></script><script src="wyvern-adult-view.js"></script><script src="wyvern-view.js"></script><script src="assets/shared/cleaning/animation-v1/animation-data.js?v=rinse-sweep-20261022"></script><script src="assets/shared/cleaning/foam-study-v2/foam-data.js?v=foam-contact-v2"></script><script src="cleaning-animation-view.js?v=foam-contact-v2"></script><script src="cleaning-animation-scene.js"></script>
+<script>
+const cards=[['bird','baby','幼鳥'],['bird','adult','成鳥'],['wyvern','baby','幼龍・現有遮罩'],['wyvern','adult','成龍']].map(([species,stage,title])=>{const a=document.createElement('article'),h=document.createElement('h2'),c=document.createElement('canvas');h.textContent=title;c.width=384;c.height=256;c.className='scene';c.setAttribute('aria-label',title+'清潔動畫');a.append(h,c);document.querySelector('#grid').append(a);return {species,stage,ctx:c.getContext('2d')};});
+const titles={sponge:'海綿・3 格',foam:'泡沫小樣・1 種 6 格',shower:'蓮蓬頭・1 格',water:'水束・6 格',drops:'水滴／水花・5 格',sparkle:'亮點・5 格'};
+for(const [name,d] of Object.entries(CleaningAnimationData.assets)){const h=document.createElement('h2'),img=document.createElement('img');h.textContent=titles[name];img.src='assets/shared/cleaning/animation-v1/'+d.file;img.alt=titles[name];document.querySelector('#sheets').append(h,img);}
+const reduced=document.querySelector('#reduced'),timeline=document.querySelector('#time'),pause=document.querySelector('#pause'),speed=document.querySelector('#speed');reduced.checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing=true,t=0,last=performance.now(),loaded=false,studyDrawn=false;
+function drawFoamStudy(){const ctx=document.querySelector('#foam-study').getContext('2d');ctx.clearRect(0,0,720,90);ctx.fillStyle='#f7f5ed';ctx.fillRect(0,0,720,90);['少量','中量','飽滿','沖鬆','殘泡','破泡'].forEach((label,i)=>{CleaningAnimationView.sprite(ctx,'foam',i,60+i*120,30,32);ctx.fillStyle='#655f6c';ctx.font='13px system-ui';ctx.textAlign='center';ctx.fillText(label,60+i*120,74);});}
+pause.onclick=()=>{playing=!playing;pause.textContent=playing?'暫停':'播放';};
+document.querySelector('#restart').onclick=()=>{t=0;playing=true;pause.textContent='暫停';};
+timeline.oninput=()=>{t=Number(timeline.value)/1000;playing=false;pause.textContent='播放';};
+document.querySelector('#light').onchange=e=>document.body.classList.toggle('night',e.target.value==='night');
+function tick(now){const dt=Math.min(.1,(now-last)/1000);last=now;loaded=CleaningAnimationView.ready();if(loaded&&!studyDrawn){drawFoamStudy();studyDrawn=true;}if(playing&&loaded&&!document.hidden&&!reduced.checked){t+=dt*Number(speed.value);if(t>5.2){if(document.querySelector('#loop').checked)t=0;else{t=4.2;playing=false;pause.textContent='播放';}}}timeline.value=Math.round(Math.min(4.2,t)*1000);document.querySelector('#state').value=reduced.checked?'減少動態・靜態清潔示意':Math.min(4.2,t).toFixed(2)+' s · '+CleaningAnimationView.phaseAt(t);document.querySelector('#load').textContent=loaded?'六份素材已載入。':'載入圖片中…';for(const {ctx,species,stage} of cards){ctx.clearRect(0,0,384,256);CleaningAnimationScene.draw(ctx,species,stage,reduced.checked?1:t,reduced.checked);}requestAnimationFrame(tick);}requestAnimationFrame(tick);
+</script></html>

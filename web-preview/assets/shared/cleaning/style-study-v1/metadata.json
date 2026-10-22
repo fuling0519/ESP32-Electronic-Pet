@@ -1,0 +1,42 @@
+{
+  "soap": {
+    "source": "soap-source-v1.png",
+    "sha256": "5d9db86c4cc5d84e0b54411e056ee04bd31a41218cde5b2588b8e0b6a373a968",
+    "sourceSize": [
+      1586,
+      992
+    ],
+    "crop": [
+      137,
+      140,
+      1450,
+      909
+    ],
+    "width": 1313,
+    "height": 769,
+    "alphaExtrema": [
+      0,
+      255
+    ]
+  },
+  "foam": {
+    "source": "foam-source-v1.png",
+    "sha256": "2ddc08aab9f6ffde5db8aad177e1e54fb4d82c80463f8e92651b244a79b57166",
+    "sourceSize": [
+      1586,
+      992
+    ],
+    "crop": [
+      240,
+      248,
+      1402,
+      900
+    ],
+    "width": 1162,
+    "height": 652,
+    "alphaExtrema": [
+      0,
+      255
+    ]
+  }
+}

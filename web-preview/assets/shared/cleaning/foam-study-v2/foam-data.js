@@ -1,0 +1,1 @@
+Object.assign(window.CleaningAnimationData.assets,{"foam":{"file":"../foam-study-v2/foam-sheet-v2.png","columns":3,"cellWidth":512,"cellHeight":512,"frameCount":6,"anchor":[256,280],"referenceWidth":458,"suggestedWidth":32}});

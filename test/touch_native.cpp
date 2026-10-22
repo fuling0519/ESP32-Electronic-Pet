@@ -7,8 +7,8 @@
 #include "hardware/TouchInput.h"
 
 SerialStub Serial;
-constexpr uint16_t kTouched = 800;
-constexpr uint16_t kReleased = 840;
+constexpr uint16_t kTouched = 620;
+constexpr uint16_t kReleased = 730;
 static_assert(kTouched < HardwareConfig::Touch::TouchBelow &&
               kReleased > HardwareConfig::Touch::ReleaseAbove, "MODE 1 fixtures must span thresholds");
 static uint32_t fakeNow;
@@ -48,6 +48,20 @@ struct Trace {
 };
 
 int main() {
+    // Sweep the assembled-board range extremes at the production read cadence.
+    // These test amplitudes use reported values, not captured hardware timings.
+    const uint16_t releasedRange[] = {718, 725, 737, 745};
+    const uint16_t touchedRange[] = {592, 603, 619, 632, 642};
+    Trace assembled;
+    for (uint32_t i=0; i<30; ++i) assembled.sample(i*30,releasedRange[i%4]);
+    assert(!assembled.pokes && !assembled.starts && !assembled.releases);
+    for (uint32_t i=0; i<35; ++i) assembled.sample(900+i*30,touchedRange[i%5]);
+    assert(assembled.starts==1 && !assembled.pokes && !assembled.releases);
+    for (uint32_t i=0; i<10; ++i) assembled.sample(1950+i*30,releasedRange[i%4]);
+    assert(assembled.starts==1 && assembled.releases==1 && !assembled.pokes);
+    Trace middle; middle.arm();
+    for (uint32_t at=100; at<1000; at+=30) middle.sample(at,680);
+    assert(!middle.pokes && !middle.starts && !middle.releases);
     for (uint32_t origin : {0u, UINT32_MAX-150u}) {
         for (uint32_t duration : {99u,100u,210u,699u}) {
             Trace t(origin); t.arm(); t.hold(100,100+duration-1);

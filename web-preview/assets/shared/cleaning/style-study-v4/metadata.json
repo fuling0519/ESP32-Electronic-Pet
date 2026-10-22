@@ -1,0 +1,19 @@
+{
+  "source": "sponge-source-v4.png",
+  "sourceSize": [
+    1430,
+    1100
+  ],
+  "sha256": "5c5c98bae0f5d7d6c7c9fc8c478b8fd191723e4564b71f019400d9d94c1d7072",
+  "crop": [
+    343,
+    173,
+    1181,
+    980
+  ],
+  "width": 838,
+  "height": 807,
+  "displayWidth": 60,
+  "shrinkForBaby": false,
+  "reference": "user-shape-reference.png"
+}

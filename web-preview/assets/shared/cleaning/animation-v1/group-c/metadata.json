@@ -1,0 +1,413 @@
+{
+  "method": "alpha>=160 measures primary shape; crop with 8 px margin then integer translation. Preserve all RGBA within retained crop. No recolor, alpha replacement, resampling or generated art painted by script.",
+  "sources": {
+    "drops-source-initial-v1.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "874ff463af3fa1f32063f54af9dee2ff32b2fdc7bc04d019536ece44b4a4acf1"
+    },
+    "drops-source-v1.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "52f6108615aad369a2b4467b59d6d215befc1788a70a23955de350bb454cf941"
+    },
+    "sparkle-source-v1.png": {
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "sha256": "4d3018585f6c915aebc59d84ab0c15a1329eddfbe9225be830d60a8345bcc5b6"
+    }
+  },
+  "assets": {
+    "drops": {
+      "frames": [
+        {
+          "frame": 0,
+          "sourceCell": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "primaryBBoxInCell": [
+            195,
+            253,
+            355,
+            414
+          ],
+          "sourceCrop": [
+            187,
+            245,
+            363,
+            422
+          ],
+          "sourceAnchorInCell": [
+            273,
+            333
+          ],
+          "translation": [
+            -17,
+            -77
+          ],
+          "destinationTopLeft": [
+            170,
+            168
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 1,
+          "sourceCell": [
+            512,
+            0,
+            1024,
+            512
+          ],
+          "primaryBBoxInCell": [
+            180,
+            204,
+            327,
+            433
+          ],
+          "sourceCrop": [
+            684,
+            196,
+            847,
+            441
+          ],
+          "sourceAnchorInCell": [
+            254,
+            317
+          ],
+          "translation": [
+            2,
+            -61
+          ],
+          "destinationTopLeft": [
+            686,
+            135
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 2,
+          "sourceCell": [
+            1024,
+            0,
+            1536,
+            512
+          ],
+          "primaryBBoxInCell": [
+            49,
+            288,
+            428,
+            503
+          ],
+          "sourceCrop": [
+            1065,
+            280,
+            1460,
+            511
+          ],
+          "sourceAnchorInCell": [
+            244,
+            500
+          ],
+          "translation": [
+            12,
+            -244
+          ],
+          "destinationTopLeft": [
+            1077,
+            36
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 3,
+          "sourceCell": [
+            0,
+            512,
+            512,
+            1024
+          ],
+          "primaryBBoxInCell": [
+            95,
+            219,
+            449,
+            433
+          ],
+          "sourceCrop": [
+            87,
+            723,
+            457,
+            953
+          ],
+          "sourceAnchorInCell": [
+            270,
+            428
+          ],
+          "translation": [
+            -14,
+            -172
+          ],
+          "destinationTopLeft": [
+            73,
+            551
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 4,
+          "sourceCell": [
+            512,
+            512,
+            1024,
+            1024
+          ],
+          "primaryBBoxInCell": [
+            126,
+            308,
+            410,
+            441
+          ],
+          "sourceCrop": [
+            630,
+            812,
+            930,
+            961
+          ],
+          "sourceAnchorInCell": [
+            258,
+            433
+          ],
+          "translation": [
+            -2,
+            -177
+          ],
+          "destinationTopLeft": [
+            628,
+            635
+          ],
+          "copiedRgbaExact": true
+        }
+      ],
+      "referenceWidth": 379,
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "aa21d9666e2b2c8d385554353f2db8b870bd9eec1eadddf88559b9589317c69e",
+      "sixthCellAlphaZero": true,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "sparkle": {
+      "frames": [
+        {
+          "frame": 0,
+          "sourceCell": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "primaryBBoxInCell": [
+            207,
+            232,
+            303,
+            332
+          ],
+          "sourceCrop": [
+            199,
+            224,
+            311,
+            340
+          ],
+          "sourceAnchorInCell": [
+            255,
+            282
+          ],
+          "translation": [
+            1,
+            -26
+          ],
+          "destinationTopLeft": [
+            200,
+            198
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 1,
+          "sourceCell": [
+            512,
+            0,
+            1024,
+            512
+          ],
+          "primaryBBoxInCell": [
+            154,
+            178,
+            359,
+            378
+          ],
+          "sourceCrop": [
+            658,
+            170,
+            879,
+            386
+          ],
+          "sourceAnchorInCell": [
+            256,
+            278
+          ],
+          "translation": [
+            0,
+            -22
+          ],
+          "destinationTopLeft": [
+            658,
+            148
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 2,
+          "sourceCell": [
+            1024,
+            0,
+            1536,
+            512
+          ],
+          "primaryBBoxInCell": [
+            75,
+            75,
+            423,
+            466
+          ],
+          "sourceCrop": [
+            1091,
+            67,
+            1455,
+            474
+          ],
+          "sourceAnchorInCell": [
+            249,
+            270
+          ],
+          "translation": [
+            7,
+            -14
+          ],
+          "destinationTopLeft": [
+            1098,
+            53
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 3,
+          "sourceCell": [
+            0,
+            512,
+            512,
+            1024
+          ],
+          "primaryBBoxInCell": [
+            151,
+            164,
+            359,
+            366
+          ],
+          "sourceCrop": [
+            143,
+            668,
+            367,
+            886
+          ],
+          "sourceAnchorInCell": [
+            255,
+            265
+          ],
+          "translation": [
+            1,
+            -9
+          ],
+          "destinationTopLeft": [
+            144,
+            659
+          ],
+          "copiedRgbaExact": true
+        },
+        {
+          "frame": 4,
+          "sourceCell": [
+            512,
+            512,
+            1024,
+            1024
+          ],
+          "primaryBBoxInCell": [
+            209,
+            218,
+            304,
+            314
+          ],
+          "sourceCrop": [
+            713,
+            722,
+            824,
+            834
+          ],
+          "sourceAnchorInCell": [
+            256,
+            266
+          ],
+          "translation": [
+            0,
+            -10
+          ],
+          "destinationTopLeft": [
+            713,
+            712
+          ],
+          "copiedRgbaExact": true
+        }
+      ],
+      "referenceWidth": 348,
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "547d832aa8adfa78c9b834834d5bf9f837a6501d7ac965f3cf0ae811da2fc6e4",
+      "sixthCellAlphaZero": true,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    }
+  }
+}
