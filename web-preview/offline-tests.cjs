@@ -188,3 +188,11 @@ test('game boundaries enforce reveal/feedback delay, hidden opponent and timeout
  const {c,m}=boot();m.startGame('rps',0);const original=c.PetSources.mock.game.opponent;assert.equal(m.gameState(0).opponent,undefined);m.answerGame(0,0);assert.equal(c.PetSources.mock.game.opponent,original);assert.equal(m.gameState(1049).phase,'countdown');assert.equal(m.gameState(1050).phase,'round-result');m.nextRound(1849);assert.equal(m.gameState(1849).round,1);m.nextRound(1850);assert.equal(m.gameState(1850).round,2);
  m.startGame('memory',0);const g=c.PetSources.mock.game;m.gameState(10000);assert.equal(g.phase,'show');assert.equal(g.noteIndex,0);let now=10000;while(g.phase==='show'){now=g.nextAt;m.gameState(now);}const deadline=g.until;m.answerGame(g.sequence[0],deadline);assert.equal(m.gameState(deadline).phase,'round-result');assert.equal(g.correct,false);assert.equal(m.read().pet.exp,0);
 });
+
+test('feeding and cleaning at 100 still play like the firmware, without extra EXP',()=>{
+ const app=fs.readFileSync(__dirname+'/app.js','utf8');
+ assert.doesNotMatch(app,/已達 100/);assert.doesNotMatch(app,/吃飽囉/);
+ const {c,m}=boot(),p=c.PetSources.mock.pet;p.satiety=100;p.cleanliness=100;const exp=p.exp;
+ assert.equal(m.command('feed').actual,0);assert.equal(m.command('clean').actual,0);
+ assert.equal(p.satiety,100);assert.equal(p.cleanliness,100);assert.equal(p.exp,exp);
+});
