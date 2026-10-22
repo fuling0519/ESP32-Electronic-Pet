@@ -97,3 +97,10 @@ dialog button,dialog select{max-width:100%;white-space:normal}
  #tombstone{padding:12px 8px;gap:3px}#tombstone strong{font-size:20px}
 }
 #aviary:not(.simple-background) .scene img,#aviary.simple-background.night .scene img,#aviary .scene img{filter:none;image-rendering:pixelated}
+#pet-status-dialog{width:min(430px,calc(100vw - 28px));background:#f7f0dd;border:3px solid #75627e;border-radius:4px;color:#40354b;box-shadow:8px 8px 0 #75627e}
+#pet-status-dialog h2{margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #b9a9b8;text-align:center;font-size:22px}
+.pet-status-card{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;border-bottom:2px solid #b9a9b8;padding-bottom:12px}
+.pet-status-portrait{height:78px;display:grid;place-items:center;background:#dfd4bc;border:2px solid #75627e;overflow:hidden}.pet-status-portrait img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.pet-status-main{display:grid;gap:4px}.pet-status-main strong{font-size:20px}.pet-status-main span{font-size:13px}
+.pet-status-grid{display:grid;grid-template-columns:1fr auto;gap:7px 20px;padding:14px 8px;font-size:15px}.pet-status-grid strong{color:#66518a;text-align:right}.status-meter-value,.status-exp-value{display:grid;grid-template-columns:auto;gap:4px;justify-items:end}.status-meter-value progress,.status-exp-value progress{width:150px;height:10px;accent-color:#b47ea9}.status-meter-value strong,.status-exp-value strong{line-height:1.2}
+.details{display:none}
