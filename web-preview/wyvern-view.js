@@ -37,11 +37,20 @@ function paint(ctx,bits,x=94,y=45,scale=3){
   ctx.fillRect(x+c*scale,y+r*scale,scale,scale);
  }
 }
+let babyStartle=null;
+document.addEventListener('pet-interaction-complete',e=>{const p=window.petDataManager?.read().pet;if(p?.stage==='baby'&&e.detail?.speciesId===2&&e.detail?.kind==='poke'&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted)babyStartle={petId:p.petId,start:performance.now()};});
 function draw(ctx,p,now,action,elapsed,reduced){
  const illustrated=window.WyvernAdultView?.draw(ctx,p,now,action,elapsed,reduced);
  if(illustrated){if(illustrated.state==="sleep"){ctx.fillStyle="#57483a";ctx.font="bold 12px sans-serif";ctx.fillText(reduced?"Zzz":["Z","Zz","Zzz"][Math.floor(now/650)%3],248,82);}return illustrated;}
  const fallback=window.PetSadView?.active(p)?{...p,healthState:"sick"}:p;
- const frame=frameFor({...fallback},now,action,elapsed,reduced);paint(ctx,frame.bits);
+ const startling=p.stage==='baby'&&babyStartle?.petId===p.petId&&now-babyStartle.start<1200&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!action;
+ if(babyStartle&&(babyStartle.petId!==p.petId||now-babyStartle.start>=1200))babyStartle=null;
+ const frame=frameFor(startling?{...fallback,healthState:'healthy',sleepMode:'awake'}:{...fallback},startling?babyStartle.start+Math.min(1100,Math.max(0,now-babyStartle.start)):now,action,elapsed,reduced);
+ if(startling){
+  const t=now-babyStartle.start;let sx=1,sy=1,dy=0;
+  if(t<150){sx=1.025;sy=.975;}else if(t<330){sx=.985;sy=1.015;dy=2;}else if(t>=630){const u=Math.min(1,(t-630)/570);sx=.985+.015*u;sy=1.015-.015*u;}
+  ctx.save();ctx.translate(190,111+dy);ctx.scale(sx,sy);ctx.translate(-190,-111-dy);paint(ctx,frame.bits);ctx.restore();
+ }else paint(ctx,frame.bits);
  ctx.fillStyle='#57483a';ctx.font='bold 12px sans-serif';
  if(p.sleepMode==='normal')ctx.fillText(['Z','Zz','Zzz'][Math.floor(now/650)%3],p.stage==='baby'?226:247,p.stage==='baby'?96:72);
  if(PetRules.updateSad({...p})&&p.sleepMode!=='normal'&&action!=='treat'){

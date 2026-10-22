@@ -1,0 +1,1 @@
+window.WhiteBirdStartleData={"cell":512,"anchor":[256,480],"visibleHeight":410,"times":[150,180,300,570]};

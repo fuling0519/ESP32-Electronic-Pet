@@ -9,7 +9,7 @@ function sample(seconds,reduced=false){
  return {frame:q<.12?5:q<.30?2:q<.48?3:q<.61?2:4,peck:q>=.30&&q<.48};
 }
 function layout(stage,scale=3){
- const height=(stage==='adult'?132:106)*scale/3,cx=220,feet=201;
+ const height=(stage==='adult'?132:106)*scale/3*.9,cx=220,feet=201;
  const fit=window.WhiteBirdActivityData?height*.94/WhiteBirdActivityData.standingHeight:0;
  return {cx,cy:feet-height*.47,feet,fit,bowlX:cx-138*fit,bowlBottom:feet+21*scale/3,bowlWidth:(stage==='adult'?64:52)*scale/3};
 }

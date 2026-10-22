@@ -19,8 +19,8 @@ function draw(ctx,p,now,cx,cy,scale=3,reduced=false){
  if(reduced)return false;
  if(!image.complete||!image.naturalWidth||!window.WhiteBirdActivityData)return false;
  const q=sample(now,cx,cy);if(q.phase==='idle')return false;
- const d=WhiteBirdActivityData,fit=(p.stage==='adult'?132:106)*scale/3*.94/d.standingHeight;
- const feet=q.y+(p.stage==='adult'?132:106)*scale/3*.47;
+ const d=WhiteBirdActivityData,baseHeight=(p.stage==='adult'?132:106)*scale/3,height=baseHeight*.9,fit=height*.94/d.standingHeight;
+ const feet=q.y+baseHeight*.47;
  ctx.save();ctx.imageSmoothingEnabled=false;
  ctx.drawImage(image,q.frame%2*d.cell,Math.floor(q.frame/2)*d.cell,d.cell,d.cell,q.x-d.anchor[0]*fit,feet-d.anchor[1]*fit,d.cell*fit,d.cell*fit);
  if(q.ripple){ctx.fillStyle='#bcecf4';ctx.fillRect(q.x-43,feet-2,23,2);ctx.fillStyle='#efffff';ctx.fillRect(q.x-39,feet-4,13,2);}

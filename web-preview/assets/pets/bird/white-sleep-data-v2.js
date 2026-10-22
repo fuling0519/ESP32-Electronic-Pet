@@ -1,0 +1,1 @@
+window.WhiteBirdSleepData={"cell":1254,"anchor":[627,1216],"visibleHeight":1216,"times":[1200,900,1000,1200,1200],"breath":[1,1.004,1.008,1.004,1]};

@@ -27,9 +27,9 @@ function eatSample(ms,reduced=false){
  const k=Math.floor(ms/(EAT.down+EAT.chew)),down=ms%(EAT.down+EAT.chew)<EAT.down;
  return {frame:reduced?2:down?1:2,bowl:down?k:k+1};
 }
-let preview='auto',reaction=null,lastState='',stateStart=0;
-let travelStart=null,lastNow=null,travelPet=null,lastTravel=null,returning=null,target=null,controlsEnabled=null;
-function resetMotion(){travelStart=null;lastNow=null;travelPet=null;lastTravel=null;returning=null;target=null;}
+let preview='auto',reaction=null,lastState='',stateStart=0,suspendedState=null;
+let travelStart=null,lastNow=null,travelPet=null,lastTravel=null,returning=null,target=null,controlsEnabled=null,startleTravelElapsed=null,startlePosition=null;
+function resetMotion(){travelStart=null;lastNow=null;travelPet=null;lastTravel=null;returning=null;target=null;startleTravelElapsed=null;startlePosition=null;}
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 // Every leg eases to zero speed before facing changes. Body-center anchoring
 // keeps both mirrored extents within the 384x256 scene, including wing tips.
@@ -70,14 +70,20 @@ function syncControls(p,enabled){
 }
 document.addEventListener('pet-interaction-complete',e=>{
  const p=window.petDataManager?.read().pet;
- if(eligible(p)&&e.detail)reaction={kind:e.detail.kind,petId:p.petId,start:performance.now()};
+ if(eligible(p)&&e.detail?.speciesId===2&&e.detail?.kind==='poke'){
+  suspendedState={key:lastState,start:stateStart,pokeStart:performance.now()};
+  if(travelStart!==null)startleTravelElapsed=Math.max(0,performance.now()-travelStart);if(target?.petId===p.petId)startlePosition={x:target.x,y:target.y};
+  travelStart=null;lastTravel=null;returning=null;
+  reaction={kind:'poke',petId:p.petId,start:performance.now()};
+ }
 });
 function resolve(p,now,action){
  if(p.healthState==='dead')return 'dead';
+ if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200))reaction=null;
+ if(reaction?.kind==='poke'&&!action)return 'startle';
  if(p.sleepMode==='normal')return 'sleep';
  if(p.healthState==='sick'||action==='treat')return 'sick';
- if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200))reaction=null;
- if(reaction&&!action)return reaction.kind==='pet'?'happy':'idle';
+ if(reaction&&!action)return reaction.kind==='poke'?'startle':'idle';
  if(action==='feed')return 'eat';
  if(action==='clean')return 'idle';
  if(preview!=='auto'&&!action&&preview!=='flight')return preview;
@@ -119,13 +125,13 @@ function draw(ctx,p,now,action,elapsed,reduced){
  if(travelPet!==p.petId||lastNow!==null&&(now<lastNow||now-lastNow>500))resetMotion();
  travelPet=p.petId;lastNow=now;
  const state=resolve(p,now,action),key=p.petId+':'+state;
- if(lastState!==key){lastState=key;stateStart=now;}
+ if(lastState!==key){lastState=key;if(suspendedState&&key===suspendedState.key){stateStart=suspendedState.start+(now-suspendedState.pokeStart);suspendedState=null;}else{stateStart=now;suspendedState=null;}}
  const blocked=document.hidden||document.querySelector('dialog[open]')||window.PetGrowthView?.active;
  const flightArt=image(poses.flight.file),artReady=flightArt.complete&&flightArt.naturalWidth>0;
  const mayTravel=artReady&&!reduced&&!blocked&&!action&&!reaction&&eligible(p)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&
   (state==='idle'&&preview==='auto'||state==='flight');
  if(mayTravel&&!returning){
-  if(travelStart===null)travelStart=now;
+  if(travelStart===null){travelStart=startleTravelElapsed===null?now:now-startleTravelElapsed;startleTravelElapsed=null;}
   const result=paintTravel(ctx,now-travelStart,false,{withRest:preview!=='flight'});
   lastTravel=result?.state==='flight'?{x:result.x-190,y:result.offset}:null;
   target={petId:p.petId,x:result?.x??190,y:130+(result?.offset??0),rx:100,ry:90};
@@ -138,16 +144,27 @@ function draw(ctx,p,now,action,elapsed,reduced){
  let dx=0,dy=0;
  if(reduced)returning=null;
  if(returning){const t=smooth((now-returning.start)/250);dx=returning.from.x*(1-t);dy=returning.from.y*(1-t);if(t===1)returning=null;}
- const startled=reaction?.kind==='poke'&&!action&&state==='idle'&&!reduced;
- const offset=startled?Math.max(0,1-(now-reaction.start)/1200)*Math.abs(Math.sin((now-reaction.start)/85))*5:0;
+ const startling=reaction?.kind==='poke'&&!action&&state==='startle';
+ if(startling&&startlePosition){dx=startlePosition.x-190;dy=startlePosition.y-130;}
+ let sx=1,sy=1,offset=0;
+ if(startling){
+  const t=Math.max(0,now-reaction.start);
+  if(t<150){sx=1+.018*(1-t/150);sy=1-.018*(1-t/150);}
+  else if(t<330){sx=.985;sy=1.015;offset=2;}
+  else if(t<630){sx=.995;sy=1.005;}
+  else{const u=Math.min(1,(t-630)/570);sx=.995+.005*u;sy=1.005-.005*u;}
+ }
  target={petId:p.petId,x:190+dx,y:130+dy-offset,rx:100,ry:90};
+ if(startling){ctx.save();ctx.translate(190+dx,177+dy-offset);ctx.scale(sx,sy);ctx.translate(-(190+dx),-(177+dy-offset));}
  if(state==='eat'){
   // Feeding follows the action clock; the menu preview loops with a short pause on the smile.
   const ms=action==='feed'?elapsed*1000:(now-stateStart)%3600,s=eatSample(ms,reduced);
   const result=paint(ctx,'eat',0,reduced,{x:190+dx,y:177+dy-offset,frame:s.frame});
   return result&&{...result,bowlSeconds:s.bowl*.75+.01};
  }
- return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset});
+ const result=paint(ctx,state==='flight'||state==='startle'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset});
+ if(startling)ctx.restore();
+ return result;
 }
 document.addEventListener('visibilitychange',resetMotion);
 window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,draw,resolve,syncControls,
