@@ -4,7 +4,7 @@ const scene=document.querySelector('.scene'),canvas=document.querySelector('#bir
 const care=document.querySelector('.care');if(care){scene.append(care);const feed=care.querySelector('[data-action="feed"]');if(feed){feed.setAttribute('aria-label','餵食');feed.innerHTML='<span class="bowl-icon" aria-hidden="true"></span>';}}
 const panel=document.createElement('section');panel.className='pet-interactions';panel.setAttribute('aria-label','寵物觸碰互動');
 panel.innerHTML='<strong>觸碰互動</strong><button type="button" id="tool-pet" aria-pressed="true">✋ 摸頭／順毛</button><button type="button" id="tool-poke" aria-pressed="false">╱ 樹枝戳戳</button><button type="button" id="touch-once">互動一下</button><p id="touch-help">選工具後輕點角色，或在頭上滑一下順毛。每次心情＋3／－3，間隔3秒，不給EXP。</p><p id="touch-result" role="status" aria-live="polite"></p>';
-document.querySelector('.care').after(panel);
+scene.after(panel);
 const overlay=document.createElement('canvas');overlay.width=384;overlay.height=256;overlay.className='touch-effects';overlay.setAttribute('aria-hidden','true');scene.append(overlay);const pen=overlay.getContext('2d');
 let tool='pet',down=null,effect=null,hover=null,lastTapAt=0,tapTimer=null;
 const result=document.querySelector('#touch-result'),petButton=document.querySelector('#tool-pet'),pokeButton=document.querySelector('#tool-poke'),once=document.querySelector('#touch-once');

@@ -1,0 +1,11 @@
+Use the attached reference image as the exact character model. This is a chubby adult wyvern: lavender-purple round body, large cream-yellow curved horns, a small purple forehead crest, pink-inner ears, cream-and-purple bat wings on both sides, a segmented pale-yellow belly with horizontal bands, short limbs, curled tail, dark indigo outline, soft pink blush cheeks, small dot eyes. Pastel pixel-art style, same rendering, palette, outline and top-left lighting as the reference. Do NOT redesign the character.
+
+Create a 2-frame STARTLED (poked) sprite sheet, two equal square cells side by side, left to right. Same scale and the same foot baseline in both cells, character centered.
+
+Frame 1 (left): The instant of being poked. Eyes open wide and round (slightly larger dots with a highlight, but keep the same eye style), small round "o" mouth. Body flinches upward and back a little, shoulders raised, wings flared out quickly to the sides, tail stiff and lifted. Surprised, not angry: no frown, no gritted teeth.
+Frame 2 (right): Recovering a moment later. Same position as the idle pose, wings half-lowered, eyes still open and a little startled, mouth a small wavy line, blinking back to calm. This frame must connect naturally back to the idle pose.
+
+Do NOT draw exclamation marks, sweat drops, motion lines, text, labels, grid lines, props, or ground.
+Background: flat solid pure green #00FF00, no shadows, no gradient. Keep the outline crisp against the green with no green halo. Do not crop the horns, wings, feet, or tail.
+
+Avoid: angry expression, giant anime eyes, changed horn shape, missing wings, flat belly, changed colors, blurry edges, extra limbs.

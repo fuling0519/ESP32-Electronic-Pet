@@ -1,0 +1,31 @@
+Use the attached reference image as the exact character model and redraw the SAME character in a new pose. Keep the same pixel-art rendering: crisp hard-edged pixels, same pixel density, dark indigo outline, same palette and top-left lighting. No blur, no soft edges, no smoothing.
+
+BODY PROPORTIONS - most important, copy them exactly from the reference:
+- The same chubby, round, plump build. The body and belly are as wide and round as in the reference. Do NOT make the body slimmer, narrower or taller.
+- The same big round head; the head is the same size relative to the body as in the reference.
+- The same short, stubby legs with small feet. Do NOT make the legs longer.
+- The same horn length and curve as in the reference. Do NOT make the horns longer or taller.
+- The overall height from horn tips to feet stays the same as in the reference; the character does not stretch upward.
+
+Keep these features exactly as in the reference:
+- Lavender-purple head and body.
+- Two cream-yellow curved horns with pointed tips.
+- One single small purple forehead crest between the horns (not several spikes).
+- Pink-inner ears, pink blush cheeks.
+- Small solid dark dot eyes with one tiny white highlight.
+- Cream-and-purple bat wings on both sides.
+- Pale-yellow belly with clearly visible horizontal bands, fully visible and not covered by the arms.
+- Short purple arms, curled tail.
+
+Draw ONE single frame: the instant this wyvern is suddenly poked and startled. Show the surprise with the face, wings, arms and tail only, not by changing the body shape:
+- Wings flare out wide to both sides, clearly more open than the reference.
+- Tail stiffens and lifts up.
+- Both short arms lift up a little and spread slightly outward, paws open, beside the belly (not covering it).
+- Body leans back very slightly; feet stay planted on the same ground line.
+- Eyes: the same small dot eyes, with a brighter highlight. Do NOT draw large white eyeballs or rings around the eyes.
+- Mouth: a small round open "o".
+- The feeling is surprised, NOT angry: no frown, no furrowed brows, no teeth.
+
+Composition: one character only, centered, facing the viewer, shown in full, at the same size in the frame as the reference. Leave generous empty margin on all four sides; no part of the horns, wings, feet or tail may touch or cross the image edge.
+
+Transparent background. No ground, shadow, glow, exclamation mark, sweat drop, motion lines, text, labels or frame.

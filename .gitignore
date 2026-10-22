@@ -47,3 +47,6 @@ desktop.ini
 
 # Local commit review receipts and draft reports
 .plan-review/
+
+# Local AI image outputs (dalle script); keep only curated assets
+generated_images/

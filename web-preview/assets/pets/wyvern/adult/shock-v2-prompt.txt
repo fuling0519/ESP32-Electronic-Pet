@@ -1,0 +1,24 @@
+Use the attached reference image as the exact character model and redraw the SAME character in a new pose. Keep the same pixel-art rendering: crisp hard-edged pixels, same pixel density, dark indigo outline, same palette and top-left lighting. No blur, no soft edges, no smoothing.
+
+Keep these features exactly as in the reference:
+- Lavender-purple round head and body, same head-to-body proportions.
+- Two large cream-yellow horns, long and curved with pointed tips (not short or blunt).
+- One single small purple forehead crest between the horns (not several spikes).
+- Pink-inner ears, pink blush cheeks.
+- Small solid dark dot eyes with one tiny white highlight.
+- Cream-and-purple bat wings on both sides.
+- Pale-yellow belly with clearly visible horizontal bands.
+- Short purple arms and legs, purple feet (no pink soles), curled tail.
+
+Draw ONE single frame: the instant this wyvern is suddenly poked and startled.
+- Body jolts: the whole body hops slightly upward, leaning back a little, shoulders raised.
+- Wings flare out wide to both sides, clearly more open than the reference.
+- Tail stiffens and lifts up.
+- Both arms pulled up close to the chest.
+- Eyes: the same small dot eyes, just slightly wider apart in surprise with a brighter highlight. Do NOT draw large white eyeballs or rings around the eyes.
+- Mouth: a small round open "o".
+- The feeling is surprised, NOT angry: no frown, no furrowed brows, no teeth.
+
+Composition: one character only, centered, facing the viewer, shown in full. Leave generous empty margin on all four sides; no part of the horns, wings, feet or tail may touch or cross the image edge.
+
+Transparent background. No ground, shadow, glow, exclamation mark, sweat drop, motion lines, text, labels or frame.

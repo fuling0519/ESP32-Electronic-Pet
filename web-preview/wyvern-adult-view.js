@@ -14,6 +14,8 @@ const poses={
  happy:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[4,5],times:[1800,650],anchor:[234,444],scale:126/368},
  sleep:{files:['sleep-00.png','sleep-01.png'],times:[1100,900],rect:[0,0,887,640],anchor:[456,588],scale:180/832},
  dead:{file:'dead-still-v1.png',times:[1],rect:[0,0,1684,934],anchor:[848,856],scale:200/1592},
+ // Scale matches idle's eye spacing; horn-to-feet would shrink this pose's head.
+ shock:{file:'shock-still-v1.png',times:[1],rect:[0,0,1235,1025],anchor:[601,1000],scale:126/924},
  eat:{file:'eat-sheet-v2-clean.png',cell:767,columns:2,frames:[0,1,2,3],times:[375,375,375,375],anchor:[383,721],scale:126/508},
  flight:{file:'flight-sheet-v1.png',cellWidth:560,cellHeight:448,columns:3,frames:[0,1,2,3,4,5],times:[170,130,130,170,130,170],anchor:[280,310],scale:172/517}
 };
@@ -56,11 +58,11 @@ let label,select,note;
 if(controls){
  label=document.createElement('label');label.textContent='小龍素材 ';label.hidden=true;
  select=document.createElement('select');select.id='wyvern-art-state';select.setAttribute('aria-label','小龍素材預覽');
- for(const [value,text] of [['auto','跟隨寵物'],['idle','待機'],['sad','傷心'],['sick','生病'],['happy','開心'],['sleep','蜷縮睡眠'],['dead','死亡靜態'],['flight','低空飛行（六格循環）'],['eat','吃飯（四格）']]){
+ for(const [value,text] of [['auto','跟隨寵物'],['idle','待機'],['sad','傷心'],['sick','生病'],['happy','開心'],['shock','驚嚇（被戳）'],['sleep','蜷縮睡眠'],['dead','死亡靜態'],['flight','低空飛行（六格循環）'],['eat','吃飯（四格）']]){
   const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);
  }
  select.onchange=()=>{preview=select.value;lastState='';resetMotion();};label.appendChild(select);controls.appendChild(label);
- note=document.createElement('small');note.hidden=true;note.textContent='只切換外觀，不改養成數值。健康清醒待機時偶爾低空飛行，往左自動翻面；驚嚇專用圖待補。';controls.appendChild(note);
+ note=document.createElement('small');note.hidden=true;note.textContent='只切換外觀，不改養成數值。健康清醒待機時偶爾低空飛行，往左自動翻面。';controls.appendChild(note);
 }
 function eligible(p){return p&&p.stage==='adult'&&!p.isDeparted&&p.healthState!=='dead';}
 function syncControls(p,enabled){
@@ -77,7 +79,7 @@ function resolve(p,now,action){
  if(p.sleepMode==='normal')return 'sleep';
  if(p.healthState==='sick'||action==='treat')return 'sick';
  if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200))reaction=null;
- if(reaction&&!action)return reaction.kind==='pet'?'happy':'idle';
+ if(reaction&&!action)return reaction.kind==='pet'?'happy':'shock';
  if(action==='feed')return 'eat';
  if(action==='clean')return 'idle';
  if(preview!=='auto'&&!action&&preview!=='flight')return preview;
@@ -138,7 +140,7 @@ function draw(ctx,p,now,action,elapsed,reduced){
  let dx=0,dy=0;
  if(reduced)returning=null;
  if(returning){const t=smooth((now-returning.start)/250);dx=returning.from.x*(1-t);dy=returning.from.y*(1-t);if(t===1)returning=null;}
- const startled=reaction?.kind==='poke'&&!action&&state==='idle'&&!reduced;
+ const startled=reaction?.kind==='poke'&&!action&&state==='shock'&&!reduced;
  const offset=startled?Math.max(0,1-(now-reaction.start)/1200)*Math.abs(Math.sin((now-reaction.start)/85))*5:0;
  target={petId:p.petId,x:190+dx,y:130+dy-offset,rx:100,ry:90};
  if(state==='eat'){

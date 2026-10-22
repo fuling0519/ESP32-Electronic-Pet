@@ -1,0 +1,26 @@
+{
+ "source": "shock-source-v1.png",
+ "sourceSha256": "c731de64cbc14dc20ca64d4dfec2612414dce63a5e8086ceeabd158cee511256",
+ "sourceSize": [
+  1254,
+  1254
+ ],
+ "sourceCrop": [
+  10,
+  121,
+  1235,
+  1025
+ ],
+ "size": [
+  1235,
+  1025
+ ],
+ "anchor": [
+  601,
+  1000
+ ],
+ "anchorNote": "feet centre x, lowest opaque row y",
+ "hornToFeet": 977,
+ "alphaCut": 128,
+ "droppedPixels": 0
+}

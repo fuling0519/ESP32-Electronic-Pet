@@ -14,7 +14,7 @@ function boot(){
 const pet=()=>({petId:'one',stage:'adult',healthState:'healthy',sleepMode:'awake',mood:55,sadReasons:{mood:false,satiety:false,cleanliness:false}});
 test('all illustrated states draw real, complete PNG sources within the scene',()=>{
  const {view,ctx,calls}=boot();
- for(const state of ['idle','sad','sick','happy','sleep','dead','flight']){
+ for(const state of ['idle','sad','sick','happy','shock','sleep','dead','flight']){
   assert.equal(view.paint(ctx,state,0,false).state,state);
   const [im,sx,sy,sw,sh,dx,dy,dw,dh]=calls.at(-1);
   assert(sx>=0&&sy>=0&&sx+sw<=im.naturalWidth&&sy+sh<=im.naturalHeight,state+' source crop');
@@ -40,7 +40,7 @@ test('state priority and visual previews do not mutate domain values',()=>{
  assert.equal(view.resolve({...p,mood:100,healthState:'sick'},0,null),'sick');
  assert.equal(view.resolve({...p,sleepMode:'normal',healthState:'sick'},0,null),'sleep');
  assert.equal(view.resolve({...p,healthState:'dead'},0,null),'dead');
- for(const state of ['sad','sick','happy','sleep','dead','flight']){select.value=state;select.onchange();assert.equal(view.resolve(p,0,null),state);assert.equal(JSON.stringify(p),before);}
+ for(const state of ['sad','sick','happy','shock','sleep','dead','flight']){select.value=state;select.onchange();assert.equal(view.resolve(p,0,null),state);assert.equal(JSON.stringify(p),before);}
  view.syncControls(p,false);assert.equal(view.resolve(p,0,null),'idle');
  assert.equal(view.draw(ctx,{...p,stage:'baby'},0,null,0,false),false);
 });
@@ -53,6 +53,20 @@ test('pet reaction expires, stays with its pet, and cannot override illness/deat
  assert.equal(view.resolve(p,1300,null),'idle');
  events.get('pet-interaction-complete')({detail:{kind:'pet'}});
  assert.equal(view.resolve({...p,petId:'two'},100,null),'idle');
+});
+test('poke shows the startled still with a short bounce, then returns to idle',()=>{
+ const {c,view,ctx,events,calls}=boot(),p=pet(),before=JSON.stringify(p);c.petDataManager={read:()=>({pet:p})};
+ events.get('pet-interaction-complete')({detail:{kind:'poke'}});
+ assert.equal(view.resolve(p,100,null),'shock');
+ assert.equal(view.resolve({...p,healthState:'sick'},100,null),'sick');
+ assert.equal(view.resolve(p,100,'feed'),'eat');
+ assert.equal(view.draw(ctx,p,100,null,0,false).state,'shock');
+ assert.match(calls.at(-1)[0].src,/shock-still-v1\.png$/);
+ const rest=calls.at(-1)[6];view.draw(ctx,p,230,null,0,false);
+ assert(calls.at(-1)[6]<rest,'bounces upward');
+ view.draw(ctx,p,240,null,0,true);assert.equal(calls.at(-1)[6],rest,'reduced motion stays still');
+ assert.equal(view.draw(ctx,p,1300,null,0,false).state,'idle');
+ assert.equal(JSON.stringify(p),before);
 });
 test('unavailable art falls back without breaking rendering',()=>{
  const {view,ctx,calls}=boot();view.paint(ctx,'dead',0,true);calls.at(-1)[0].complete=false;
