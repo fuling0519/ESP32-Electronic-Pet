@@ -1,6 +1,7 @@
 /* Mock-only gestures. No raw adapter access or BLE writes. */
 (()=>{'use strict';
 const scene=document.querySelector('.scene'),canvas=document.querySelector('#bird');
+const care=document.querySelector('.care');if(care){scene.append(care);const feed=care.querySelector('[data-action="feed"]');if(feed){feed.setAttribute('aria-label','餵食');feed.innerHTML='<span class="bowl-icon" aria-hidden="true"></span>';}}
 const panel=document.createElement('section');panel.className='pet-interactions';panel.setAttribute('aria-label','寵物觸碰互動');
 panel.innerHTML='<strong>觸碰互動</strong><button type="button" id="tool-pet" aria-pressed="true">✋ 摸頭／順毛</button><button type="button" id="tool-poke" aria-pressed="false">╱ 樹枝戳戳</button><button type="button" id="touch-once">互動一下</button><p id="touch-help">選工具後輕點角色，或在頭上滑一下順毛。每次心情＋3／－3，間隔3秒，不給EXP。</p><p id="touch-result" role="status" aria-live="polite"></p>';
 document.querySelector('.care').after(panel);
