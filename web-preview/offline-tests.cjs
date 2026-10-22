@@ -103,6 +103,12 @@ test('fragmented UTF-8 snapshot is reassembled, malformed data never replaces ca
  for(let i=0;i<count;i++){const fragment=new Uint8Array(4+Math.min(16,bytes.length-i*16));fragment.set([1,0,i,count]);fragment.set(bytes.slice(i*16,i*16+16),4);ble.receive(new DataView(fragment.buffer));}
  assert.equal(m.read('ble').pet.name,'山雀');ble.receive(new DataView(new Uint8Array([2,0,1,2,1]).buffer));assert.equal(m.read('ble').pet.name,'山雀');assert.equal(ble.partial,null);
 });
+test('main page loads the reviewed cleaning player before the application',()=>{
+ const html=fs.readFileSync(__dirname+'/index.html','utf8'),app=fs.readFileSync(__dirname+'/app.js','utf8');
+ const data=html.indexOf('assets/shared/cleaning/animation-v1/animation-data.js'),foam=html.indexOf('assets/shared/cleaning/foam-study-v2/foam-data.js'),view=html.indexOf('cleaning-animation-view.js'),main=html.lastIndexOf('app.js');
+ assert.ok(data>=0&&data<foam&&foam<view&&view<main,'cleaning data and player load before the main app');
+ assert.match(app,/window\.CleaningAnimationView/);assert.match(app,/view\.draw\(ctx,elapsed/);assert.match(app,/action==='clean'\?cleanDuration\(\):3\.4/);
+});
 test('UI boots and care, death/adoption, source switch run through DataManager',()=>{
  const {c,m,elements}=boot();const get=s=>c.document.querySelector(s);const buttons=['feed','clean','play','treat'].map(kind=>({dataset:{action:kind},addEventListener(type,fn){this.click=fn;}}));
  const artCalls=[];const drawing=new Proxy({drawImage(im){artCalls.push(im.src);},createRadialGradient:()=>({addColorStop(){}}),createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});
@@ -181,4 +187,12 @@ test('storage backoff keeps latest data, allows explicit retry and resets after 
 test('game boundaries enforce reveal/feedback delay, hidden opponent and timeout without replay',()=>{
  const {c,m}=boot();m.startGame('rps',0);const original=c.PetSources.mock.game.opponent;assert.equal(m.gameState(0).opponent,undefined);m.answerGame(0,0);assert.equal(c.PetSources.mock.game.opponent,original);assert.equal(m.gameState(1049).phase,'countdown');assert.equal(m.gameState(1050).phase,'round-result');m.nextRound(1849);assert.equal(m.gameState(1849).round,1);m.nextRound(1850);assert.equal(m.gameState(1850).round,2);
  m.startGame('memory',0);const g=c.PetSources.mock.game;m.gameState(10000);assert.equal(g.phase,'show');assert.equal(g.noteIndex,0);let now=10000;while(g.phase==='show'){now=g.nextAt;m.gameState(now);}const deadline=g.until;m.answerGame(g.sequence[0],deadline);assert.equal(m.gameState(deadline).phase,'round-result');assert.equal(g.correct,false);assert.equal(m.read().pet.exp,0);
+});
+
+test('feeding and cleaning at 100 still play like the firmware, without extra EXP',()=>{
+ const app=fs.readFileSync(__dirname+'/app.js','utf8');
+ assert.doesNotMatch(app,/已達 100/);assert.doesNotMatch(app,/吃飽囉/);
+ const {c,m}=boot(),p=c.PetSources.mock.pet;p.satiety=100;p.cleanliness=100;const exp=p.exp;
+ assert.equal(m.command('feed').actual,0);assert.equal(m.command('clean').actual,0);
+ assert.equal(p.satiety,100);assert.equal(p.cleanliness,100);assert.equal(p.exp,exp);
 });

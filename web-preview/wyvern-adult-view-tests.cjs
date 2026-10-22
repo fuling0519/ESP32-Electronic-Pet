@@ -152,7 +152,7 @@ test('manual flight still respects care and health, reduced motion and unloaded 
  assert.equal(view.resolve({...p,sleepMode:'normal'},0,null),'sleep');
  assert.equal(view.resolve({...p,healthState:'sick'},0,null),'sick');
  assert.equal(view.resolve({...p,mood:20},0,null),'sad');
- assert.equal(view.resolve(p,0,'feed'),'idle');
+ assert.equal(view.resolve(p,0,'feed'),'eat');
  assert.equal(view.draw(ctx,p,0,null,0,true).state,'idle');
  view.paint(ctx,'flight',0,false);calls.at(-1)[0].complete=false;
  assert.equal(view.paintTravel(ctx,2000).state,'idle');
@@ -164,4 +164,14 @@ test('late flight images begin with a fresh grounded wait instead of joining a r
  im.complete=true;
  assert.equal(advance(view,ctx,p,9100,33000).state,'idle');
  assert.equal(advance(view,ctx,p,33100,34100).state,'flight');
+});
+
+test('eating repeats bite and chew three times, empties the bowl one step per bite, then smiles',()=>{
+ const {view}=boot(),at=ms=>({...view.eatSample(ms)});
+ assert.deepEqual([0,449,450,849,850,1699,1700,2549,2550,2999].map(at),[
+  {frame:1,bowl:0},{frame:1,bowl:0},{frame:2,bowl:1},{frame:2,bowl:1},{frame:1,bowl:1},
+  {frame:2,bowl:2},{frame:1,bowl:2},{frame:2,bowl:3},{frame:3,bowl:3},{frame:3,bowl:3}]);
+ // VM-realm objects are spread for deep comparison. Reduced motion keeps the chewing pose, but the smile still waits for the empty bowl.
+ assert.deepEqual({...view.eatSample(0,true)},{frame:2,bowl:0});
+ assert.deepEqual({...view.eatSample(2600,true)},{frame:3,bowl:3});
 });

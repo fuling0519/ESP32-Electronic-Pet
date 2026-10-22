@@ -1,0 +1,1 @@
+window.CleaningStyleStudySettings={"file":"assets/shared/cleaning/style-study-v4/sponge-sample-v4.png","tool":{"width":838,"height":807},"defaultWidth":60,"shrinkTool":false,"label":"Sponge","bottomOffset":26,"toolX":215,"sampleBottom":410};

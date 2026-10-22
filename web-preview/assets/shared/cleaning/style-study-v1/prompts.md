@@ -1,0 +1,17 @@
+# Imagegen prompts — cleaning palette study v1
+
+Tool: built-in image_gen, `transparent_background: true`. Static samples, not animation sheets.
+
+## Soap
+
+References, in order: `web-preview/assets/pets/wyvern/adult/idle-preview-v1.png`; `web-preview/assets/pets/bird/white-idle-v2.png`.
+
+Create ONE standalone soap-bar game prop, a static style sample for a shared pet-washing animation. The attached purple wyvern and white bird are STYLE REFERENCES ONLY: match their charming soft pastel pixel-art, stepped pixel contours, modest clustered shading, top-left light, soft dark desaturated outline. DO NOT draw any pet or character. Only one chunky rounded rectangular bar of pale warm creamy ivory soap, seen in a gentle three-quarter view showing top, front and right thickness, no text, no logo, no face, no dish, no foam, no bubbles, no ground shadow. Neutral shared accessory, not themed after either animal. Palette direction: ivory highlight #FFF8E8, cream body #F4DFC0, muted peach-beige shadow #D9B6A0, soft gray-violet outline #786B83. Use a few clear shade clusters rather than dense texture. Broad readable silhouette intended to be shown only 32 pixels wide next to a 126-pixel pet. Pixel art, clean chunky deliberate pixel steps, no smooth vector edging, no photorealism or blur. Center one complete isolated soap with generous transparent margins, genuine transparent alpha PNG background. The asset itself should be wide, roughly 1.6:1 width to height. This is a single static prop, not a sheet, not a concept board.
+
+## Foam
+
+References, in order: `soap-source-v1.png`; `web-preview/assets/pets/wyvern/adult/idle-preview-v1.png`; `web-preview/assets/pets/bird/white-idle-v2.png`.
+
+Create ONE small isolated soap FOAM CLUSTER game-effect sprite, STATIC color/style sample for a universal pet-washing effect. Reference 1 is the approved-for-study cream SOAP PROP style companion: match its stepped pixel contour and simple readable clustered shading. References 2 and 3 are existing pets, STYLE ONLY; do not draw any animal or soap. Subject: a low irregular mound of about 6 rounded overlapping suds lobes, 3 major lobes and 3 small connecting ones, a couple tiny integrated round bubbles, compact organic silhouette, width about 1.6 times height. All suds belong to ONE connected cluster. No detached floating bubble satellite, no soap, no water or puddle, no props, no ground, no cast shadow, no labels. Chalky milk-white foam highlights #F5FCF8, pale blue-white body #DDEFF1, desaturated aqua-blue shadow #A8CBD6, subdued blue-gray edge #758B9D. The blue-gray shadow/edge must be distinct enough that foam reads on a WHITE bird, but is gentle against a pastel purple wyvern. Soft top-left light, opaque foamy lobes with small discrete highlights, not transparent glass marbles, no iridescence. Clear simple PIXEL ART with visible chunky stepped contours and few broad shade clusters, no photorealism, no blur or smooth vector edging. Match softness and visual detail density of references; no thick black border. Intended displayed size is only 28 pixels wide beside a 126px pet; avoid tiny internal ornament. Center the single complete cluster with generous transparent margins. Real transparent alpha PNG background. Single static sprite, not an animation sheet, not a concept board.
+
+The wording "approved-for-study" describes the selected soap reference for this experiment; neither sample has user art approval yet.

@@ -1,0 +1,455 @@
+{
+  "tool": "built-in image_gen",
+  "operations": [
+    "crop",
+    "integer translation",
+    "transparent canvas padding"
+  ],
+  "pixelPolicy": "No source resampling, color replacement, alpha thresholding, or repainting. Source alpha retained inside recorded crops.",
+  "limitations": [
+    "Generated frame alignment is approximate before translation.",
+    "Subtle pores and individual bubbles are redrawn between frames; source drawing scale is retained.",
+    "Low-alpha edge artifacts remain within crops. Original sources preserve all generated pixels.",
+    "Visual approval and browser animation acceptance remain pending."
+  ],
+  "assets": {
+    "sponge": {
+      "sourceFile": "sponge-source-v1.png",
+      "sourceSize": [
+        2172,
+        724
+      ],
+      "sourceSha256": "ac98892919d46b95d5de7bd6241ce04c46c9368483fb3ba3e9a55caa5625b2f1",
+      "atlasFile": "sponge-sheet-v1.png",
+      "atlasSize": [
+        2112,
+        704
+      ],
+      "atlasSha256": "a2af569a83f1b957d90e9386bd4cb3aa0603114d8727e0103eeacf6d7520aafd",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "referenceFrame": 0,
+      "frames": [
+        {
+          "index": 0,
+          "sourceCrop": [
+            40,
+            40,
+            700,
+            700
+          ],
+          "sourcePivot": [
+            365,
+            366
+          ],
+          "cellPaste": [
+            27,
+            26,
+            687,
+            686
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            47,
+            43,
+            679,
+            662
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            50,
+            50,
+            652,
+            653
+          ],
+          "visiblePixelCount": 247836
+        },
+        {
+          "index": 1,
+          "sourceCrop": [
+            770,
+            40,
+            1400,
+            700
+          ],
+          "sourcePivot": [
+            1086,
+            366
+          ],
+          "cellPaste": [
+            36,
+            26,
+            666,
+            686
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            55,
+            48,
+            652,
+            662
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            61,
+            52,
+            644,
+            653
+          ],
+          "visiblePixelCount": 237257
+        },
+        {
+          "index": 2,
+          "sourceCrop": [
+            1490,
+            40,
+            2140,
+            700
+          ],
+          "sourcePivot": [
+            1815,
+            366
+          ],
+          "cellPaste": [
+            27,
+            26,
+            677,
+            686
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            47,
+            47,
+            663,
+            662
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            50,
+            50,
+            653,
+            653
+          ],
+          "visiblePixelCount": 247404
+        }
+      ]
+    },
+    "foam": {
+      "sourceFile": "foam-source-v1.png",
+      "sourceSize": [
+        1774,
+        887
+      ],
+      "sourceSha256": "1f5bd9a14e3c162a1e17f44da89775672f16030a42296bd5da6dcdf87af550d2",
+      "atlasFile": "foam-sheet-v1.png",
+      "atlasSize": [
+        2048,
+        1024
+      ],
+      "atlasSha256": "26de6ab45258624e75237282c2cb18b471f5e7c762ac8407e763ace2616f7549",
+      "sourceAlphaRange": [
+        0,
+        255
+      ],
+      "referenceFrame": 4,
+      "frames": [
+        {
+          "index": 0,
+          "sourceCrop": [
+            150,
+            195,
+            370,
+            425
+          ],
+          "sourcePivot": [
+            250,
+            310
+          ],
+          "cellPaste": [
+            156,
+            141,
+            376,
+            371
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            168,
+            141,
+            376,
+            371
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            181,
+            162,
+            356,
+            340
+          ],
+          "visiblePixelCount": 20009
+        },
+        {
+          "index": 1,
+          "sourceCrop": [
+            525,
+            190,
+            810,
+            425
+          ],
+          "sourcePivot": [
+            665,
+            310
+          ],
+          "cellPaste": [
+            116,
+            136,
+            401,
+            371
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            116,
+            136,
+            401,
+            371
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            138,
+            157,
+            377,
+            349
+          ],
+          "visiblePixelCount": 34819
+        },
+        {
+          "index": 2,
+          "sourceCrop": [
+            915,
+            135,
+            1290,
+            470
+          ],
+          "sourcePivot": [
+            1100,
+            305
+          ],
+          "cellPaste": [
+            71,
+            86,
+            446,
+            421
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            71,
+            86,
+            446,
+            421
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            93,
+            105,
+            424,
+            398
+          ],
+          "visiblePixelCount": 76105
+        },
+        {
+          "index": 3,
+          "sourceCrop": [
+            1330,
+            100,
+            1760,
+            480
+          ],
+          "sourcePivot": [
+            1538,
+            305
+          ],
+          "cellPaste": [
+            48,
+            51,
+            478,
+            431
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            48,
+            51,
+            478,
+            431
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            62,
+            71,
+            453,
+            418
+          ],
+          "visiblePixelCount": 105411
+        },
+        {
+          "index": 4,
+          "sourceCrop": [
+            40,
+            480,
+            490,
+            860
+          ],
+          "sourcePivot": [
+            256,
+            665
+          ],
+          "cellPaste": [
+            40,
+            71,
+            490,
+            451
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            41,
+            71,
+            490,
+            451
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            68,
+            84,
+            459,
+            426
+          ],
+          "visiblePixelCount": 107589
+        },
+        {
+          "index": 5,
+          "sourceCrop": [
+            515,
+            505,
+            875,
+            840
+          ],
+          "sourcePivot": [
+            695,
+            665
+          ],
+          "cellPaste": [
+            76,
+            96,
+            436,
+            431
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            76,
+            96,
+            436,
+            431
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            98,
+            112,
+            413,
+            405
+          ],
+          "visiblePixelCount": 73324
+        },
+        {
+          "index": 6,
+          "sourceCrop": [
+            975,
+            555,
+            1245,
+            800
+          ],
+          "sourcePivot": [
+            1100,
+            680
+          ],
+          "cellPaste": [
+            131,
+            131,
+            401,
+            376
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            131,
+            131,
+            401,
+            376
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            148,
+            153,
+            379,
+            353
+          ],
+          "visiblePixelCount": 34698
+        },
+        {
+          "index": 7,
+          "sourceCrop": [
+            1460,
+            570,
+            1680,
+            790
+          ],
+          "sourcePivot": [
+            1544,
+            680
+          ],
+          "cellPaste": [
+            172,
+            146,
+            392,
+            366
+          ],
+          "alphaRange": [
+            0,
+            255
+          ],
+          "alphaBBox": [
+            180,
+            146,
+            392,
+            366
+          ],
+          "opaqueCoreBBoxAt128ForMeasurementOnly": [
+            190,
+            165,
+            374,
+            343
+          ],
+          "visiblePixelCount": 22758
+        }
+      ]
+    }
+  }
+}

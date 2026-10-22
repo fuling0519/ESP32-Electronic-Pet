@@ -1,0 +1,262 @@
+{
+  "tool": "built-in image_gen",
+  "processing": "crop, integer translation, transparent padding only; no resampling, alpha alteration or recolor",
+  "measureThreshold": 160,
+  "sources": {
+    "shower-source-01.png": {
+      "originalPath": "C:\\Users\\Student\\.codex\\generated_images\\01a1618c-b77d-7a92-afaa-3ca5d392bf0f\\exec-3e512438-8366-4615-bae6-73d4949ccc3d.png",
+      "sha256": "7c21de8f47bdfbdc1189be9e2b8f82a21e2d02e2a61ce14cd4aad6381e8bd646",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "shower-source-02.png": {
+      "originalPath": "C:\\Users\\Student\\.codex\\generated_images\\01a1618c-b77d-7a92-afaa-3ca5d392bf0f\\exec-4e7c531a-4f2a-43ba-a8f8-9a9bb40b3908.png",
+      "sha256": "d66dcc77288190cf730929416f1fa63d5548a7b86623aaa5cfebefad7b50599f",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "shower-source-03.png": {
+      "originalPath": "C:\\Users\\Student\\.codex\\generated_images\\01a1618c-b77d-7a92-afaa-3ca5d392bf0f\\exec-b05f97cd-ff9c-4a57-af86-21fcba3be2fd.png",
+      "sha256": "7a8346b43d22b470f99cab3ac1fe658ab2a793c920a9ca92a124f4c6389db060",
+      "size": [
+        1278,
+        1230
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "water-source-01.png": {
+      "originalPath": "C:\\Users\\Student\\.codex\\generated_images\\01a1618c-b77d-7a92-afaa-3ca5d392bf0f\\exec-f343b486-8245-4919-81ba-96ffbbd7571d.png",
+      "sha256": "6927e880b622b8531db285e4d64bcaa02490059a0b1907275b11bf8630ac8dc0",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "water-source-02.png": {
+      "originalPath": "C:\\Users\\Student\\.codex\\generated_images\\01a1618c-b77d-7a92-afaa-3ca5d392bf0f\\exec-ba8a0db3-3587-40a0-b74d-7ee00348294e.png",
+      "sha256": "7dcaf09e37fb4ea36d4c5e1e38c2032b63bc253e61ab643e5620205e928b682d",
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    }
+  },
+  "frames": {
+    "shower": [
+      {
+        "sourceRect": [
+          145,
+          119,
+          1218,
+          1142
+        ],
+        "paste": [
+          0,
+          0
+        ],
+        "mainBoundsSource": [
+          157,
+          131,
+          1206,
+          1130
+        ],
+        "nozzleSource": [
+          495,
+          852
+        ]
+      }
+    ],
+    "water": [
+      {
+        "sourceRect": [
+          0,
+          0,
+          512,
+          512
+        ],
+        "sourceAnchor": [
+          355,
+          90
+        ],
+        "pasteWithinCell": [
+          45,
+          10
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          118,
+          79,
+          386,
+          444
+        ]
+      },
+      {
+        "sourceRect": [
+          512,
+          0,
+          1024,
+          512
+        ],
+        "sourceAnchor": [
+          322,
+          90
+        ],
+        "pasteWithinCell": [
+          78,
+          10
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          68,
+          79,
+          367,
+          455
+        ]
+      },
+      {
+        "sourceRect": [
+          1024,
+          0,
+          1536,
+          512
+        ],
+        "sourceAnchor": [
+          291,
+          90
+        ],
+        "pasteWithinCell": [
+          109,
+          10
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          35,
+          79,
+          339,
+          455
+        ]
+      },
+      {
+        "sourceRect": [
+          0,
+          512,
+          512,
+          1024
+        ],
+        "sourceAnchor": [
+          355,
+          66
+        ],
+        "pasteWithinCell": [
+          45,
+          34
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          87,
+          55,
+          413,
+          440
+        ]
+      },
+      {
+        "sourceRect": [
+          512,
+          512,
+          1024,
+          1024
+        ],
+        "sourceAnchor": [
+          322,
+          66
+        ],
+        "pasteWithinCell": [
+          78,
+          34
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          53,
+          55,
+          387,
+          440
+        ]
+      },
+      {
+        "sourceRect": [
+          1024,
+          512,
+          1536,
+          1024
+        ],
+        "sourceAnchor": [
+          291,
+          66
+        ],
+        "pasteWithinCell": [
+          109,
+          34
+        ],
+        "anchor": [
+          400,
+          100
+        ],
+        "mainBoundsSourceCell": [
+          48,
+          55,
+          339,
+          430
+        ]
+      }
+    ]
+  },
+  "shower-sheet-v1.png": {
+    "sha256": "61bc4074abd9c1afc0846182f48434c1f0ed4bfbc005ccd6cc3f9aa66ec2523b"
+  },
+  "water-sheet-v1.png": {
+    "sha256": "2ff062661af59b49e12a473b15f9ea969d78b8d7458cdff7efbd72f0a88a7769"
+  }
+}

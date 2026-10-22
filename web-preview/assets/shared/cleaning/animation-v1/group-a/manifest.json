@@ -1,0 +1,35 @@
+{
+  "assets": {
+    "sponge": {
+      "file": "group-a/sponge-sheet-v1.png",
+      "cellWidth": 704,
+      "cellHeight": 704,
+      "columns": 3,
+      "frameCount": 3,
+      "anchor": [
+        352,
+        352
+      ],
+      "referenceWidth": 602,
+      "suggestedWidth": 60,
+      "timesMs": [
+        140,
+        120,
+        140
+      ]
+    },
+    "foam": {
+      "file": "group-a/foam-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 4,
+      "frameCount": 8,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 391,
+      "suggestedWidth": 64
+    }
+  }
+}

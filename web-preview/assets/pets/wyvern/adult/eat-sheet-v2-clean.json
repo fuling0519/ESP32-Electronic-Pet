@@ -1,0 +1,30 @@
+{
+ "cell": 767,
+ "frames": [
+  {
+   "index": 0,
+   "feetY": 721,
+   "scale": 1.0
+  },
+  {
+   "index": 1,
+   "feetY": 721,
+   "scale": 1.0
+  },
+  {
+   "index": 2,
+   "feetY": 721,
+   "scale": 1.0
+  },
+  {
+   "index": 3,
+   "feetY": 721,
+   "scale": 1.0
+  }
+ ],
+ "order": "left-right,top-bottom",
+ "sourceSize": [
+  1402,
+  1122
+ ]
+}

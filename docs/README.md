@@ -22,7 +22,7 @@
 - [PROTOCOL.md](../esp32_pet_app/PROTOCOL.md)：UUID、命令、欄位、分片及相容性要求。兩組修改介面時共同更新；規格要求不代表驗收通過。
 - [Web 計畫](features/web-phase-plan.md)：W0～W8 工作範圍、依賴及驗收條件。進度在主台帳，改需求／分工才改本檔。
 - [架構](reference/architecture.md)：原始碼責任與資料流，模組邊界改變時更新。
-- [觸摸第一階段方案](features/touch-interaction-phase1.md)：保存來源分析與已確認美術；觸摸功能已實作，使用者已部分實機觸發，完整驗收因焊接未完成而待補，最新結果見主台帳 TOUCH-HW-PARTIAL 及[觸摸驗收](testing/touch-test.md)。
+- [觸摸第一階段方案](features/touch-interaction-phase1.md)：保存來源分析與已確認美術；觸摸功能已實作並有部分實機觸發回報，2026-10-22焊接完成後已更新MODE 1校正，完整互動驗收待補，最新結果見主台帳及[觸摸驗收](testing/touch-test.md)。
 - [OLED 排版](reference/ui-layout-guide.md)：OLED 排版規則與已接受的座標基準，版面規格改變時更新；驗收結果回主台帳。
 - [髒污預覽](guides/dirty-preview.md)：髒污預覽操作與素材產生方法，操作或素材配置改變時更新。
 - [送別驗收](testing/farewell-test.md)：送別、紀念冊、存檔升級及中斷恢復驗收；含實際 UI 動畫預覽。

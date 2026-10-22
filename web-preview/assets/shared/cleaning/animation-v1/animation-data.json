@@ -1,0 +1,98 @@
+{
+  "durationSeconds": 4.2,
+  "spongeReferenceDisplayWidth": 60,
+  "spongeShrinksForBaby": false,
+  "assets": {
+    "sponge": {
+      "file": "group-a/sponge-sheet-v1.png",
+      "cellWidth": 704,
+      "cellHeight": 704,
+      "columns": 3,
+      "frameCount": 3,
+      "anchor": [
+        352,
+        352
+      ],
+      "referenceWidth": 602,
+      "suggestedWidth": 60,
+      "timesMs": [
+        140,
+        120,
+        140
+      ]
+    },
+    "foam": {
+      "file": "group-a/foam-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 4,
+      "frameCount": 8,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 391,
+      "suggestedWidth": 64
+    },
+    "shower": {
+      "file": "group-b/shower-sheet-v1.png",
+      "cellWidth": 1073,
+      "cellHeight": 1023,
+      "columns": 1,
+      "frameCount": 1,
+      "anchor": [
+        536,
+        512
+      ],
+      "referenceWidth": 1049,
+      "suggestedWidth": 58,
+      "nozzle": [
+        350,
+        733
+      ]
+    },
+    "water": {
+      "file": "group-b/water-sheet-v1.png",
+      "cellWidth": 640,
+      "cellHeight": 640,
+      "columns": 3,
+      "frameCount": 6,
+      "anchor": [
+        400,
+        100
+      ],
+      "referenceWidth": 334,
+      "suggestedWidth": 80,
+      "flowEnd": [
+        -110,
+        350
+      ]
+    },
+    "drops": {
+      "file": "group-c/drops-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 3,
+      "frameCount": 5,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 379,
+      "suggestedWidth": 18
+    },
+    "sparkle": {
+      "file": "group-c/sparkle-sheet-v1.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "columns": 3,
+      "frameCount": 5,
+      "anchor": [
+        256,
+        256
+      ],
+      "referenceWidth": 348,
+      "suggestedWidth": 22
+    }
+  }
+}
