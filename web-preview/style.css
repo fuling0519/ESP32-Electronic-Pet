@@ -105,3 +105,16 @@ dialog button,dialog select{max-width:100%;white-space:normal}
 .pet-status-main{display:grid;gap:4px}.pet-status-main strong{font-size:20px}.pet-status-main span{font-size:13px}
 .pet-status-grid{display:grid;grid-template-columns:1fr auto;gap:7px 20px;padding:14px 8px;font-size:15px}.pet-status-grid strong{color:#66518a;text-align:right}.status-meter-value,.status-exp-value{display:grid;grid-template-columns:auto;gap:4px;justify-items:end}.status-meter-value progress,.status-exp-value progress{width:150px;height:10px;accent-color:#b47ea9}.status-meter-value strong,.status-exp-value strong{line-height:1.2}
 .details{display:none}
+/* Device companion home: demo-only controls live in the collapsed panel and hide in device mode. */
+#aviary.device-mode .care,#aviary.device-mode .pet-interactions,#aviary.device-mode #adopt-egg,#aviary.device-mode #demo-panel{display:none!important}
+#connection.primary{background:var(--ink);color:#fffaf0;border-color:var(--ink);font-weight:bold}
+#mode-label{font-weight:bold}#mode-toggle{font-size:12px;padding:4px 10px}
+#device-empty button{margin-top:6px}
+#demo-panel{margin-top:18px;border:2px dashed var(--line);padding:0 14px;background:var(--panel)}
+#demo-panel>h2{font-size:15px;margin:12px 0 6px}
+#demo-panel>p{font-size:13px;margin:0 0 10px}
+#demo-panel select{font:inherit;padding:6px;color:var(--ink);max-width:100%}
+#demo-panel .preview-controls{border-bottom:0}
+.demo-actions{display:flex;gap:10px;flex-wrap:wrap;padding:0 0 14px}.demo-actions button{min-height:40px}
+#aviary .preview-controls [hidden]{display:none!important}
+@media(max-width:650px){#device-empty{top:38%;padding:10px}#device-empty p{display:none}}

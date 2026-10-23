@@ -8,7 +8,7 @@ function drawBirdAppearance(cx,cy,scale=3){
  const w=64*scale,h=44*scale,fit=Math.min(w/birdHybrid.naturalWidth,h/birdHybrid.naturalHeight),dw=birdHybrid.naturalWidth*fit,dh=birdHybrid.naturalHeight*fit;
  ctx.imageSmoothingEnabled=false;ctx.drawImage(birdHybrid,cx-dw/2,cy-dh/2,dw,dh);
 }
-let speciesPreview=typeof location!=='undefined'&&/(?:[?&])preview=wyvern(?:&|$)/.test(location.search||'')?'2':typeof location!=='undefined'&&/(?:[?&])preview=bird(?:&|$)/.test(location.search||'')?'1':'auto',celebrationUntil=0,reminderPending=false,lastReminder=-Infinity,previousSad=null,previousHealth=null,previousSleep=null;let mode='mock';const manager=window.petDataManager;
+let speciesPreview=typeof location!=='undefined'&&/(?:[?&])preview=wyvern(?:&|$)/.test(location.search||'')?'2':typeof location!=='undefined'&&/(?:[?&])preview=bird(?:&|$)/.test(location.search||'')?'1':'auto',celebrationUntil=0,reminderPending=false,lastReminder=-Infinity,previousSad=null,previousHealth=null,previousSleep=null;let mode='ble';const manager=window.petDataManager;
 const defaults={satiety:60,mood:55,cleanliness:45};let state={...defaults},action=null,actionStart=0,treatmentResult=null,night=false,resetToken=0;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 let postcardAttemptAt=-Infinity,postcardSavedFor=null;
@@ -144,7 +144,7 @@ document.querySelector('#stage').onchange=preview;document.querySelector('#art-s
 document.querySelector('#reset').onclick=()=>{if(mode!=='mock')return;manager.reset();previousSad=null;reminderPending=false;deathKey=null;state={...defaults};document.querySelector('#stage').value='adult';document.querySelector('#condition').value='awake';preview();update();};
 function switchMode(){root.classList.remove('healing');mode=document.querySelector('#mode').value;manager.select(mode);lastAgeTick=performance.now();action=null;resetToken++;bubble.hidden=true;root.classList.remove('is-sick');document.querySelector('#illness-notice').hidden=true;
 for(const id of ['stage','condition','reset'])document.querySelector('#'+id).disabled=mode!=='mock';
-const demo=mode==='mock';document.querySelector('#mode-label').textContent=demo?'✿ 展示模式':'◎ 裝置模式';document.querySelector('#source-label').textContent=demo?'模擬資料 · 不會影響 ESP32':'BLE 資料 · 尚未連接裝置';document.querySelector('#device-empty').hidden=demo;
+const demo=mode==='mock';root.classList.toggle('device-mode',!demo);document.querySelector('#mode-toggle').textContent=demo?'回到裝置':'進入展示模式';document.querySelector('#mode-label').textContent=demo?'✿ 展示模式':'◎ 裝置模式';document.querySelector('#source-label').textContent=demo?'模擬資料 · 不會影響 ESP32':'BLE 資料 · 尚未連接裝置';document.querySelector('#device-empty').hidden=demo;
 document.querySelector('#pet-name').textContent=demo?manager.view('mock').pet.name:'等待裝置';document.querySelector('#pet-age').textContent=demo?'有效年齡：1 小時（展示）':'有效年齡：—';document.querySelector('#mode-footer').textContent=demo?'本頁互動只作用於展示寵物。':'裝置模式以 ESP32 回報為準；本版只讀取，不發送照顧命令。';
 document.querySelector('#last-received').hidden=demo;if(demo)preview();else renderDevice();update();busy(false);savePreferences();}
 function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=snap.pet;const labels={disconnected:'未連線',selecting:'選擇裝置中',connecting:'連線中',waiting:'等待資料',ready:'裝置直連（唯讀）',cancelled:'已取消',error:'連線異常'};
@@ -155,7 +155,7 @@ function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=
  document.querySelector('#pet-age').textContent=p?'有效年齡：'+p.ageSeconds+' 秒（裝置回報）':'有效年齡：—';
  document.querySelector('#pet-description').textContent=p?({egg:'蛋',baby:'幼年',adult:'成年'}[p.stage]+' · '+{healthy:'健康',sick:'生病',dead:'已離世'}[p.health]+' · '+(p.isDeparted?'已遠行':p.condition==='sleep'?'睡眠':'清醒')+(snap.stale?' · 舊資料':'')):'尚無硬體資料';
  const noArt=!p;document.querySelector('#device-empty').hidden=!noArt;
- document.querySelector('#device-empty').textContent=!p?snap.message:p.health==='dead'?'裝置回報：寵物已離世': '裝置回報：蛋階段，等待孵化';
+ document.querySelector('#device-empty-message').textContent=!p?snap.message:p.health==='dead'?'裝置回報：寵物已離世': '裝置回報：蛋階段，等待孵化';
  if(p){stage=p.stage;condition=p.health==='dead'?'dead':p.condition;}syncLifecycle();root.classList.toggle('is-sick',!p?.isDeparted&&p?.health==='sick');document.querySelector('#illness-notice').hidden=p?.isDeparted||p?.health!=='sick';
  if(p?.isDeparted)document.querySelector('#pet-description').textContent='已遠行'+(snap.stale?' · 舊資料':'');syncHealth(p?.isDeparted?'departed':p?.health??'unknown');status.textContent=snap.message+(p&&snap.stale?'。目前顯示最後收到的舊資料，不代表即時狀態。':'')+' 真實照顧命令尚未開放。';
  canvas.setAttribute('aria-label',p?p.name+'，'+document.querySelector('#pet-description').textContent:'尚無硬體資料');update();busy(false);
@@ -165,6 +165,8 @@ function refreshConnectionButtons(){const s=manager.view('ble');document.querySe
 document.querySelector('#ble-search').onclick=()=>{document.querySelector('#mode').value='ble';switchMode();manager.connect();};
 document.querySelector('#ble-disconnect').onclick=()=>manager.disconnect();
 document.querySelector('#mode').onchange=switchMode;
+document.querySelector('#mode-toggle').onclick=()=>{document.querySelector('#mode').value=mode==='mock'?'ble':'mock';switchMode();};
+document.querySelector('#empty-search').onclick=()=>document.querySelector('#ble-search').onclick();
 document.querySelector('#connection').onclick=()=>{window.checkBleReadiness();document.querySelector('#device-dialog').showModal();};
 document.addEventListener('pet-interaction-complete',()=>{update();syncLifecycle();});document.querySelector('#species-preview').value=speciesPreview;
 document.querySelector('#species-preview').onchange=()=>{speciesPreview=document.querySelector('#species-preview').value;update();};
