@@ -18,7 +18,8 @@ test('all illustrated states draw real, complete PNG sources within the scene',(
   assert.equal(view.paint(ctx,state,0,false).state,state);
   const [im,sx,sy,sw,sh,dx,dy,dw,dh]=calls.at(-1);
   assert(sx>=0&&sy>=0&&sx+sw<=im.naturalWidth&&sy+sh<=im.naturalHeight,state+' source crop');
-  assert(Math.abs(dw/dh-sw/sh)<1e-10,state+' proportions preserved');
+  // Happy is the one deliberate x-squeeze, matching idle's eye spacing.
+  assert(Math.abs(dw/dh-sw/sh*(state==='happy'?0.86:1))<1e-10,state+' proportions preserved');
   assert(dx>=0&&dy>=0&&dx+dw<=384&&dy+dh<=256,state+' not clipped');
  }
 });
@@ -53,6 +54,18 @@ test('pet reaction expires, stays with its pet, and cannot override illness/deat
  assert.equal(view.resolve(p,1300,null),'idle');
  events.get('pet-interaction-complete')({detail:{kind:'pet'}});
  assert.equal(view.resolve({...p,petId:'two'},100,null),'idle');
+});
+test('head pat smiles from pointer-down and stays happy through release',()=>{
+ const {c,view,ctx,events,calls}=boot(),p=pet();c.petDataManager={read:()=>({pet:p})};
+ events.get('pet-touch-hold')({detail:{holding:true}});
+ assert.equal(view.resolve(p,5000,null),'happy');
+ assert.equal(view.draw(ctx,p,5000,null,0,false).index,1);
+ assert.equal(calls.at(-1)[0].src.endsWith('emotions-sheet-v1.png'),true);
+ c.performance.now=()=>6000;events.get('pet-touch-hold')({detail:{holding:false}});
+ assert.equal(view.resolve(p,7000,null),'happy');
+ assert.equal(view.resolve(p,7300,null),'idle');
+ events.get('pet-touch-hold')({detail:{holding:true}});
+ assert.equal(view.resolve({...p,healthState:'sick'},6100,null),'sick');
 });
 test('poke shows the startled still with a short bounce, then returns to idle',()=>{
  const {c,view,ctx,events,calls}=boot(),p=pet(),before=JSON.stringify(p);c.petDataManager={read:()=>({pet:p})};

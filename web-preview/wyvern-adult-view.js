@@ -11,7 +11,8 @@ const poses={
  idle:{file:'idle-subtle-sheet-v2.png',cell:777,columns:2,frames:[0,1,2,3],times:[220,160,220,320],anchor:[388,659],scale:126/522},
  sad:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[0,1],times:[2200,240],anchor:[234,444],scale:126/423},
  sick:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[2,3],times:[1400,900],anchor:[234,444],scale:120/399},
- happy:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[4,5],times:[1800,650],anchor:[234,444],scale:126/368},
+ // Happy art has a ~16% wider face than idle at equal height; squeeze x to idle's eye spacing.
+ happy:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[4,5],times:[1800,650],anchor:[234,444],scale:126/368,scaleX:0.86},
  sleep:{files:['sleep-00.png','sleep-01.png'],times:[1100,900],rect:[0,0,887,640],anchor:[456,588],scale:180/832},
  dead:{file:'dead-still-v1.png',times:[1],rect:[0,0,1684,934],anchor:[848,856],scale:200/1592},
  // Scale matches idle's eye spacing; horn-to-feet would shrink this pose's head.
@@ -70,6 +71,13 @@ function syncControls(p,enabled){
  if(controlsEnabled!==enabled||!eligible(p))resetMotion();controlsEnabled=enabled;
  if(!enabled){preview='auto';if(select)select.value='auto';reaction=null;}
 }
+// Head pat smiles from pointer-down; release restarts the 1.2 s window so the
+// face stays happy through the tap delay until the interaction completes.
+document.addEventListener('pet-touch-hold',e=>{
+ const p=window.petDataManager?.read().pet;
+ if(e.detail?.holding){if(eligible(p))reaction={kind:'pet',petId:p.petId,start:performance.now(),holding:true};}
+ else if(reaction?.holding)reaction={...reaction,start:performance.now(),holding:false};
+});
 document.addEventListener('pet-interaction-complete',e=>{
  const p=window.petDataManager?.read().pet;
  if(eligible(p)&&e.detail)reaction={kind:e.detail.kind,petId:p.petId,start:performance.now()};
@@ -78,7 +86,7 @@ function resolve(p,now,action){
  if(p.healthState==='dead')return 'dead';
  if(p.sleepMode==='normal')return 'sleep';
  if(p.healthState==='sick'||action==='treat')return 'sick';
- if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200))reaction=null;
+ if(reaction&&(reaction.petId!==p.petId||(!reaction.holding&&now-reaction.start>=1200)))reaction=null;
  if(reaction&&!action)return reaction.kind==='pet'?'happy':'shock';
  if(action==='feed')return 'eat';
  if(action==='clean')return 'idle';
@@ -97,12 +105,12 @@ function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,op
  if(!im.complete||!im.naturalWidth)return false;
  let rect=pose.rect;
  if(pose.cell||pose.cellWidth){const frame=pose.frames[index],cw=pose.cellWidth||pose.cell,ch=pose.cellHeight||pose.cell;rect=[frame%pose.columns*cw,Math.floor(frame/pose.columns)*ch,cw,ch];}
- const [sx,sy,w,h]=rect,scale=pose.scale*size;
+ const [sx,sy,w,h]=rect,scale=pose.scale*size,scaleX=scale*(pose.scaleX||1);
  // Crop only at draw time; source files remain intact. Preserve each pose's proportions.
  ctx.save();ctx.imageSmoothingEnabled=false;
  ctx.globalAlpha=(ctx.globalAlpha??1)*opacity;
- if(facing<0){ctx.translate(x,y);ctx.scale(-1,1);ctx.drawImage(im,sx,sy,w,h,-pose.anchor[0]*scale,-pose.anchor[1]*scale,w*scale,h*scale);}
- else ctx.drawImage(im,sx,sy,w,h,x-pose.anchor[0]*scale,y-pose.anchor[1]*scale,w*scale,h*scale);
+ if(facing<0){ctx.translate(x,y);ctx.scale(-1,1);ctx.drawImage(im,sx,sy,w,h,-pose.anchor[0]*scaleX,-pose.anchor[1]*scale,w*scaleX,h*scale);}
+ else ctx.drawImage(im,sx,sy,w,h,x-pose.anchor[0]*scaleX,y-pose.anchor[1]*scale,w*scaleX,h*scale);
  ctx.restore();
  return {state,index};
 }
@@ -149,7 +157,9 @@ function draw(ctx,p,now,action,elapsed,reduced){
   const result=paint(ctx,'eat',0,reduced,{x:190+dx,y:177+dy-offset,frame:s.frame});
   return result&&{...result,bowlSeconds:s.bowl*.75+.01};
  }
- return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset});
+ // A head pat holds the squint smile; happy's open-eye frame reads almost like idle.
+ const smile=reaction?.kind==='pet'&&!action&&state==='happy'?1:null;
+ return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile});
 }
 document.addEventListener('visibilitychange',resetMotion);
 window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,draw,resolve,syncControls,

@@ -23,10 +23,10 @@ function openStatus(){const p=petDataManager.read().pet;if(!p)return;const speci
 function interact(at=null){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return;}if(!at){const t=touchTarget();at={x:t.x,y:t.y-20};}
  try{const r=petDataManager.command(tool);effect={kind:tool,start:performance.now(),...at,petId:petDataManager.read().pet.petId};result.textContent=(tool==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！')+' 心情 '+(r.actual>=0?'+':'')+r.actual+'。';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind:tool}}));}catch(e){result.textContent=e.message;}}
 once.onclick=()=>interact();
-canvas.addEventListener('pointerdown',e=>{if(e.button!==0||!allowed())return;const p=point(e);if(!hit(p))return;down={...p,id:e.pointerId};canvas.setPointerCapture(e.pointerId);e.preventDefault();});
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0||!allowed())return;const p=point(e);if(!hit(p))return;down={...p,id:e.pointerId};canvas.setPointerCapture(e.pointerId);e.preventDefault();if(tool==='pet')document.dispatchEvent(new CustomEvent('pet-touch-hold',{detail:{holding:true}}));});
 canvas.addEventListener('pointermove',e=>{hover=point(e);});
-canvas.addEventListener('pointerup',e=>{if(!down||e.pointerId!==down.id)return;const p=point(e);down=null;if(!hit(p))return;const now=performance.now();if(now-lastTapAt<380){clearTimeout(tapTimer);tapTimer=null;lastTapAt=0;openStatus();return;}lastTapAt=now;clearTimeout(tapTimer);tapTimer=setTimeout(()=>{tapTimer=null;interact(p);},380);});
-canvas.addEventListener('pointercancel',()=>{down=null;});canvas.addEventListener('pointerleave',()=>{hover=null;});
+canvas.addEventListener('pointerup',e=>{if(!down||e.pointerId!==down.id)return;const p=point(e);down=null;document.dispatchEvent(new CustomEvent('pet-touch-hold',{detail:{holding:false}}));if(!hit(p))return;const now=performance.now();if(now-lastTapAt<380){clearTimeout(tapTimer);tapTimer=null;lastTapAt=0;openStatus();return;}lastTapAt=now;clearTimeout(tapTimer);tapTimer=setTimeout(()=>{tapTimer=null;interact(p);},380);});
+canvas.addEventListener('pointercancel',()=>{down=null;document.dispatchEvent(new CustomEvent('pet-touch-hold',{detail:{holding:false}}));});canvas.addEventListener('pointerleave',()=>{hover=null;});
 function draw(now){pen.clearRect(0,0,384,256);once.disabled=!allowed();
  if(hover&&tool==='poke'&&allowed()){pen.strokeStyle='#795033';pen.lineWidth=3;pen.beginPath();pen.moveTo(hover.x+3,hover.y+3);pen.lineTo(hover.x+28,hover.y+32);pen.stroke();}
  if(effect){const p=petDataManager.read().pet,t=(now-effect.start)/1200;if(t>=1||!p||p.petId!==effect.petId||p.healthState==='dead'||p.isDeparted)effect=null;else{pen.globalAlpha=1-t;
