@@ -168,7 +168,7 @@ header .icon-button{padding:0}
 #pet-status-card .pet-status-grid{gap:6px 16px;padding:10px 4px;font-size:14px}
 #pet-status-card .pet-status-grid{grid-template-columns:auto 1fr;align-items:center}
 #pet-status-card .status-meter-value,#pet-status-card .status-exp-value{display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:10px}
-#pet-status-card .status-meter-value progress,#pet-status-card .status-exp-value progress{flex:1;width:auto;min-width:0}
+#pet-status-card .status-meter-value progress,#pet-status-card .status-exp-value progress{flex:1;width:auto;min-width:0;margin:0}
 #pet-status-card .status-meter-value strong,#pet-status-card .status-exp-value strong{min-width:4.5em;text-align:right}
 #pet-status-card #last-received{font-size:12px;margin:0 0 8px}
 #pet-status-card .card-link{min-width:0;min-height:0;padding:4px 10px;font-size:13px;box-shadow:none}
