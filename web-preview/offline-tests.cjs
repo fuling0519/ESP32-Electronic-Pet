@@ -108,6 +108,9 @@ test('home keeps demo-only controls inside the demo-mode panel',()=>{
  const open=html.indexOf('<section id="demo-panel"'),close=html.indexOf('</section>',html.indexOf('class="demo-actions"'));
  assert.ok(open>=0&&close>open,'demo panel exists');
  for(const marker of ['data-for="species-preview"','data-for="art-stage"','data-for="art-action"','data-for="condition"','id="grow"','id="touch-pet"','id="touch-poke"','id="farewell"','id="reset"','重設展示寵物','id="stage"']){const at=html.indexOf(marker);assert.ok(at>open&&at<close,marker+' sits inside the demo panel');}
+ const scene=html.slice(html.indexOf('<section class="scene"'),html.indexOf('</section>',html.indexOf('<section class="scene"')));
+ assert.match(scene,/id="open-status"[^>]*popovertarget="pet-status-card"/,'status orb lives in the garden');assert.match(scene,/id="status" class="caption"/,'narration is a caption in the garden');
+ const card=html.slice(html.indexOf('<div id="pet-status-card" popover'),html.indexOf('</div>',html.indexOf('id="open-cemetery"')));assert.ok(card.includes('id="open-cemetery"')&&card.includes('id="last-received"'),'memorial link and device receipt sit in the status card');assert.ok(!html.includes('<footer>'),'the row under the garden is gone');
  assert.match(css,/#aviary\.device-mode \.care,#aviary\.device-mode #adopt-egg,#aviary\.device-mode #demo-panel\{display:none/);
 });
 test('main page loads the reviewed cleaning player before the application',()=>{

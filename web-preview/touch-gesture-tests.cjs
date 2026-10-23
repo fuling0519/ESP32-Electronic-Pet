@@ -5,9 +5,9 @@ function boot(){
  let now=0;const timers=[],events=[],commands=[],handlers={};
  const el=(extra={})=>Object.assign({style:{},disabled:false,textContent:'',setAttribute(){},append(){},appendChild(){},querySelector:()=>null,getContext:()=>new Proxy({},{get:()=>()=>{}}),showModal(){},open:false},extra);
  const canvas=el({addEventListener:(k,f)=>handlers[k]=f,getBoundingClientRect:()=>({left:0,top:0,width:384,height:256}),setPointerCapture(){}});
- const nodes={'.scene':el(),'#bird':canvas,'.care':null,'#status':el(),'#touch-pet':el(),'#touch-poke':el(),'#open-status':el(),'#game-dialog':el(),'#farewell-dialog':el(),'[data-action="feed"]':el()};
+ const nodes={'.scene':el(),'#bird':canvas,'.care':null,'#status':el(),'#touch-pet':el(),'#touch-poke':el(),'#open-status':el(),'#game-dialog':el(),'#farewell-dialog':el(),'[data-action="feed"]':el(),'#pet-status-card':el({addEventListener(){},matches:()=>false,hidePopover(){}}),'#status-orb-image':el({src:''}),'#open-cemetery':el({addEventListener(){}})};
  const pet={petId:'p1',stage:'adult',speciesId:2,healthState:'healthy',sleepMode:'awake',isDeparted:false};
- const c={performance:{now:()=>now},matchMedia:()=>({matches:false}),requestAnimationFrame(){},location:{search:''},
+ const c={addEventListener(){},performance:{now:()=>now},matchMedia:()=>({matches:false}),requestAnimationFrame(){},location:{search:''},
   setTimeout:(f,ms)=>{timers.push({f,at:now+ms});return timers.length;},clearTimeout:id=>{if(timers[id-1])timers[id-1].f=null;},
   CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail;}},
   PetEffects:{HEART_LIFE:500,SHOCK_MS:900,hearts(){},shock(){}},
