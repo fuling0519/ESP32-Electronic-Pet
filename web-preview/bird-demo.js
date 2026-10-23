@@ -3,9 +3,9 @@
 const baseDraw=BirdView.draw;
 const states=[['auto','跟隨寵物'],['idle','待機（走動＋喝水）'],['sad','傷心'],['sick','生病'],['sleep','睡眠'],['happy','開心／摸頭'],['startled','驚嚇／戳碰'],['feed','吃飯'],['dead','長眠外觀']];
 let preview='auto',enabled=false,reaction=null;
-const controls=document.querySelector('.preview-controls');let label,select,note;
-if(controls){label=document.createElement('label');label.textContent='小鳥展示 ';label.hidden=true;select=document.createElement('select');select.id='bird-art-state';select.setAttribute('aria-label','小鳥外觀展示');for(const [value,text] of states){const o=document.createElement('option');o.value=value;o.textContent=text;select.appendChild(o);}select.onchange=()=>preview=select.value;label.appendChild(select);controls.appendChild(label);note=document.createElement('small');note.hidden=true;note.textContent='僅展示外觀，不改數值；開心／驚嚇沿用現有角色搭配效果，長眠為閉眼示意。';controls.appendChild(note);}
-function syncControls(p,allow){enabled=!!allow;if(label)label.hidden=!enabled;if(note)note.hidden=!enabled;if(!enabled){preview='auto';reaction=null;if(select)select.value='auto';}}
+// The page's demo tools choose the state through setPreview; it only applies while enabled.
+function syncControls(p,allow){enabled=!!allow;if(!enabled){preview='auto';reaction=null;}}
+function setPreview(state){preview=states.some(([value])=>value===state)?state:'auto';}
 document.addEventListener('pet-interaction-complete',e=>{if(enabled&&e.detail){const p=window.petDataManager?.read().pet;if(p)reaction={kind:e.detail.kind,petId:p.petId,start:performance.now()};}});
 function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true){
  const model={...p,healthState:'healthy',sleepMode:'awake',mood:80,satiety:80,cleanliness:100,sadReasons:{mood:false,satiety:false,cleanliness:false}};
@@ -75,5 +75,5 @@ BirdView.draw=function(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  if(state==='auto')return !sad&&idleActive(p)?idle(ctx,p,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false):baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
  return paint(ctx,p,state,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false,!fromReaction);
 };
-window.BirdDemo={paint,syncControls,states,idleActive,waterPose,drinkPose,previewing:()=>enabled&&preview!=='auto'};
+window.BirdDemo={paint,syncControls,setPreview,states,idleActive,waterPose,drinkPose,previewing:()=>enabled&&preview!=='auto'};
 })();

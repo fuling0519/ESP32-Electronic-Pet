@@ -98,22 +98,16 @@ function walkAt(elapsed,withRest=true){
  t-=240;
  return {active:true,x:130+60*smooth(t/2160),facing:1};
 }
-const controls=document.querySelector('.preview-controls');
-let label,select,note;
-if(controls){
- label=document.createElement('label');label.textContent='小龍素材 ';label.hidden=true;
- select=document.createElement('select');select.id='wyvern-art-state';select.setAttribute('aria-label','小龍素材預覽');
- for(const [value,text] of [['auto','跟隨寵物'],['idle','待機'],['sad','傷心'],['sick','生病'],['happy','開心'],['shock','驚嚇（被戳）'],['sleep','蜷縮睡眠'],['dead','死亡靜態'],['flight','移動（成年飛行／幼年走路）'],['eat','吃飯（四格）']]){
-  const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);
- }
- select.onchange=()=>{preview=select.value;lastState='';resetMotion();};label.appendChild(select);controls.appendChild(label);
- note=document.createElement('small');note.hidden=true;note.textContent='只切換外觀，不改養成數值。健康清醒待機時偶爾移動（成年飛行、幼年走路），往左自動翻面。';controls.appendChild(note);
+// The page's demo tools pick the art state; 'flight' means walking for the baby.
+const PREVIEW_STATES=['auto','idle','sad','sick','happy','shock','sleep','dead','flight','eat'];
+function setPreview(state){
+ const next=PREVIEW_STATES.includes(state)?state:'auto';
+ if(next!==preview){preview=next;lastState='';resetMotion();}
 }
 function eligible(p){return p&&['adult','baby'].includes(p.stage)&&!p.isDeparted&&p.healthState!=='dead';}
 function syncControls(p,enabled){
- if(label)label.hidden=!enabled;if(note)note.hidden=!enabled;
  if(controlsEnabled!==enabled||!eligible(p))resetMotion();controlsEnabled=enabled;
- if(!enabled){preview='auto';if(select)select.value='auto';reaction=null;}
+ if(!enabled){preview='auto';reaction=null;}
 }
 // Head pat smiles from pointer-down; release restarts the 1.2 s window so the
 // face stays happy through the tap delay until the interaction completes.
@@ -220,6 +214,6 @@ function draw(ctx,p,now,action,elapsed,reduced){
  return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile,stage});
 }
 document.addEventListener('visibilitychange',resetMotion);
-window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,walkAt,draw,resolve,syncControls,
+window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,walkAt,draw,resolve,syncControls,setPreview,
  interactionTarget(p){return target?.petId===p?.petId?{...target}:null;}};
 })();

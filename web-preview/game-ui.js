@@ -20,7 +20,8 @@ document.addEventListener('keydown',event=>{
 });
 let sound=PetLocalStore.read('sound',x=>typeof x==='boolean')??true;
 const soundButton=document.querySelector('#web-sound');
-function soundLabel(){soundButton.textContent='網頁聲音：'+(sound?'開':'關');soundButton.setAttribute('aria-pressed',String(sound));}
+// Speaker icon; muted adds a cross instead of the sound waves.
+function soundLabel(){const label='網頁聲音：'+(sound?'開':'關');soundButton.innerHTML='<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z" fill="currentColor"/>'+(sound?'<path d="M11 5.5q2 2.5 0 5M12.5 3.5q3.5 4.5 0 9" fill="none" stroke="currentColor" stroke-width="1.5"/>':'<path d="M11 5.5l4 5M15 5.5l-4 5" stroke="currentColor" stroke-width="1.5"/>')+'</svg>';soundButton.setAttribute('aria-pressed',String(sound));soundButton.setAttribute('aria-label',label);soundButton.title=label;}
 function initAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(Audio){audio??=new Audio();audio.resume().catch(()=>{});}}catch{audio=null;}}
 function tone(freq,ms){if(!sound||!audio||document.hidden)return;try{const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.frequency.value=freq;gain.gain.value=.07;oscillator.connect(gain);gain.connect(audio.destination);activeTones.add(oscillator);oscillator.onended=()=>{activeTones.delete(oscillator);oscillator.disconnect();gain.disconnect();};oscillator.start();oscillator.stop(audio.currentTime+ms/1000);}catch{}}
 soundButton.onclick=()=>{sound=!sound;if(!sound)for(const oscillator of activeTones)try{oscillator.stop();}catch{};PetLocalStore.write('sound',sound,true);initAudio();if(sound)tone(1047,120);soundLabel();};soundLabel();

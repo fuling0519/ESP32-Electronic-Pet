@@ -9,7 +9,7 @@ function boot(){
  c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/wyvern-adult-view.js','utf8'),c);
  const stack=[],bounds=[];let transform={x:0,y:0,sx:1,sy:1};
  const ctx={globalAlpha:1,save(){stack.push({...transform,alpha:this.globalAlpha});},restore(){const t=stack.pop();this.globalAlpha=t.alpha;transform=t;},translate(x,y){transform.x+=x*transform.sx;transform.y+=y*transform.sy;},scale(x,y){transform.sx*=x;transform.sy*=y;},drawImage(...args){calls.push(args);const [,,,,,x,y,w,h]=args,a=transform.x+x*transform.sx,b=transform.x+(x+w)*transform.sx,top=transform.y+y*transform.sy;bounds.push({x:Math.min(a,b),y:top,w:Math.abs(b-a),h:h*transform.sy,facing:transform.sx,alpha:this.globalAlpha});}};
- return {c,view:c.WyvernAdultView,ctx,calls,bounds,events,select:elements.find(e=>e.id==='wyvern-art-state')};
+ return {c,view:c.WyvernAdultView,ctx,calls,bounds,events};
 }
 const pet=()=>({petId:'one',stage:'adult',healthState:'healthy',sleepMode:'awake',mood:55,sadReasons:{mood:false,satiety:false,cleanliness:false}});
 test('all illustrated states draw real, complete PNG sources within the scene',()=>{
@@ -33,7 +33,7 @@ test('idle and sleep timing uses stable scale/anchors and reduced motion is stat
  }
 });
 test('state priority and visual previews do not mutate domain values',()=>{
- const {view,ctx,select}=boot(),p=pet(),before=JSON.stringify(p);
+ const {view,ctx}=boot(),p=pet(),before=JSON.stringify(p);
  assert.equal(view.resolve(p,0,null),'idle');assert.equal(JSON.stringify(p),before);
  assert.equal(view.resolve({...p,mood:100},0,null),'idle');
  assert.equal(view.resolve({...p,webExpression:'happy'},0,null),'happy');
@@ -41,7 +41,7 @@ test('state priority and visual previews do not mutate domain values',()=>{
  assert.equal(view.resolve({...p,mood:100,healthState:'sick'},0,null),'sick');
  assert.equal(view.resolve({...p,sleepMode:'normal',healthState:'sick'},0,null),'sleep');
  assert.equal(view.resolve({...p,healthState:'dead'},0,null),'dead');
- for(const state of ['sad','sick','happy','shock','sleep','dead','flight']){select.value=state;select.onchange();assert.equal(view.resolve(p,0,null),state);assert.equal(JSON.stringify(p),before);}
+ for(const state of ['sad','sick','happy','shock','sleep','dead','flight']){view.setPreview(state);assert.equal(view.resolve(p,0,null),state);assert.equal(JSON.stringify(p),before);}
  view.syncControls(p,false);assert.equal(view.resolve(p,0,null),'idle');
  assert.equal(view.draw(ctx,{...p,stage:'egg'},0,null,0,false),false);
 });
@@ -175,7 +175,7 @@ test('reduced motion, new pets, hidden tabs and long rendering gaps discard old 
 });
 
 test('manual flight still respects care and health, reduced motion and unloaded images',()=>{
- const {view,ctx,select,calls}=boot(),p=pet();select.value='flight';select.onchange();
+ const {view,ctx,calls}=boot(),p=pet();view.setPreview('flight');
  assert.equal(view.resolve({...p,sleepMode:'normal'},0,null),'sleep');
  assert.equal(view.resolve({...p,healthState:'sick'},0,null),'sick');
  assert.equal(view.resolve({...p,mood:20},0,null),'sad');
