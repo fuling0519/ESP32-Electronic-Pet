@@ -13,7 +13,8 @@ const poses={
  sick:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[2,3],times:[1400,900],anchor:[234,444],scale:120/399},
  // Happy art has a ~16% wider face than idle at equal height; squeeze x to idle's eye spacing.
  happy:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[4,5],times:[1800,650],anchor:[234,444],scale:126/368,scaleX:0.86},
- sleep:{files:['sleep-00.png','sleep-01.png'],times:[1100,900],rect:[0,0,887,640],anchor:[456,588],scale:180/832},
+ // Matches idle's eye spacing (closed-eye arcs); 180/832 drew the head ~19% too big.
+ sleep:{files:['sleep-00.png','sleep-01.png'],times:[1100,900],rect:[0,0,887,640],anchor:[456,588],scale:151/832},
  dead:{file:'dead-still-v1.png',times:[1],rect:[0,0,1684,934],anchor:[848,856],scale:200/1592},
  // Scale matches idle's eye spacing; horn-to-feet would shrink this pose's head.
  shock:{file:'shock-still-v1.png',times:[1],rect:[0,0,1235,1025],anchor:[601,1000],scale:126/924},
