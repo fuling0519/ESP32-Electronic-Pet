@@ -121,11 +121,12 @@ int main() {
         assert(ui.touchContextRevision()!=context && !ui.touchContextAllowed());
         assert(!ui.onTouchEvent(TouchEvent::Poke,2300));
         ready(ui); ui.onCleanSucceeded(2000); assert(!ui.touchContextAllowed());
-        ui.update(Hardware::InputEvent::None,4400); assert(ui.touchContextAllowed());
+        ui.update(Hardware::InputEvent::None,4400); assert(!ui.touchContextAllowed()); // sparkle reward
+        ui.update(Hardware::InputEvent::None,6400); assert(ui.touchContextAllowed());
         const auto level=pet.level(); pet.gainExp(pet.expToNextLevel());
-        ui.onCareRewardApplied(level,4400); assert(!ui.touchContextAllowed());
-        ui.update(Hardware::InputEvent::None,4800); assert(!ui.touchContextAllowed());
-        ui.update(Hardware::InputEvent::None,6800); assert(ui.touchContextAllowed());
+        ui.onCareRewardApplied(level,6400); assert(!ui.touchContextAllowed());
+        ui.update(Hardware::InputEvent::None,6800); assert(!ui.touchContextAllowed());
+        ui.update(Hardware::InputEvent::None,8800); assert(ui.touchContextAllowed());
         ui.onDeepSleepPending(true); assert(!ui.touchContextAllowed());
         ui.onDeepSleepPending(false); assert(ui.touchContextAllowed());
         assert(pet.beginNormalSleep()); ui.onSleepStarted(7000);

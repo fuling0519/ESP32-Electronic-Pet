@@ -29,7 +29,7 @@ static unsigned successSounds = 0;
 static unsigned careReminders = 0;
 static unsigned confirmSounds = 0;
 static unsigned cancelSounds = 0;
-static unsigned pokeSounds = 0, pettingSounds = 0;
+static unsigned pokeSounds = 0, pettingSounds = 0, hatchSounds = 0;
 static unsigned displayUpdates = 0;
 static bool feedbackActive = false;
 static uint8_t feedbackVolume = 0;
@@ -97,7 +97,7 @@ uint16_t Display::statusTextWidth(const char* s) const {
 void Sound::playConfirm() { ++confirmSounds; feedbackActive=volume_!=0; feedbackVolume=volume_; }
 void Sound::playCancel() { ++cancelSounds; feedbackActive=volume_!=0; feedbackVolume=volume_; }
 void Sound::playSuccess() { ++successSounds; } void Sound::playFailure() { ++failureSounds; }
-void Sound::playHatch() {} void Sound::playDeath() {}
+void Sound::playHatch() { ++hatchSounds; } void Sound::playDeath() {}
 void Sound::playLevelUp() {}
 void Sound::playCareReminder() { ++careReminders; }
 void Sound::stopTone() { playing_=false; feedbackActive=false; }
@@ -397,7 +397,8 @@ int main() {
         assert(p.level()==2 && p.exp()==(care==2 ? 4 : 2));
         capture(view,care==0 ? "care-feed-before-up" : care==1 ? "care-clean-before-up" : "care-treat-before-up");
         const auto before = pixels;
-        const uint32_t start = care==0 ? 4511 : 3912;
+        // Feeding adds a 1.2s happy reward, cleaning a 2s sparkle, before level-up.
+        const uint32_t start = care==0 ? 5711 : care==1 ? 5912 : 3912;
         view.update(E::Press,start-1); assert(view.takeAction()==A::None);
         view.update(E::Press,start); capture(view,"care-level-up");
         assert(pixels != before && view.takeAction()==A::None);
@@ -448,13 +449,20 @@ int main() {
             assert(view.screen()==S::Home && view.takeAction()==A::None && pixels==full);
         }
         view.update(E::Press,3904); assert(view.screen()==S::Home && view.takeAction()==A::None);
+        // The 2s sparkle reward follows; it shows the live pet and HUD and still locks input.
+        view.update(E::Press,3904+375); assert(view.takeAction()==A::None); // left star fully lit
+        capture(view,baby?"clean-baby-sparkle":"clean-adult-sparkle");
+        const auto sparkle=pixels; assert(lit(25,13));
+        view.update(E::Press,5903); assert(view.screen()==S::Home && view.takeAction()==A::None);
+        view.update(E::Press,5904); assert(view.screen()==S::Home && view.takeAction()==A::None);
         capture(view,baby?"clean-baby-restored":"clean-adult-restored");
+        assert(pixels!=sparkle);
         assert(lit(25,13) && p.cleanliness()==70);
         // Force a live change at the boundary: baby shows dirt, adult is clean.
         p.setCleanliness(baby?0:100);
         capture(view,baby?"clean-baby-live-dirt":"clean-adult-live-dirt");
         assert(lit(25,13)==bool(baby) && lit(117,8)); // Sickness is never cured by cleaning.
-        view.update(E::Right,3905); view.update(E::Press,3906);
+        view.update(E::Right,5905); view.update(E::Press,5906);
         assert(view.screen()==S::DetailedStatus);
     }
     // At 100%, animation still plays but grants no extra EXP.
@@ -465,7 +473,7 @@ int main() {
         view.update(E::Down,1502); view.update(E::Press,1503); view.update(E::Press,1504);
         assert(view.takeAction()==A::Clean && p.clean()); view.onCleanSucceeded(1504);
         assert(p.cleanliness()==100 && p.exp()==25);
-        view.update(E::Press,3904); view.update(E::None,3905);
+        view.update(E::Press,3904); view.update(E::None,5904); view.update(E::None,5905);
         assert(view.screen()==S::Home && view.takeAction()==A::None && p.exp()==25);
         // Death has priority over the cleaning lock.
         view.onCleanSucceeded(4000); p.setDead(true); view.update(E::Press,4001);
@@ -492,7 +500,8 @@ int main() {
         p.advanceSeconds(1); assert(p.lifeStage()==Pet::LifeStage::Adult);
         view.update(E::Press,1199); assert(view.screen()==S::Home);
         view.update(E::Press,1200); assert(view.screen()==S::Home);
-        view.update(E::None,1201); assert(view.screen()==S::GrowTransition);
+        view.update(E::None,3200); assert(view.screen()==S::Home); // sparkle reward ends
+        view.update(E::None,3201); assert(view.screen()==S::GrowTransition);
     }
     // Real treatment timing, input lock, both sprites, live dirt restoration,
     // one-shot settlement and deferred upgrade/growth celebration.
@@ -598,6 +607,34 @@ int main() {
         view.update(E::None,7305); assert(view.screen()==S::Home);
         view.update(E::None,7306); capture(view,"treat-growth-level-up");
         assert(view.takeAction()==A::None && p.exp()==4);
+    }
+    // Feeding ends with a 1.2s happy reward (petting tone), shown even while sad;
+    // cleaning ends with a 2s sparkle (hatch tone). Sleep cancels either at once.
+    for (unsigned sadPet=0; sadPet<2; ++sadPet) {
+        Pet::PetData p; p.setSatiety(50); if (sadPet) p.setMood(20);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500); view.render(); const auto idle=pixels;
+        assert(p.feed()); view.onFeedSucceeded(1501);
+        const unsigned pets=pettingSounds;
+        view.update(E::None,4500); assert(pettingSounds==pets);
+        view.update(E::Press,4501); view.render();
+        assert(pettingSounds==pets+1 && view.takeAction()==A::None && pixels!=idle);
+        const auto happy=pixels;
+        view.update(E::Press,5700); assert(view.takeAction()==A::None);
+        view.update(E::None,5701); view.render(); assert(pixels!=happy);
+        view.update(E::Press,5702); assert(view.screen()==S::MainMenu);
+    }
+    {
+        Pet::PetData p; p.setCleanliness(40);
+        Ui::UiController view(display,sound,p,memorials,randomMove);
+        view.init(0); view.update(E::None,1500);
+        const unsigned hatches=hatchSounds;
+        assert(p.clean()); view.onCleanSucceeded(1501);
+        view.update(E::None,3900); assert(hatchSounds==hatches);
+        view.update(E::None,3901); view.render(); assert(hatchSounds==hatches+1);
+        view.update(E::None,3901+250); view.render(); const auto sparkle=pixels;
+        assert(p.beginNormalSleep()); view.update(E::None,3901+300); view.render();
+        assert(pixels!=sparkle);
     }
     // Death cancels a queued care celebration; it must never cover the death flow.
     {
@@ -1068,12 +1105,13 @@ int main() {
         unsigned n=careReminders;
         p.setMood(40); p.setSatiety(25); view.onFeedSucceeded(t);
         view.update(E::None,++t); assert(careReminders==n);
-        p.setMood(45); t+=3000; view.update(E::None,t);
+        p.setMood(45); t+=3000; view.update(E::None,t); t+=1200; view.update(E::None,t);
+        view.update(E::None,++t); // the happy reward ends first, then idle Home reminds
         assert(careReminders==n+1); // Another unmet need survives the feeding animation.
         p.setSatiety(30); view.update(E::None,++t);
         t+=300000; p.setCleanliness(25); view.onCleanSucceeded(t);
         view.update(E::None,++t); assert(careReminders==n+1);
-        p.setCleanliness(30); t+=2400; view.update(E::None,t);
+        p.setCleanliness(30); t+=2400; view.update(E::None,t); t+=2000; view.update(E::None,t);
         view.update(E::None,++t); assert(careReminders==n+1);
         // Menu/game sounds defer a pending reminder until idle Home.
         auto step=[&](E e) { view.update(e,++t); view.render(); };

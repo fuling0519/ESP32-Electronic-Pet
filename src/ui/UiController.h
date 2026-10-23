@@ -226,6 +226,12 @@ private:
     uint32_t treatmentElapsedMs_ = 0;
     Pet::LifeStage treatmentVisualStage_;
     void beginTreatment(uint32_t now);
+    // Short reward after the care animation: happy after feeding, sparkle after cleaning.
+    enum class CareAfterglow : uint8_t { None, Happy, Sparkle };
+    CareAfterglow careAfterglow_ = CareAfterglow::None;
+    uint32_t careAfterglowStartedAt_ = 0;
+    uint8_t careAfterglowFrame_ = 0;
+    void beginCareAfterglow(CareAfterglow kind, uint32_t now);
     bool feeding_ = false;
     uint32_t feedingStartedAt_ = 0;
     uint8_t feedingFrame_ = 0;

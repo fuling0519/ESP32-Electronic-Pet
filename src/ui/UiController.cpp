@@ -41,6 +41,9 @@ constexpr uint32_t kTreatmentDurationMs = 3400;
 constexpr uint32_t kTreatmentNoticeMs = 1200;
 constexpr uint32_t kCleaningFrameMs = 400;
 constexpr uint32_t kCleaningDurationMs = 2400;
+constexpr uint32_t kCareHappyMs = 1200;
+constexpr uint32_t kCareSparkleMs = 2000;
+constexpr uint32_t kCareSparkleFrameMs = 125;
 constexpr uint8_t kMenuItemCount = 9;
 constexpr bool kDebugUiEvents = true;
 const char* const kMenuItems[kMenuItemCount] = {
@@ -168,6 +171,7 @@ void UiController::init(uint32_t now) {
     homeAnimationFrame_ = 0;
     feeding_ = false;
     cleaning_ = false;
+    careAfterglow_ = CareAfterglow::None;
     cleaningStartedAt_ = 0;
     cleaningFrame_ = 0;
     treating_ = treatmentActionQueued_ = treatmentSucceeded_ = false;
@@ -239,7 +243,8 @@ bool UiController::touchContextAllowed() const {
         pet_.lifeStage() != Pet::LifeStage::Egg && pet_.lifeStage() == observedLifeStage_ &&
         pet_.petId() == observedPetId_ && pet_.sleepMode() == Pet::SleepMode::Awake &&
         pet_.mood() > 40 && pet_.satiety() > 25 && pet_.cleanliness() > 25 &&
-        !feeding_ && !cleaning_ && !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
+        !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
+        !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
         !careReminderPending_ && !treatmentNotice_ && !deepSleepPending_ &&
         pendingAction_ == UiAction::None;
 }
@@ -344,7 +349,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
     }
 
     if (pet_.lifeStage() != observedLifeStage_ &&
-        screen_ != ScreenId::Sleeping && !treating_ && !cleaning_) {
+        screen_ != ScreenId::Sleeping && !treating_ && !cleaning_ &&
+        careAfterglow_ == CareAfterglow::None) {
         const Pet::LifeStage previousStage = observedLifeStage_;
         observedLifeStage_ = pet_.lifeStage();
         if (previousStage == Pet::LifeStage::Egg &&
@@ -425,6 +431,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             pet_.sleepMode() != Pet::SleepMode::Awake) {
             cleaning_ = false;
             dirty_ = true;
+            if (pet_.sleepMode() == Pet::SleepMode::Awake && !pet_.isDead())
+                beginCareAfterglow(CareAfterglow::Sparkle, now);
         } else {
             const uint8_t frame = elapsed >= 3 * kCleaningFrameMs ? 3 :
                 static_cast<uint8_t>(elapsed / kCleaningFrameMs);
@@ -434,6 +442,34 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
         }
         return dirty_;
+    }
+
+    // The care reward also locks input; death and sleep end it at once.
+    if (careAfterglow_ != CareAfterglow::None) {
+        const uint32_t elapsed = now - careAfterglowStartedAt_;
+        const bool happy = careAfterglow_ == CareAfterglow::Happy;
+        if (elapsed >= (happy ? kCareHappyMs : kCareSparkleMs) || pet_.isDead() ||
+            pet_.sleepMode() != Pet::SleepMode::Awake) {
+            careAfterglow_ = CareAfterglow::None;
+            dirty_ = true;
+            if (!pet_.isDead()) return true;
+        } else {
+            uint8_t frame;
+            if (happy) {
+                const uint8_t fps = pet_.speciesId() == Pet::SpeciesId::Wyvern ?
+                    HardwareConfig::Touch::WyvernFramesPerSecond :
+                    HardwareConfig::Touch::BirdFramesPerSecond;
+                const uint8_t count = PetIcons::touchHappyFrameCount(pet_.lifeStage(), pet_.speciesId());
+                frame = count ? static_cast<uint8_t>((static_cast<uint64_t>(elapsed) * fps / 1000) % count) : 0;
+            } else {
+                frame = static_cast<uint8_t>(elapsed / kCareSparkleFrameMs);
+            }
+            if (frame != careAfterglowFrame_) {
+                careAfterglowFrame_ = frame;
+                dirty_ = true;
+            }
+            return dirty_;
+        }
     }
 
     // Care celebrations wait for feeding/cleaning/growth, and consume navigation while shown.
@@ -452,9 +488,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
             dirty_ = true;
             return true;
-        } else if ((!feeding_ || now - feedingStartedAt_ >= kFeedingDurationMs) &&
-                   now - careRewardAt_ >= 400) {
-            feeding_ = false;
+        } else if (!feeding_ && now - careRewardAt_ >= 400) {
             careLevelUpPending_ = false;
             levelUpActive_ = true;
             levelUpStartedAt_ = now;
@@ -474,6 +508,10 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
                 if (elapsed >= kFeedingDurationMs) {
                     feeding_ = false;
                     dirty_ = true;
+                    if (pet_.sleepMode() == Pet::SleepMode::Awake && !pet_.isDead()) {
+                        beginCareAfterglow(CareAfterglow::Happy, now);
+                        return true;
+                    }
                 } else {
                     const bool wyvern = pet_.speciesId() == Pet::SpeciesId::Wyvern;
                     const uint8_t frame = (elapsed / (wyvern ? 375 : kFeedingFrameMs)) % (wyvern ? 4 : 2);
@@ -848,7 +886,8 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
     // sleep, or game audio is interrupted. Recheck live needs on each update.
     if (careReminderPending_ && sad_ && screen_ == ScreenId::Home &&
         pet_.sleepMode() == Pet::SleepMode::Awake &&
-        !feeding_ && !cleaning_ && !treating_ && !careLevelUpPending_ &&
+        !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
+        !treating_ && !careLevelUpPending_ &&
         !levelUpActive_ && pendingAction_ == UiAction::None &&
         event == Hardware::InputEvent::None && !sound_.isPlaying() &&
         (!careReminderPlayed_ || static_cast<uint32_t>(now - lastCareReminderAt_) >= kCareReminderCooldownMs)) {
@@ -994,6 +1033,15 @@ void UiController::onCleanSucceeded(uint32_t now) {
     dirty_ = true;
 }
 
+void UiController::beginCareAfterglow(CareAfterglow kind, uint32_t now) {
+    careAfterglow_ = kind;
+    careAfterglowStartedAt_ = now;
+    careAfterglowFrame_ = 0;
+    if (kind == CareAfterglow::Happy) sound_.tryPlayPetting();
+    else sound_.playHatch();
+    dirty_ = true;
+}
+
 void UiController::showTreatmentNotice(uint32_t now) {
     setScreen(ScreenId::MainMenu);
     menuIndex_ = 2;
@@ -1125,6 +1173,7 @@ void UiController::setScreen(ScreenId screen) {
     screen_ = screen;
     feeding_ = false;
     cleaning_ = false;
+    careAfterglow_ = CareAfterglow::None;
     treating_ = false;
     if (screen_ == ScreenId::Home) homeFocus_ = HomeFocus::None;
     if (screen_ == ScreenId::DetailedStatus) statusPage_ = 0;
@@ -1159,6 +1208,9 @@ void UiController::renderHome() {
     } else if (feeding_) {
         PetIcons::drawEatingPet(display_, 32, 6, pet_.lifeStage(),
                                feedingFrame_, feedingBowlStage_, pet_.speciesId());
+    } else if (careAfterglow_ == CareAfterglow::Happy) {
+        // Shown even while sad: the reward answers the care, then sad returns.
+        PetIcons::drawTouchHappy(display_, careAfterglowFrame_, pet_.lifeStage(), pet_.speciesId());
     } else if (sad && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawSadPet(display_, 32, 6,
                             treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
@@ -1200,6 +1252,7 @@ void UiController::renderHome() {
             drawSparkles(display_, frame, 33, 94);
         }
     }
+    if (careAfterglow_ == CareAfterglow::Sparkle) drawSparkles(display_, careAfterglowFrame_, 33, 94);
 }
 
 void UiController::renderPetFooter() {
