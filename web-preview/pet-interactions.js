@@ -35,7 +35,7 @@ const HEADS={'2:adult':{dx:0,dy:-22,spread:56,bangDy:-48},'2:baby':{dx:0,dy:-18,
 // Touch is mock-only, where ?preview=wyvern|bird overrides the shown species (as in app.js).
 function shownSpecies(p){const m=/(?:[?&])preview=(wyvern|bird)(?:&|$)/.exec(location.search||'');return m?(m[1]==='wyvern'?2:1):p.speciesId;}
 // Reactions draw the bird at the centre (its walk pauses), so anchor to the touch target.
-function head(p){const t=touchTarget(),o=HEADS[shownSpecies(p)+':'+p.stage]||HEADS['2:adult'];return {x:t.x+o.dx,y:t.y+o.dy,spread:o.spread,bangDy:o.bangDy};}
+function head(p){const t=touchTarget(),o=HEADS[shownSpecies(p)+':'+(window.PetArtStage?.shown(p)||p.stage)]||HEADS['2:adult'];return {x:t.x+o.dx,y:t.y+o.dy,spread:o.spread,bangDy:o.bangDy};}
 function heartsAlive(now){return effect?.kind==='pet'&&now-effect.start<effect.until+PetEffects.HEART_LIFE;}
 function releaseHearts(){if(effect?.kind==='pet'&&effect.until===Infinity)effect.until=performance.now()-effect.start;}
 function draw(now){pen.clearRect(0,0,384,256);once.disabled=!allowed();
