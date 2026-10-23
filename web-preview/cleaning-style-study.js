@@ -20,7 +20,7 @@ function scene(ctx,species,stage,options={}){
  const p={stage,healthState:'healthy',sleepMode:'awake',satiety:100,mood:80,cleanliness:100,speciesId:species==='bird'?1:2};
  ctx.save();ctx.imageSmoothingEnabled=false;
  if(species==='bird')WhiteBirdView.draw(ctx,p,0,'clean',0,false,190,126,3);
- else if(stage==='adult')WyvernAdultView.paint(ctx,'idle',0,true);
+ else if(WyvernAdultView.paint(ctx,'idle',0,true,{stage}));
  else WyvernView.draw(ctx,p,0,'clean',0,true);
  const bottom=species==='bird'?126+(stage==='adult'?132:106)*.47:177;
  effects(ctx,{...options,stage,bottom});ctx.restore();

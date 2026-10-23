@@ -31,7 +31,7 @@ canvas.addEventListener('pointerup',e=>{if(!down||e.pointerId!==down.id)return;c
 canvas.addEventListener('pointercancel',()=>{down=null;releaseHearts();document.dispatchEvent(new CustomEvent('pet-touch-hold',{detail:{holding:false}}));});canvas.addEventListener('pointerleave',()=>{hover=null;});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 // Head centre and heart spread per role; adult wyvern follows its live (flight) target.
-const HEADS={'2:adult':{dx:0,dy:-22,spread:56,bangDy:-48},'2:baby':{dx:0,dy:-8,spread:50,bangDy:-30},'1:adult':{dx:-10,dy:-14,spread:62,bangDy:-44},'1:baby':{dx:-10,dy:-8,spread:54,bangDy:-36}};
+const HEADS={'2:adult':{dx:0,dy:-22,spread:56,bangDy:-48},'2:baby':{dx:0,dy:-18,spread:46,bangDy:-40},'1:adult':{dx:-10,dy:-14,spread:62,bangDy:-44},'1:baby':{dx:-10,dy:-8,spread:54,bangDy:-36}};
 // Touch is mock-only, where ?preview=wyvern|bird overrides the shown species (as in app.js).
 function shownSpecies(p){const m=/(?:[?&])preview=(wyvern|bird)(?:&|$)/.exec(location.search||'');return m?(m[1]==='wyvern'?2:1):p.speciesId;}
 // Reactions draw the bird at the centre (its walk pauses), so anchor to the touch target.

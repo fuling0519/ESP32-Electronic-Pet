@@ -43,7 +43,7 @@ test('state priority and visual previews do not mutate domain values',()=>{
  assert.equal(view.resolve({...p,healthState:'dead'},0,null),'dead');
  for(const state of ['sad','sick','happy','shock','sleep','dead','flight']){select.value=state;select.onchange();assert.equal(view.resolve(p,0,null),state);assert.equal(JSON.stringify(p),before);}
  view.syncControls(p,false);assert.equal(view.resolve(p,0,null),'idle');
- assert.equal(view.draw(ctx,{...p,stage:'baby'},0,null,0,false),false);
+ assert.equal(view.draw(ctx,{...p,stage:'egg'},0,null,0,false),false);
 });
 test('pet reaction expires, stays with its pet, and cannot override illness/death',()=>{
  const {c,view,events}=boot(),p=pet();c.petDataManager={read:()=>({pet:p})};
@@ -169,7 +169,7 @@ test('reduced motion, new pets, hidden tabs and long rendering gaps discard old 
   if(kind==='pet')assert.equal(view.draw(ctx,{...p,petId:'two'},25800,null,0,false).state,'idle');
   if(kind==='hidden'){c.document.hidden=true;events.get('visibilitychange')();assert.equal(view.draw(ctx,p,25800,null,0,false).state,'idle');c.document.hidden=false;}
   if(kind==='gap')assert.equal(view.draw(ctx,p,42000,null,0,false).state,'idle');
-  if(kind==='baby'){assert.equal(view.draw(ctx,{...p,stage:'baby'},25800,null,0,false),false);assert.equal(view.draw(ctx,p,25900,null,0,false).state,'idle');}
+  if(kind==='baby'){assert.equal(view.draw(ctx,{...p,stage:'baby'},25800,null,0,false).state,'idle');assert.equal(view.draw(ctx,p,25900,null,0,false).state,'idle');}
   if(kind==='controls'){view.syncControls(p,true);view.syncControls(p,false);assert.equal(view.draw(ctx,p,25800,null,0,false).state,'idle');}
  }
 });
@@ -201,4 +201,66 @@ test('eating repeats bite and chew three times, empties the bowl one step per bi
  // VM-realm objects are spread for deep comparison. Reduced motion keeps the chewing pose, but the smile still waits for the empty bowl.
  assert.deepEqual({...view.eatSample(0,true)},{frame:2,bowl:0});
  assert.deepEqual({...view.eatSample(2600,true)},{frame:3,bowl:3});
+});
+
+const baby=()=>({...pet(),stage:'baby'});
+test('baby states draw from the baby sheets at one character size, within the scene',()=>{
+ const {view,ctx,calls,bounds}=boot(),sizes={};
+ for(const state of ['idle','sad','sick','happy','shock','eat','walk','sleep','dead']){
+  assert.equal(view.paint(ctx,state,0,false,{stage:'baby'}).state,state);
+  // Use on-screen bounds: mirrored poses draw relative to a translated origin.
+  const [im,sx,sy,sw,sh,,,dw,dh]=calls.at(-1),{x:dx,y:dy}=bounds.at(-1);
+  assert.match(im.src,/^assets\/pets\/wyvern\/baby\/(sheet-(a-v2|b-v2|c-v1)|sleep-dead-v5)\.png$/);
+  assert(sx>=0&&sy>=0&&sx+sw<=im.naturalWidth&&sy+sh<=im.naturalHeight,state+' source crop');
+  assert(Math.abs(dw/dh-sw/sh)<1e-10,state+' proportions preserved');
+  // Square cells may carry transparent padding above the scene; the art itself must fit.
+  const sheet=JSON.parse(fs.readFileSync(path.join(__dirname,im.src.replace(/\.png$/,'.json')),'utf8'));
+  const artTop=dy+(sheet.anchor[1]-Math.max(...sheet.heights))*dh/sheet.cell;
+  assert.equal(sw,sheet.cell);
+  assert(dx>=0&&artTop>=0&&dx+dw<=384&&dy+dh<=256,state+' not clipped');
+  assert(Math.abs(dy+dh*sheet.anchor[1]/sheet.cell-177)<1e-9,state+' feet on the ground line');
+  sizes[im.src]=dw/sw;
+ }
+ // Sheet B is drawn larger to match sheet A's head width; baby stays ~73% of adult.
+ assert(Math.abs(sizes['assets/pets/wyvern/baby/sheet-b-v2.png']/sizes['assets/pets/wyvern/baby/sheet-a-v2.png']-231/219)<1e-10);
+ // Sleep is drawn mirrored around its anchor, so it stays centred on the same spot.
+ view.paint(ctx,'sleep',0,false,{stage:'baby'});assert.equal(bounds.at(-1).facing,-1);
+ assert(Math.abs(bounds.at(-1).x+bounds.at(-1).w/2-190)<.5);
+ // Walk's third frame borrows sheet C's other-foot step at C's own scale.
+ view.paint(ctx,'walk',0,false,{stage:'baby',frame:2});
+ assert.match(calls.at(-1)[0].src,/sheet-c-v1\.png$/);assert.deepEqual(calls.at(-1).slice(1,5),[0,0,816,816]);
+ assert(Math.abs(calls.at(-1)[7]/816-92/296*231/219*220/295)<1e-10);
+});
+test('baby resolves the same states, sleeps and rests in its own art, and eats with the smile frame',()=>{
+ const {view,ctx,calls}=boot(),p=baby(),before=JSON.stringify(p);
+ assert.equal(view.draw(ctx,p,0,null,0,false).state,'idle');
+ assert.equal(view.draw(ctx,{...p,mood:20},100,null,0,false).state,'sad');
+ assert.equal(view.draw(ctx,{...p,healthState:'sick'},200,null,0,false).state,'sick');
+ assert.equal(view.draw(ctx,{...p,sleepMode:'normal'},300,null,0,false).state,'sleep');
+ assert.equal(view.draw(ctx,{...p,healthState:'dead'},400,null,0,false).state,'dead');
+ const cell=i=>[i%4*334,Math.floor(i/4)*334];
+ for(const [sec,i] of [[0,10],[.5,11],[2.9,9]]){view.draw(ctx,p,500,'feed',sec,false);assert.deepEqual(calls.at(-1).slice(1,3),cell(i));}
+ assert.equal(JSON.stringify(p),before);
+ const t=view.interactionTarget(p);assert(t.rx<100&&t.ry<90,'smaller touch area');
+});
+test('baby walks on the ground left and right, rests mostly, and turns on a standing frame',()=>{
+ const {view,ctx,bounds}=boot();
+ assert.equal(view.walkAt(23999).active,false);
+ assert.equal(view.walkAt(24000).active,true);
+ assert.equal(view.walkAt(33839).active,true);
+ assert.equal(view.walkAt(33840).active,false);
+ assert(Math.abs(view.walkAt(9839,false).x-190)<.01,"walk returns to centre");
+ assert.equal(view.walkAt(2400+119,false).facing,1);
+ assert.equal(view.walkAt(2400+120,false).facing,-1);
+ const faces=new Set();
+ for(let t=0;t<9840;t+=40){
+  const r=view.paintTravel(ctx,t,false,{stage:'baby'}),b=bounds.at(-1);faces.add(b.facing);
+  assert(b.x>=0&&b.x+b.w<=384&&b.y+b.h<=256,JSON.stringify({t,b}));
+  if(view.walkAt(t,false).still)assert.equal(r.index,1,'standing frame while turning');
+ }
+ assert.deepEqual([...faces].sort(),[-1,1]);
+ assert.equal(view.paintTravel(ctx,3000,true,{stage:'baby'}).state,'idle');
+ const p=baby();assert.equal(advance(view,ctx,p,0,23900).state,'idle');
+ assert.equal(advance(view,ctx,p,24000,25500).state,'flight');
+ assert(view.interactionTarget(p).x>190,'touch area follows the walk');
 });

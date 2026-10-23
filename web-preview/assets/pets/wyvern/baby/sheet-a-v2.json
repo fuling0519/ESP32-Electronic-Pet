@@ -1,0 +1,51 @@
+{
+ "source": "sheet-a-source-v2.png",
+ "sourceSha256": "2affa8c87f1113555c8f770872b85967fb72083eb41137bfe46dabd9d8f3d59b",
+ "sourceSize": [
+  1295,
+  1215
+ ],
+ "sourceGrid": [
+  4,
+  3
+ ],
+ "sourceCells": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11
+ ],
+ "grid": [
+  4,
+  3
+ ],
+ "cell": 334,
+ "anchor": [
+  167,
+  318
+ ],
+ "skinLighten": 0.25,
+ "order": "left-right,top-bottom",
+ "heights": [
+  296,
+  296,
+  296,
+  296,
+  298,
+  298,
+  298,
+  297,
+  299,
+  299,
+  270,
+  298
+ ]
+}

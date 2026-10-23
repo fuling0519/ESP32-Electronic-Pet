@@ -1,0 +1,31 @@
+{
+ "source": "sleep-dead-source-v5.png",
+ "sourceSha256": "d1dae75b2f2ee77551a0aaca7a033c56bce875d87418100d0f93aa1b92f41499",
+ "sourceSize": [
+  1774,
+  887
+ ],
+ "sourceGrid": [
+  2,
+  1
+ ],
+ "sourceCells": [
+  0,
+  1
+ ],
+ "grid": [
+  2,
+  1
+ ],
+ "cell": 891,
+ "anchor": [
+  445,
+  847
+ ],
+ "skinLighten": 0.25,
+ "order": "left-right,top-bottom",
+ "heights": [
+  550,
+  356
+ ]
+}

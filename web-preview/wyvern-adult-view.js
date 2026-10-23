@@ -1,13 +1,12 @@
-/* Web-only illustrated adult art. Domain state and firmware masks stay separate. */
+/* Web-only illustrated wyvern art (adult and baby). Domain state and firmware masks stay separate. */
 (()=>{'use strict';
-const base='assets/pets/wyvern/adult/';
 const images=new Map();
 function image(name){
- if(!images.has(name)){const im=new Image();im.src=base+name;images.set(name,im);}
+ if(!images.has(name)){const im=new Image();im.src='assets/pets/wyvern/'+name;images.set(name,im);}
  return images.get(name);
 }
 // Shared scale/anchor within each animation: never fit each frame independently.
-const poses={
+const adultPoses={
  idle:{file:'idle-subtle-sheet-v2.png',cell:777,columns:2,frames:[0,1,2,3],times:[220,160,220,320],anchor:[388,659],scale:126/522},
  sad:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[0,1],times:[2200,240],anchor:[234,444],scale:126/423},
  sick:{file:'emotions-sheet-v1.png',cell:470,columns:2,frames:[2,3],times:[1400,900],anchor:[234,444],scale:120/399},
@@ -21,7 +20,36 @@ const poses={
  eat:{file:'eat-sheet-v2-clean.png',cell:767,columns:2,frames:[0,1,2,3],times:[375,375,375,375],anchor:[383,721],scale:126/508},
  flight:{file:'flight-sheet-v1.png',cellWidth:560,cellHeight:448,columns:3,frames:[0,1,2,3,4,5],times:[170,130,130,170,130,170],anchor:[280,310],scale:172/517}
 };
-for(const pose of Object.values(poses))for(const file of pose.files||[pose.file])image(file);
+// Baby: ~73% of adult height (92 px). Each generated sheet drew the baby at its
+// own size, so B and C scales are matched to sheet A by head width (B's head is
+// ~5% narrower than A; C's walk frame head is 295 px against B's 220).
+const BABY_A=92/296,BABY_B=BABY_A*231/219,BABY_C=BABY_B*220/295;
+const babyA={file:'sheet-a-v2.png',cell:334,columns:4,anchor:[167,318],scale:BABY_A};
+const babyB={file:'sheet-b-v2.png',cell:341,columns:4,anchor:[170,324],scale:BABY_B};
+// Sleep/dead (front-view poses) matched to A by eye spacing: 107 vs 193.8 px.
+const BABY_V5=BABY_A*107/193.8;
+const babyV5={file:'sleep-dead-v5.png',cell:891,columns:2,anchor:[445,847],scale:BABY_V5};
+const babyC={file:'sheet-c-v1.png',cell:816,columns:2,anchor:[408,776],scale:BABY_C};
+const babyPoses={
+ idle:{...babyA,frames:[0,1,2,3],times:[240,180,240,340]},
+ sad:{...babyA,frames:[4,5],times:[2200,240]},
+ sick:{...babyA,frames:[6,7],times:[1400,900]},
+ happy:{...babyA,frames:[8,9],times:[1800,650]},
+ // Same frame roles as adult: stand, bite, chew, smile (the happy squint).
+ eat:{...babyA,frames:[0,10,11,9],times:[375,375,375,375]},
+ shock:{...babyB,frames:[4],times:[1]},
+ // B's third frame lifted the same foot as the first; C supplies the other foot.
+ walk:{...babyB,frames:[0,1,{...babyC,frame:0},3],times:[200,160,200,160]},
+ // Baby dozes sitting up and lies flopped flat when dead: lying/side poses kept
+ // drifting toward the adult design. One still frame each; Zzz shows it asleep.
+ // Mirrored so the head tilts to the viewer's right, as the user preferred.
+ sleep:{...babyV5,frames:[0],times:[1],flip:true},
+ dead:{...babyV5,frames:[1],times:[1]}
+};
+// A frame may be an object that borrows another sheet's file, cell and scale.
+for(const [stage,set] of [['adult',adultPoses],['baby',babyPoses]])for(const pose of Object.values(set))for(const part of [pose,...(pose.frames||[]).filter(f=>typeof f==='object')])part.files=(part.files||[part.file]).map(f=>stage+'/'+f);
+const POSES={adult:adultPoses,baby:babyPoses},poses=adultPoses;
+for(const set of Object.values(POSES))for(const pose of Object.values(set))for(const part of [pose,...(pose.frames||[]).filter(f=>typeof f==='object')])for(const file of part.files)image(file);
 // Eating: three bites. Each bite = head down 450 ms, then chewing 400 ms; the bowl
 // loses one step of food as the head comes up. Smile only after the bowl is empty.
 const EAT={down:450,chew:400,bites:3};
@@ -55,18 +83,33 @@ function travelAt(elapsed,withRest=true){
  t-=1200;
  return {active:true,x:190,lift:1-smooth(t/600),facing:1,blend:1-smooth((t-380)/220)};
 }
+// Baby walks on the ground instead of flying: slower, shorter route, same rest.
+function walkAt(elapsed,withRest=true){
+ const rest=withRest?24000:0,cycle=rest+9840;
+ let t=Math.max(0,elapsed)%cycle-rest;
+ if(t<0)return {active:false,x:190,facing:1};
+ if(t<2400)return {active:true,x:190+60*smooth(t/2400),facing:1};
+ t-=2400;
+ if(t<240)return {active:true,x:250,facing:t<120?1:-1,still:true};
+ t-=240;
+ if(t<4800)return {active:true,x:250-120*smooth(t/4800),facing:-1};
+ t-=4800;
+ if(t<240)return {active:true,x:130,facing:t<120?-1:1,still:true};
+ t-=240;
+ return {active:true,x:130+60*smooth(t/2160),facing:1};
+}
 const controls=document.querySelector('.preview-controls');
 let label,select,note;
 if(controls){
  label=document.createElement('label');label.textContent='小龍素材 ';label.hidden=true;
  select=document.createElement('select');select.id='wyvern-art-state';select.setAttribute('aria-label','小龍素材預覽');
- for(const [value,text] of [['auto','跟隨寵物'],['idle','待機'],['sad','傷心'],['sick','生病'],['happy','開心'],['shock','驚嚇（被戳）'],['sleep','蜷縮睡眠'],['dead','死亡靜態'],['flight','低空飛行（六格循環）'],['eat','吃飯（四格）']]){
+ for(const [value,text] of [['auto','跟隨寵物'],['idle','待機'],['sad','傷心'],['sick','生病'],['happy','開心'],['shock','驚嚇（被戳）'],['sleep','蜷縮睡眠'],['dead','死亡靜態'],['flight','移動（成年飛行／幼年走路）'],['eat','吃飯（四格）']]){
   const option=document.createElement('option');option.value=value;option.textContent=text;select.appendChild(option);
  }
  select.onchange=()=>{preview=select.value;lastState='';resetMotion();};label.appendChild(select);controls.appendChild(label);
- note=document.createElement('small');note.hidden=true;note.textContent='只切換外觀，不改養成數值。健康清醒待機時偶爾低空飛行，往左自動翻面。';controls.appendChild(note);
+ note=document.createElement('small');note.hidden=true;note.textContent='只切換外觀，不改養成數值。健康清醒待機時偶爾移動（成年飛行、幼年走路），往左自動翻面。';controls.appendChild(note);
 }
-function eligible(p){return p&&p.stage==='adult'&&!p.isDeparted&&p.healthState!=='dead';}
+function eligible(p){return p&&['adult','baby'].includes(p.stage)&&!p.isDeparted&&p.healthState!=='dead';}
 function syncControls(p,enabled){
  if(label)label.hidden=!enabled;if(note)note.hidden=!enabled;
  if(controlsEnabled!==enabled||!eligible(p))resetMotion();controlsEnabled=enabled;
@@ -97,49 +140,63 @@ function resolve(p,now,action){
  if(preview==='flight'&&!action)return 'flight';
  return 'idle';
 }
-function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,opacity=1,frame=null}={}){
- const pose=poses[state];if(!pose)return false;
+function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,opacity=1,frame=null,stage='adult'}={}){
+ const pose=POSES[stage]?.[state];if(!pose)return false;
  const cycle=pose.times.reduce((a,b)=>a+b,0);let phase=Math.max(0,elapsed)%cycle,index=0;
  if(frame!==null)index=Math.max(0,Math.min(pose.times.length-1,frame));
  else if(!reduced)while(index<pose.times.length-1&&phase>=pose.times[index])phase-=pose.times[index++];
- const im=image(pose.files?pose.files[index]:pose.file);
+ const part=pose.frames?.[index],spec=typeof part==='object'?{...pose,...part}:pose,cellIndex=typeof part==='object'?part.frame:part;
+ const im=image(spec.files[spec.files.length>1?index:0]);
  if(!im.complete||!im.naturalWidth)return false;
- let rect=pose.rect;
- if(pose.cell||pose.cellWidth){const frame=pose.frames[index],cw=pose.cellWidth||pose.cell,ch=pose.cellHeight||pose.cell;rect=[frame%pose.columns*cw,Math.floor(frame/pose.columns)*ch,cw,ch];}
- const [sx,sy,w,h]=rect,scale=pose.scale*size,scaleX=scale*(pose.scaleX||1);
+ let rect=spec.rect;
+ if(spec.cell||spec.cellWidth){const cw=spec.cellWidth||spec.cell,ch=spec.cellHeight||spec.cell;rect=[cellIndex%spec.columns*cw,Math.floor(cellIndex/spec.columns)*ch,cw,ch];}
+ const [sx,sy,w,h]=rect,scale=spec.scale*size,scaleX=scale*(spec.scaleX||1);
+ if(spec.flip)facing=-facing;
  // Crop only at draw time; source files remain intact. Preserve each pose's proportions.
  ctx.save();ctx.imageSmoothingEnabled=false;
  ctx.globalAlpha=(ctx.globalAlpha??1)*opacity;
- if(facing<0){ctx.translate(x,y);ctx.scale(-1,1);ctx.drawImage(im,sx,sy,w,h,-pose.anchor[0]*scaleX,-pose.anchor[1]*scale,w*scaleX,h*scale);}
- else ctx.drawImage(im,sx,sy,w,h,x-pose.anchor[0]*scaleX,y-pose.anchor[1]*scale,w*scaleX,h*scale);
+ if(facing<0){ctx.translate(x,y);ctx.scale(-1,1);ctx.drawImage(im,sx,sy,w,h,-spec.anchor[0]*scaleX,-spec.anchor[1]*scale,w*scaleX,h*scale);}
+ else ctx.drawImage(im,sx,sy,w,h,x-spec.anchor[0]*scaleX,y-spec.anchor[1]*scale,w*scaleX,h*scale);
  ctx.restore();
  return {state,index};
 }
-function paintTravel(ctx,elapsed,reduced=false,{withRest=false}={}){
+function paintWalk(ctx,elapsed,reduced=false,{withRest=false}={}){
+ const m=walkAt(elapsed,withRest);
+ if(reduced||!m.active)return paint(ctx,'idle',elapsed,reduced,{stage:'baby'});
+ // Rest the legs on a standing frame while turning around.
+ const result=paint(ctx,'walk',elapsed,false,{stage:'baby',x:m.x,facing:m.facing,frame:m.still?1:null});
+ return result&&{...result,state:'flight',x:m.x,offset:0,facing:m.facing};
+}
+function paintTravel(ctx,elapsed,reduced=false,{withRest=false,stage='adult'}={}){
+ if(stage==='baby')return paintWalk(ctx,elapsed,reduced,{withRest});
  if(reduced)return paint(ctx,'idle',0,true);
  const m=travelAt(elapsed,withRest),offset=-22*m.lift;
  // Stay on the ground while an image is loading; never launch a fallback pose.
- const im=image(poses.flight.file);
+ const im=image(poses.flight.files[0]);
  if(!m.active||!im.complete||!im.naturalWidth)return paint(ctx,'idle',elapsed,false);
  if(m.blend<1)paint(ctx,'idle',elapsed,false,{opacity:1-m.blend});
  const result=paint(ctx,'flight',elapsed,false,{x:m.x,y:142+offset,facing:m.facing,opacity:m.blend});
  return {...result,x:m.x,offset,facing:m.facing};
 }
 function draw(ctx,p,now,action,elapsed,reduced){
- if(p.stage!=='adult'){resetMotion();return false;}
- if(travelPet!==p.petId||lastNow!==null&&(now<lastNow||now-lastNow>500))resetMotion();
- travelPet=p.petId;lastNow=now;
- const state=resolve(p,now,action),key=p.petId+':'+state;
+ const stage=p.stage,set=POSES[stage];
+ if(!set){resetMotion();return false;}
+ const motionKey=p.petId+':'+stage;
+ if(travelPet!==motionKey||lastNow!==null&&(now<lastNow||now-lastNow>500))resetMotion();
+ travelPet=motionKey;lastNow=now;
+ const state=resolve(p,now,action),key=motionKey+':'+state;
+ if(!set[state==='flight'?'idle':state]){resetMotion();return false;}
+ const baby=stage==='baby',groundY=baby?131:130,rx=baby?62:100,ry=baby?56:90;
  if(lastState!==key){lastState=key;stateStart=now;}
  const blocked=document.hidden||document.querySelector('dialog[open]')||window.PetGrowthView?.active;
- const flightArt=image(poses.flight.file),artReady=flightArt.complete&&flightArt.naturalWidth>0;
+ const moveArt=image((baby?set.walk:set.flight).files[0]),artReady=moveArt.complete&&moveArt.naturalWidth>0;
  const mayTravel=artReady&&!reduced&&!blocked&&!action&&!reaction&&eligible(p)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&
   (state==='idle'&&preview==='auto'||state==='flight');
  if(mayTravel&&!returning){
   if(travelStart===null)travelStart=now;
-  const result=paintTravel(ctx,now-travelStart,false,{withRest:preview!=='flight'});
+  const result=paintTravel(ctx,now-travelStart,false,{withRest:preview!=='flight',stage});
   lastTravel=result?.state==='flight'?{x:result.x-190,y:result.offset}:null;
-  target={petId:p.petId,x:result?.x??190,y:130+(result?.offset??0),rx:100,ry:90};
+  target={petId:p.petId,x:result?.x??190,y:groundY+(result?.offset??0),rx,ry};
   return result;
  }
  if(travelStart!==null){
@@ -151,18 +208,18 @@ function draw(ctx,p,now,action,elapsed,reduced){
  if(returning){const t=smooth((now-returning.start)/250);dx=returning.from.x*(1-t);dy=returning.from.y*(1-t);if(t===1)returning=null;}
  const startled=reaction?.kind==='poke'&&!action&&state==='shock'&&!reduced;
  const offset=startled?Math.max(0,1-(now-reaction.start)/1200)*Math.abs(Math.sin((now-reaction.start)/85))*5:0;
- target={petId:p.petId,x:190+dx,y:130+dy-offset,rx:100,ry:90};
+ target={petId:p.petId,x:190+dx,y:groundY+dy-offset,rx,ry};
  if(state==='eat'){
   // Feeding follows the action clock; the menu preview loops with a short pause on the smile.
   const ms=action==='feed'?elapsed*1000:(now-stateStart)%3600,s=eatSample(ms,reduced);
-  const result=paint(ctx,'eat',0,reduced,{x:190+dx,y:177+dy-offset,frame:s.frame});
+  const result=paint(ctx,'eat',0,reduced,{x:190+dx,y:177+dy-offset,frame:s.frame,stage});
   return result&&{...result,bowlSeconds:s.bowl*.75+.01};
  }
  // A head pat holds the squint smile; happy's open-eye frame reads almost like idle.
  const smile=reaction?.kind==='pet'&&!action&&state==='happy'?1:null;
- return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile});
+ return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile,stage});
 }
 document.addEventListener('visibilitychange',resetMotion);
-window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,draw,resolve,syncControls,
+window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,walkAt,draw,resolve,syncControls,
  interactionTarget(p){return target?.petId===p?.petId?{...target}:null;}};
 })();

@@ -1,0 +1,35 @@
+{
+ "source": "sheet-c-source-v1.png",
+ "sourceSha256": "c370ca72c4f27e5212555cff72ad13b0e0702fadae164180170d97514e2db489",
+ "sourceSize": [
+  1295,
+  1215
+ ],
+ "sourceGrid": [
+  2,
+  2
+ ],
+ "sourceCells": [
+  0,
+  1,
+  2,
+  3
+ ],
+ "grid": [
+  2,
+  2
+ ],
+ "cell": 816,
+ "anchor": [
+  408,
+  776
+ ],
+ "skinLighten": 0.25,
+ "order": "left-right,top-bottom",
+ "heights": [
+  407,
+  291,
+  299,
+  278
+ ]
+}

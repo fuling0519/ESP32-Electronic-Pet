@@ -39,7 +39,7 @@ function paint(ctx,bits,x=94,y=45,scale=3){
 }
 function draw(ctx,p,now,action,elapsed,reduced){
  const illustrated=window.WyvernAdultView?.draw(ctx,p,now,action,elapsed,reduced);
- if(illustrated){if(illustrated.state==="sleep")window.PetEffects?.zzz(ctx,now,{x:196,y:84,reduced});return illustrated;}
+ if(illustrated){if(illustrated.state==="sleep")window.PetEffects?.zzz(ctx,now,p.stage==='baby'?{x:208,y:86,reduced}:{x:196,y:84,reduced});return illustrated;}
  const fallback=window.PetSadView?.active(p)?{...p,healthState:"sick"}:p;
  const frame=frameFor({...fallback},now,action,elapsed,reduced);paint(ctx,frame.bits);
  ctx.fillStyle='#57483a';ctx.font='bold 12px sans-serif';
