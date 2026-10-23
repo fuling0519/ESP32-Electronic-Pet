@@ -1,7 +1,10 @@
 /* Mock-only touch gestures plus the status dialog for either source. No raw adapter access or BLE writes. */
 (()=>{'use strict';
 const scene=document.querySelector('.scene'),canvas=document.querySelector('#bird');
-const care=document.querySelector('.care');if(care){scene.append(care);const feed=care.querySelector('[data-action="feed"]');if(feed){feed.setAttribute('aria-label','餵食');feed.innerHTML='<span class="bowl-icon" aria-hidden="true"></span>';}}
+// The care dock floats over the garden; on narrow screens it would cover the pet, so it sits below instead.
+const care=document.querySelector('.care'),narrow=matchMedia('(max-width:650px)');
+function placeCare(){if(!care)return;if(narrow.matches)scene.after(care);else scene.append(care);}
+placeCare();narrow.addEventListener?.('change',placeCare);
 // Same split as the firmware's copper pad: a release before PETTING_MS is a poke, holding past it pets.
 const PETTING_MS=700;
 function classify(heldMs){return heldMs>=PETTING_MS?'pet':'poke';}

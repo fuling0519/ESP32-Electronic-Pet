@@ -136,3 +136,23 @@ header h1{font-size:22px;margin:0}
 #mode-label{font-weight:bold}#source-label::before{content:"· "}
 .header-actions button{min-height:40px;height:40px;padding:0 14px;font-size:13px}
 header .icon-button{padding:0}
+/* Care dock: a slim column of round item icons on the garden's right edge. */
+#aviary .scene>.care{left:auto;right:10px;top:50%;bottom:auto;transform:translateY(-50%);flex-direction:column;flex-wrap:nowrap;align-items:center;width:auto;gap:8px;padding:10px 6px 8px;border-radius:999px}
+#aviary .scene>.care button{flex:0 0 auto;width:auto;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:bold;color:var(--ink)}
+#aviary .scene>.care button:hover,#aviary .scene>.care button:active{background:none;transform:none}
+#aviary .scene>.care .care-icon{width:46px;height:46px;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;display:grid;place-items:center;transition:transform .15s,background .15s}
+#aviary .scene>.care button:hover .care-icon{background:#f8d8c7;transform:translateY(-2px)}
+#aviary .scene>.care button:active .care-icon{transform:translate(2px,2px);box-shadow:none}
+#aviary .scene>.care button:disabled{opacity:.45}
+#aviary .scene>.care small{font-size:11px;line-height:1.2}
+.bowl-art{width:36px;height:24px;background:url('assets/items/blue-seed-bowl-sheet-v1.png') 0 0/200% 200% no-repeat;image-rendering:pixelated}
+.sponge-art{width:32px;height:32px;background:url('assets/shared/cleaning/animation-v1/group-a/sponge-sheet-v1.png') 0 0/300% 100% no-repeat;image-rendering:pixelated}
+/* Narrow screens: same dock, placed under the garden (see pet-interactions.js). */
+#aviary .scene+.care{display:flex;justify-content:center;flex-wrap:nowrap;gap:18px;margin:10px 0 4px}
+#aviary .scene+.care button{flex:0 0 auto;min-width:0;min-height:0;padding:0;border:0;background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink);font-weight:bold}
+#aviary .scene+.care button:hover,#aviary .scene+.care button:active{background:none;transform:none}
+#aviary .scene+.care .care-icon{width:48px;height:48px;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;display:grid;place-items:center}
+#aviary .scene+.care button:active .care-icon{transform:translate(2px,2px);box-shadow:none}
+#aviary .scene+.care button:disabled{opacity:.45}
+#aviary .scene+.care small{font-size:11px}
+#aviary .care button[hidden]{display:none}
