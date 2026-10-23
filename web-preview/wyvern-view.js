@@ -39,11 +39,11 @@ function paint(ctx,bits,x=94,y=45,scale=3){
 }
 function draw(ctx,p,now,action,elapsed,reduced){
  const illustrated=window.WyvernAdultView?.draw(ctx,p,now,action,elapsed,reduced);
- if(illustrated){if(illustrated.state==="sleep"){ctx.fillStyle="#57483a";ctx.font="bold 12px sans-serif";ctx.fillText(reduced?"Zzz":["Z","Zz","Zzz"][Math.floor(now/650)%3],248,82);}return illustrated;}
+ if(illustrated){if(illustrated.state==="sleep")window.PetEffects?.zzz(ctx,now,{x:196,y:84,reduced});return illustrated;}
  const fallback=window.PetSadView?.active(p)?{...p,healthState:"sick"}:p;
  const frame=frameFor({...fallback},now,action,elapsed,reduced);paint(ctx,frame.bits);
  ctx.fillStyle='#57483a';ctx.font='bold 12px sans-serif';
- if(p.sleepMode==='normal')ctx.fillText(['Z','Zz','Zzz'][Math.floor(now/650)%3],p.stage==='baby'?226:247,p.stage==='baby'?96:72);
+ if(p.sleepMode==='normal')window.PetEffects?.zzz(ctx,now,{x:p.stage==='baby'?214:232,y:p.stage==='baby'?96:76,reduced});
  if(PetRules.updateSad({...p})&&p.sleepMode!=='normal'&&action!=='treat'){
   const x=p.stage==='baby'?222:246,y=p.stage==='baby'?87:63;
   for(let i=0;i<3;i++)ctx.fillRect(x+i*4,y+i*2,1,8);

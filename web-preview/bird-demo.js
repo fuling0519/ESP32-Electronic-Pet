@@ -7,7 +7,7 @@ const controls=document.querySelector('.preview-controls');let label,select,note
 if(controls){label=document.createElement('label');label.textContent='小鳥展示 ';label.hidden=true;select=document.createElement('select');select.id='bird-art-state';select.setAttribute('aria-label','小鳥外觀展示');for(const [value,text] of states){const o=document.createElement('option');o.value=value;o.textContent=text;select.appendChild(o);}select.onchange=()=>preview=select.value;label.appendChild(select);controls.appendChild(label);note=document.createElement('small');note.hidden=true;note.textContent='僅展示外觀，不改數值；開心／驚嚇沿用現有角色搭配效果，長眠為閉眼示意。';controls.appendChild(note);}
 function syncControls(p,allow){enabled=!!allow;if(label)label.hidden=!enabled;if(note)note.hidden=!enabled;if(!enabled){preview='auto';reaction=null;if(select)select.value='auto';}}
 document.addEventListener('pet-interaction-complete',e=>{if(enabled&&e.detail){const p=window.petDataManager?.read().pet;if(p)reaction={kind:e.detail.kind,petId:p.petId,start:performance.now()};}});
-function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false){
+function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true){
  const model={...p,healthState:'healthy',sleepMode:'awake',mood:80,satiety:80,cleanliness:100,sadReasons:{mood:false,satiety:false,cleanliness:false}};
  let action=null,elapsed=0,sad=false,time=reduced?0:now;
  if(state==='sad')sad=true;
@@ -19,10 +19,11 @@ function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false){
  const drawn=state==='idle'||state==='water'?idle(ctx,model,time,cx,cy,scale,reduced,state==='water'):baseDraw(ctx,model,time,action,elapsed,sad,cx,cy-dy,scale);
  if(!drawn)return false;
  if(state==='feed')window.WhiteBirdFeed?.bowl(ctx,p,elapsed);
- ctx.fillStyle=state==='happy'?'#df819d':'#574039';ctx.font='bold 20px sans-serif';
- if(state==='happy')ctx.fillText('♥',cx+48,cy-50);
- if(state==='startled')ctx.fillText('!',cx+48,cy-50);
- if(state==='sleep'){ctx.font='14px sans-serif';ctx.fillText('Zzz',cx+48,cy-50);}
+ // Touch reactions get their effects from the touch overlay; previews draw their own loop.
+ const fx=window.PetEffects;
+ if(fx&&overlay&&state==='happy')fx.hearts(ctx,now%2600,{x:cx,y:cy-30,spread:44,until:1500,reduced});
+ if(fx&&overlay&&state==='startled')fx.shock(ctx,now%2000,{x:cx+40,y:cy-70,reduced});
+ if(fx&&state==='sleep')fx.zzz(ctx,now,{x:cx+26,y:cy-46,reduced});
  return true;
 }
 function waterPose(now,cx,cy,onlyWater=false){
@@ -69,9 +70,10 @@ BirdView.draw=function(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  if(!enabled||action||p.isDeparted||p.healthState==='dead'||!['baby','adult'].includes(p.stage))return baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
  let state=preview;
  if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200||p.healthState!=='healthy'||p.sleepMode!=='awake'))reaction=null;
- if(state==='auto'&&reaction)state=reaction.kind==='pet'?'happy':'startled';
+ const fromReaction=state==='auto'&&!!reaction;
+ if(fromReaction)state=reaction.kind==='pet'?'happy':'startled';
  if(state==='auto')return !sad&&idleActive(p)?idle(ctx,p,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false):baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
- return paint(ctx,p,state,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false);
+ return paint(ctx,p,state,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false,!fromReaction);
 };
 window.BirdDemo={paint,syncControls,states,idleActive,waterPose,drinkPose,previewing:()=>enabled&&preview!=='auto'};
 })();

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>互動特效預覽</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f9f3;color:#423d46;font:16px/1.6 system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:24px 16px}h1{margin:0}p{margin:8px 0 20px}a{color:#4d6842}button{font:inherit;padding:8px 16px;border:1px solid #c9ccbe;background:white;border-radius:12px;cursor:pointer}header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}article{background:white;border:1px solid #e1dfd7;border-radius:18px;overflow:hidden}article h2{font-size:18px;margin:12px 18px 0}article p{font-size:14px;margin:0 18px 14px;color:#6c6670}.scene{aspect-ratio:3/2;position:relative;background:center/cover url('assets/garden-detailed-day.png')}.scene canvas{width:100%;height:100%;image-rendering:pixelated}.night .scene{background-image:url('assets/garden-detailed-night.png')}.night{background:#292c37;color:#eee5f1}.night article{background:#383847;border-color:#545262}.night article p{color:#d0c5d7}.night a{color:#b9d7a8}.tag{display:inline-block;font-size:12px;padding:0 8px;border-radius:8px;background:#e9e4f5;margin-left:6px;vertical-align:middle}.night .tag{background:#55506a}
+</style>
+<main><header><div><h1>互動特效預覽</h1><a href="index.html?preview=wyvern">進入花園互動展示</a></div><button id="light">切換夜晚</button></header>
+<p>愛心、Zzz、驚嘆號全部以程式繪製像素點陣（放大 3 倍、深色外框、白色亮點），不使用生成圖片。每列比較同一特效的舊版 3px 格與花園採用的細緻像素；只預覽外觀，不讀寫寵物存檔。</p>
+<section class="grid" id="effects"></section></main>
+<script src="wyvern-adult-view.js?v=sleep-scale-20261023"></script>
+<script src="pet-effects.js?v=heart-shade-20261023"></script>
+<script>
+// Three drawing styles of the same effects; positions match the garden page.
+const effects=[
+ ['愛心（摸頭）','happy',(ctx,ms,r,style)=>PetEffects.hearts(ctx,ms%3200,{x:190,y:108,spread:56,until:1700,reduced:r,style})],
+ ['Zzz（睡覺）','sleep',(ctx,ms,r,style)=>PetEffects.zzz(ctx,ms,{x:196,y:84,reduced:r,style})],
+ ['驚嘆號（被戳）','shock',(ctx,ms,r,style)=>PetEffects.shock(ctx,ms%2000,{x:240,y:60,reduced:r,style})]
+];
+const styles=[['pixel','舊：3px 格像素','顆粒粗、鋸齒明顯。'],['fine','花園採用：細緻像素','1px 格點陣、2px 外框，接近寵物的顆粒與框線。']];
+const scenes=[];
+for(const [title,pose,draw] of effects)for(const [style,label,description] of styles){
+ const card=document.createElement('article'),heading=document.createElement('h2'),text=document.createElement('p'),scene=document.createElement('div'),canvas=document.createElement('canvas');
+ heading.textContent=title;const tag=document.createElement('span');tag.className='tag';tag.textContent=label;heading.append(tag);
+ text.textContent=description;scene.className='scene';canvas.width=768;canvas.height=512;canvas.setAttribute('aria-label',title+' '+label);
+ scene.append(canvas);card.append(scene,heading,text);document.querySelector('#effects').append(card);
+ const ctx=canvas.getContext('2d');ctx.scale(2,2);ctx.imageSmoothingEnabled=false;scenes.push({ctx,pose,draw:(c,ms,r)=>draw(c,ms,r,style)});
+}
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+// ?t=毫秒 可凍結在指定時間點，方便截圖比對。
+const frozen=Number(new URLSearchParams(location.search).get('t'));
+function frame(now){if(frozen>=0&&new URLSearchParams(location.search).has('t'))now=frozen;for(const {ctx,pose,draw} of scenes){ctx.clearRect(0,0,384,256);WyvernAdultView.paint(ctx,pose,now,reduced.matches);draw(ctx,now,reduced.matches);}requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+document.querySelector('#light').onclick=()=>{const night=document.body.classList.toggle('night');document.querySelector('#light').textContent=night?'切換白天':'切換夜晚';};
+</script>
+</html>
