@@ -19,7 +19,7 @@ function fillStatus(){const p=petDataManager.read().pet;if(!p)return false;const
 // Portraits are drawn from the live sprites (species and stage), then cropped to the
 // character's visible pixels and centred, so no art file's padding leaves it off-centre.
 // Measured with visibleBox() on http; file:// pages cannot read canvas pixels back, so they use these.
-const PORTRAIT_BOXES={'1:adult':[279,129,248,247],'1:baby':[299,153,199,199],'2:adult':[240,102,279,253],'2:baby':[300,170,160,184],egg:[191,168,261,269]};
+const PORTRAIT_BOXES={'1:adult':[279,129,248,247],'1:baby':[299,153,199,199],'2:adult':[240,102,279,253],'2:baby':[300,170,160,184],egg:[316,232,128,168]};
 function visibleBox(a){let px;try{px=a.getImageData(0,0,768,512).data;}catch{return null;}
  let x0=768,y0=512,x1=-1,y1=-1;
  for(let y=0;y<512;y++)for(let x=0;x<768;x++)if(px[(y*768+x)*4+3]>16){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
@@ -27,7 +27,7 @@ function visibleBox(a){let px;try{px=a.getImageData(0,0,768,512).data;}catch{ret
 function renderPortrait(target,p){
  const art=document.createElement('canvas');art.width=768;art.height=512;const a=art.getContext('2d');a.scale(2,2);
  let drawn=false;
- if(p.stage==='egg')drawn=!!window.PetEggView&&(window.PetEggView.draw(a,0,0,true),true);
+ if(p.stage==='egg')drawn=!!window.PetEggView&&(window.PetEggView.draw(a,0,0,true,false,p.petId),true);
  else if(p.speciesId===2)drawn=!!window.WyvernAdultView?.paint(a,'idle',0,true,{stage:p.stage});
  else drawn=!!window.BirdView?.draw(a,{stage:p.stage,healthState:'healthy',sleepMode:'awake',satiety:100,mood:80,cleanliness:100},0,null,0,false,190,126,3);
  if(!drawn)return false;

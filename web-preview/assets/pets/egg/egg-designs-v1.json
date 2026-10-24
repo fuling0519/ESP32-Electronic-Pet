@@ -1,0 +1,42 @@
+{
+ "source": "egg-designs-source-v1.png",
+ "sourceSha256": "ed7fc19ef88177d10bcc9054479934552b8503700838ce936abad0727a14eaed",
+ "sourceSize": [
+  1536,
+  1024
+ ],
+ "order": [
+  "spotted",
+  "dots",
+  "zigzag"
+ ],
+ "cell": [
+  443,
+  582
+ ],
+ "anchor": [
+  221,
+  556
+ ],
+ "sizes": [
+  [
+   402,
+   529
+  ],
+  [
+   403,
+   529
+  ],
+  [
+   403,
+   528
+  ]
+ ],
+ "dotsShellHue": 160,
+ "dotColors": {
+  "pink": "#f6afda",
+  "green": "#9ce0ea"
+ },
+ "zigzagShellHue": 50,
+ "zigzagBand": "#78b9f0"
+}
