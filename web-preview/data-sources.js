@@ -66,6 +66,8 @@ class MockSource {
   answerGame(choice,now){if(this.gameState(now)?.phase==='cancelled')return this.gameState(now);this.game?.answer(choice,now);return this.gameState(now);}
   nextRound(now){this.game?.continue(now);return this.gameState(now);}
   cancelGame(){if(this.game){this.game.cancelled=true;this.game.phase='cancelled';}}
+  // Demo tools only: drop or refill one need so its emote and sad face can be checked without waiting.
+  demoNeed(key,value){if(!['satiety','cleanliness','mood'].includes(key))throw new Error('未知需求');const p=this.pet;p[key]=Math.max(0,Math.min(100,value));PetRules.updateSad(p);this.persist();}
   command(kind){
     const p=this.pet;
     if(p.isDeparted||p.healthState==='dead'||p.sleepMode!=='awake'||p.stage==='egg'||(kind==='play'&&p.healthState==='sick'))throw new Error('目前不能照顧');

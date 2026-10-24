@@ -23,7 +23,6 @@ function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3,
   const art=now%2600<1600&&awakeImage.complete&&awakeImage.naturalWidth?awakeImage:sadImage;
   const fit=Math.min(64*scale/art.naturalWidth,44*scale/art.naturalHeight),w=art.naturalWidth*fit,h=art.naturalHeight*fit;
   ctx.imageSmoothingEnabled=false;ctx.drawImage(art,cx-w/2,cy-h/2,w,h);
-  ctx.fillStyle='#302535';for(let i=0;i<3;i++)ctx.fillRect(214+i*6,87,3,(i===2?6:5)*3);
   return true;
  }
  const index=faceOnly?(p.stage==='adult'?(now%2600<1600?2:3):0):frame(p,now,action,elapsed,previewSad),sw=image.naturalWidth/6,sh=image.naturalHeight;
@@ -61,10 +60,6 @@ function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3,
    ctx.fillStyle='#574039';
    for(let step=0;step<3;step++)ctx.fillRect(ex+step*unit,ey+(left<.4?2-step:step)*unit,unit,unit);
   }
- }
- if(action!=='treat'&&action!=='feed'&&action!=='clean'&&p.sleepMode!=='normal'&&(previewSad||PetRules.updateSad({...p}))){
-  ctx.fillStyle='#302535';const ox=p.stage==='baby'?40:39,oy=p.stage==='baby'?14:9;
-  for(let i=0;i<3;i++)ctx.fillRect(94+(ox+i*2)*3,45+oy*3,3,(i===2?6:5)*3);
  }
  return true;
 }

@@ -55,10 +55,8 @@ function draw(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
   const fit=height*.94/d.visibleHeight;
   ctx.drawImage(idleImage,index%2*d.cell,Math.floor(index/2)*d.cell,d.cell,d.cell,cx-d.anchor[0]*fit,cy+height*.47-d.anchor[1]*fit,d.cell*fit,d.cell*fit);
  }else ctx.drawImage(image,cx-width/2,cy-height/2,width,height);
- // Keep shared state effects separate from the single approved character image.
- if(!action&&p.sleepMode!=='normal'&&(sad||PetRules.updateSad({...p}))){
-  ctx.fillStyle='#302535';for(let i=0;i<3;i++)ctx.fillRect(cx+width*.35+i*5,cy-height*.34,2,i===2?12:10);
- }
+ // Keep shared state effects separate from the single approved character image. Sadness has no extra mark: the face
+ // and the emote bubble already show it.
  if(!ill&&!action&&p.sleepMode!=='normal'&&p.healthState==='sick'){
   ctx.fillStyle='#438dac';ctx.fillRect(cx+width*.36,cy-height*.2,4,8);ctx.fillRect(cx+width*.36-3,cy-height*.2+7,10,8);
   ctx.fillStyle='#effbff';ctx.fillRect(cx+width*.36,cy-height*.2+8,2,4);

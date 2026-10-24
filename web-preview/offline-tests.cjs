@@ -142,7 +142,7 @@ test('home keeps demo-only controls inside the demo-mode panel',()=>{
  assert.ok(open>=0&&close>open,'demo panel exists');
  for(const marker of ['data-for="species-preview"','data-for="art-stage"','data-for="art-action"','data-for="condition"','id="grow"','id="touch-pet"','id="touch-poke"','id="farewell"','id="reset"','重設展示寵物','id="stage"']){const at=html.indexOf(marker);assert.ok(at>open&&at<close,marker+' sits inside the demo panel');}
  const scene=html.slice(html.indexOf('<section class="scene"'),html.indexOf('</section>',html.indexOf('<section class="scene"')));
- assert.match(scene,/id="open-status"[^>]*popovertarget="pet-status-card"/,'status orb lives in the garden');assert.match(scene,/id="status" class="caption"/,'narration is a caption in the garden');
+ assert.match(scene,/id="open-status"[^>]*popovertarget="pet-status-card"/,'status orb lives in the garden');assert.doesNotMatch(scene,/id="status"/,'narration is not drawn over the garden');assert.match(html,/<section class="scene"[\s\S]*?<\/section><p id="status" class="message-bar"/,'message bar sits right under the garden');assert.doesNotMatch(html,/illness-notice/,'sick state is shown by the emote, not a notice box');
  const card=html.slice(html.indexOf('<div id="pet-status-card" popover'),html.indexOf('</div>',html.indexOf('id="open-cemetery"')));assert.ok(card.includes('id="open-cemetery"')&&card.includes('id="last-received"'),'memorial link and device receipt sit in the status card');assert.ok(!html.includes('<footer>'),'the row under the garden is gone');
  assert.match(css,/#aviary\.device-mode \.care,#aviary\.device-mode #adopt-egg,#aviary\.device-mode #demo-panel\{display:none/);
 });
@@ -240,3 +240,7 @@ test('feeding and cleaning at 100 still play like the firmware, without extra EX
  assert.equal(m.command('feed').actual,0);assert.equal(m.command('clean').actual,0);
  assert.equal(p.satiety,100);assert.equal(p.cleanliness,100);assert.equal(p.exp,exp);
 });
+test('demo need tools drop and refill one value, update sad flags and save',()=>{const {m,storage}=boot();m.select('mock');
+ m.demoNeed('satiety',10);let p=m.read().pet;assert.equal(p.satiety,10);assert.equal(p.sadReasons.satiety,true);assert.match(storage.get('aviary.demo'),/"satiety":10/);
+ m.demoNeed('satiety',100);p=m.read().pet;assert.equal(p.satiety,100);assert.equal(p.sadReasons.satiety,false);
+ assert.throws(()=>m.demoNeed('exp',0));m.select('ble');assert.throws(()=>m.demoNeed('mood',10));});

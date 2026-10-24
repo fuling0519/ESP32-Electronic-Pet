@@ -2,7 +2,7 @@
 #aviary .scene img{filter:saturate(.48)}#aviary.night .scene img{filter:saturate(.48)}
 
 #aviary.simple-background .scene img{filter:none}#aviary.simple-background.night .scene img{filter:brightness(.62) saturate(.65)}
-#illness-notice{position:absolute;left:12px;top:12px;padding:8px 12px;background:#fff5cf;border:2px solid #896448;color:#282523;display:flex;flex-direction:column;font-size:12px;box-shadow:3px 3px 0 #896448}#illness-notice[hidden]{display:none}#illness-notice strong{font-size:16px}.is-sick #bubble{border-color:#896448;color:#282523;background:#fffaf0}.is-sick #pet-description{font-weight:bold;color:#67432e}@media(max-width:650px){#illness-notice{left:6px;top:6px;padding:4px 7px;font-size:11px}#illness-notice strong{font-size:13px}.is-sick #bubble{top:27%;max-width:90%;font-size:12px}}
+.is-sick #bubble{border-color:#896448;color:#282523;background:#fffaf0}.is-sick #pet-description{font-weight:bold;color:#67432e}@media(max-width:650px){.is-sick #bubble{top:27%;max-width:90%;font-size:12px}}
 
 /* Keep the vector character smooth at every responsive size. */
 .scene canvas{image-rendering:auto}
@@ -134,20 +134,20 @@ header .icon-button{padding:0}
 .bowl-art{width:36px;height:24px;background:url('assets/items/blue-seed-bowl-sheet-v1.png') 0 0/200% 200% no-repeat;image-rendering:pixelated}
 .sponge-art{width:32px;height:32px;background:url('assets/shared/cleaning/animation-v1/group-a/sponge-sheet-v1.png') 0 0/300% 100% no-repeat;image-rendering:pixelated}
 /* Narrow screens: same dock, placed under the garden (see pet-interactions.js). */
-#aviary .scene+.care{display:flex;justify-content:center;flex-wrap:nowrap;gap:18px;margin:10px 0 4px}
-#aviary .scene+.care button{flex:0 0 auto;min-width:0;min-height:0;padding:0;border:0;background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink);font-weight:bold}
-#aviary .scene+.care button:hover,#aviary .scene+.care button:active{background:none;transform:none}
-#aviary .scene+.care .care-icon{width:48px;height:48px;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;display:grid;place-items:center}
-#aviary .scene+.care button:active .care-icon{transform:translate(2px,2px);box-shadow:none}
-#aviary .scene+.care button:disabled{opacity:.45}
-#aviary .scene+.care small{font-size:11px}
+#aviary :is(.scene,#status)+.care{display:flex;justify-content:center;flex-wrap:nowrap;gap:18px;margin:10px 0 4px}
+#aviary :is(.scene,#status)+.care button{flex:0 0 auto;min-width:0;min-height:0;padding:0;border:0;background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--ink);font-weight:bold}
+#aviary :is(.scene,#status)+.care button:hover,#aviary :is(.scene,#status)+.care button:active{background:none;transform:none}
+#aviary :is(.scene,#status)+.care .care-icon{width:48px;height:48px;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;display:grid;place-items:center}
+#aviary :is(.scene,#status)+.care button:active .care-icon{transform:translate(2px,2px);box-shadow:none}
+#aviary :is(.scene,#status)+.care button:disabled{opacity:.45}
+#aviary :is(.scene,#status)+.care small{font-size:11px}
 #aviary .care button[hidden]{display:none}
 /* Status orb (top-left of the garden) opens the status card popover. */
 .status-orb{position:absolute;left:10px;top:10px;z-index:5;width:52px;height:52px;min-width:0;min-height:0;padding:0;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;overflow:hidden;display:grid;place-items:center}
 /* The garden's ".scene canvas" rule pins canvases to the corner; the portrait must sit in the orb's grid instead. */
 .status-orb canvas{position:static;inset:auto;width:44px;height:44px;pointer-events:none}
 .status-orb:hover{background:#f8d8c7}.status-orb[hidden]{display:none}
-#aviary .scene #illness-notice{left:72px}
+
 #pet-status-card .pet-status-card{grid-template-columns:76px 1fr;gap:10px;padding-bottom:10px}
 #pet-status-card .pet-status-portrait{height:64px}
 #pet-status-card .pet-status-main strong{font-size:17px}
@@ -161,7 +161,7 @@ header .icon-button{padding:0}
 /* Narration caption along the bottom of the garden; fades after a few seconds. */
 .scene .caption{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:5;max-width:min(80%,520px);margin:0;padding:5px 14px;border-radius:8px;background:#3a2f45d0;color:#fffaf0;font-size:13px;text-align:center;opacity:0;transition:opacity .4s;pointer-events:none}
 .scene .caption.show{opacity:1}
-@media(max-width:650px){.status-orb{width:42px;height:42px;left:6px;top:6px}.status-orb canvas{width:36px;height:36px}#aviary .scene #illness-notice{left:54px}.scene .caption{bottom:6px;font-size:12px;max-width:90%}}
+@media(max-width:650px){.status-orb{width:42px;height:42px;left:6px;top:6px}.status-orb canvas{width:36px;height:36px}.scene .caption{bottom:6px;font-size:12px;max-width:90%}}
 @media(prefers-reduced-motion:reduce){.scene .caption{transition:none}}
 
 /* Memorial album: a scrapbook page with pasted postcards and rest cards (2026-10-24). */
@@ -193,4 +193,28 @@ header .icon-button{padding:0}
 .file-warning{margin:0 0 14px;padding:8px 12px;background:#fde3d6;border:2px solid #d99b8a;color:#7a4436;font-size:13px}.file-warning[hidden]{display:none}
 /* The pet's speech floats above its head instead of over its face; it is hidden during treatment so the potion stays clear. */
 #aviary .scene #bubble{top:16%;z-index:5}
-@media(max-width:650px){#aviary .scene #bubble{left:57%}} /* clear of the illness notice in the top-left corner */
+/* Wide screens: demo tools sit beside the garden and stay in view, so a tool can be pressed while watching the pet.
+   Device mode has no demo tools and keeps the single column. */
+@media(min-width:1100px){
+ /* Rows: warning, header, garden, then the items below it; the last 1fr row soaks up the panel's extra height so the
+    column-1 items are not pushed apart. */
+ #aviary:not(.device-mode){max-width:1400px;display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:repeat(7,auto) 1fr;column-gap:20px;align-items:start}
+ #aviary:not(.device-mode)>*{grid-column:1}
+ #aviary:not(.device-mode)>.file-warning{grid-column:1/-1;grid-row:1}
+ #aviary:not(.device-mode)>header{grid-column:1/-1;grid-row:2}
+ #aviary:not(.device-mode)>.scene{grid-row:3}
+ #aviary:not(.device-mode)>#status{grid-row:4}#aviary:not(.device-mode)>#afterlife-menu{grid-row:5}#aviary:not(.device-mode)>.care{grid-row:6}#aviary:not(.device-mode)>#storage-status{grid-row:7}
+ #aviary:not(.device-mode)>#demo-panel{grid-column:2;grid-row:3/9;position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;margin-top:0}
+}
+/* Emote bubble: a pixel bubble up and to the right of the head, popping in and bobbing at the pets' slow frame rate. */
+#aviary .scene #bubble.emote{left:57%;top:14%;transform:none;width:8%;min-width:46px;max-width:none;padding:0;background:none;border:0;box-shadow:none}
+#aviary .scene #bubble.emote canvas{display:block;width:100%;height:auto;image-rendering:pixelated;transform-origin:20% 100%;animation:emote-pop .3s steps(3,end),emote-bob 1.2s steps(2,end) .3s infinite}
+#aviary .scene #bubble.emote.baby{left:55%;top:24%} /* babies are shorter */
+@keyframes emote-pop{from{transform:scale(.4)}to{transform:scale(1)}}
+@keyframes emote-bob{50%{transform:translateY(-6%)}}
+@media(prefers-reduced-motion:reduce){#aviary .scene #bubble.emote canvas{animation:none}}
+/* Message bar right under the garden: always there (no layout jump), problems tinted for a few seconds. */
+.message-bar{margin:8px 0 0;padding:6px 12px;min-height:calc(2.6em + 12px);display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.3;background:var(--panel);border:2px solid var(--line);color:var(--ink);transition:background .3s,border-color .3s}
+.message-bar.alert{background:#fde3d6;border-color:#d99b8a;color:#7a4436}
+@media(max-width:650px){.message-bar{font-size:12px;padding:5px 10px}}
+@media(prefers-reduced-motion:reduce){.message-bar{transition:none}}

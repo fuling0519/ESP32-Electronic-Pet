@@ -14,6 +14,7 @@ class DataManager {
  view(mode=this.mode){const s=this.read(mode);return {...s.metadata,pet:presentation(s.pet)};}
  command(kind){if(this.mode!=='mock')throw new Error('BLE 僅提供唯讀查詢');return this.adapters.mock.command(kind);}
  preview(stage,condition){if(this.mode!=='mock')throw new Error('裝置狀態由 ESP32 決定');this.adapters.mock.preview(stage,condition);}
+ demoNeed(key,value){if(this.mode!=='mock')throw new Error('裝置數值由 ESP32 決定');this.adapters.mock.demoNeed(key,value);}
  reset(){if(this.mode!=='mock')throw new Error('不可重設裝置');this.adapters.mock.reset();}
  adopt(){if(this.mode!=='mock')throw new Error('請在裝置領養');const p=this.view().pet;if(p.healthState!=='dead'&&!p.isDeparted)throw new Error('目前個體尚未死亡');if(!PetMemorials.remember(p,'mock',''))throw new Error('墓碑保存失敗');this.adapters.mock.adopt();}
  startGame(kind,now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.startGame(kind,now);}
