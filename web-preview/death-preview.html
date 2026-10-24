@@ -1,0 +1,20 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>長眠流程預覽</title><style>body{text-align:center;background:#f7f0dd;color:#57483a;font:18px sans-serif;margin:0 16px}.stage{position:relative;width:min(100%,768px);aspect-ratio:3/2;margin:0 auto;border-radius:16px;overflow:hidden}.stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%}.stage img{filter:saturate(.48)}button,select,input{font:inherit;padding:10px;margin:6px}#scrub{width:min(100%,768px);padding:0}#phase{font-weight:700}</style>
+<h1>長眠流程檢查</h1><p>獨立預覽，不改存檔。靈魂由寵物自己的待機圖生成，新物種不需另外畫。</p>
+<select id="species" aria-label="種類"><option value="1">小鳥</option><option value="2" selected>小飛龍</option></select><select id="stage" aria-label="階段"><option value="adult">成年</option><option value="baby">幼年</option></select><select id="night" aria-label="時段"><option value="0">白天</option><option value="1">夜晚</option></select><select id="speed" aria-label="速度"><option value="1">1 倍速</option><option value="0.5">0.5 倍速</option><option value="0.25">0.25 倍速</option></select><label><input type="checkbox" id="reduced">減少動態</label><button id="play">從頭播放</button><button id="pause">暫停</button>
+<div class="stage"><img id="bg" src="assets/garden-detailed-day.png?v=cute-farm-v2-20261016" alt=""><canvas id="art" width="384" height="256"></canvas></div>
+<input type="range" id="scrub" min="0" max="10000" step="50" value="0" aria-label="時間軸"><p><span id="phase"></span> · <span id="time"></span></p>
+<p>0–1.2 秒倒下、場景變暗；1.2–3.6 秒身體從頭往下化成光點（主要畫面），戴光環的靈魂同時飄出，3–3.6 秒縮成光團、3.6–4.8 秒飛走；4.4–6.2 秒墓碑升起、小花長出；6.2 秒起安息（白天花瓣、夜晚螢火蟲），選單在此時出現。</p>
+<script src="pet-rules.js"></script><script src="wyvern-sprites.js"></script><script src="wyvern-view.js"></script><script src="wyvern-adult-view.js?v=demo-tools-20261023"></script><script src="assets/pets/bird/white-idle-data-v4.js"></script><script src="assets/pets/bird/white-sad-data-v1.js"></script><script src="assets/pets/bird/white-sick-data-v1.js"></script><script src="white-bird-view.js?v=peck-feed-v1"></script><script src="bird-view.js?v=white-bird-v1"></script><script src="death-view.js?v=thick-halo-20261024"></script><script>
+const ctx=document.querySelector('#art').getContext('2d'),$=s=>document.querySelector(s),names={fall:'倒下',soul:'靈魂離體',grave:'墓碑升起',rest:'安息'};
+let clock=0,last=null,playing=true;
+$('#play').onclick=()=>{clock=0;playing=true;$('#pause').textContent='暫停';};
+$('#pause').onclick=()=>{playing=!playing;$('#pause').textContent=playing?'暫停':'繼續';};
+$('#scrub').oninput=()=>{clock=+$('#scrub').value;playing=false;$('#pause').textContent='繼續';};
+$('#night').onchange=()=>{$('#bg').src='assets/garden-detailed-'+($('#night').value==='1'?'night':'day')+'.png?v=cute-farm-v2-20261016';};
+function frame(now){if(last!==null&&playing)clock+=(now-last)*+$('#speed').value;last=now;
+ ctx.clearRect(0,0,384,256);
+ const r=PetDeathView.draw(ctx,{species:+$('#species').value,stage:$('#stage').value,name:'Tamama',elapsed:clock,now,reduced:$('#reduced').checked,night:$('#night').value==='1'});
+ if(playing)$('#scrub').value=Math.min(10000,clock);$('#phase').textContent=names[r.phase]+(r.rest?'（選單出現）':'');$('#time').textContent=(clock/1000).toFixed(2)+' 秒';
+ requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+</script></html>

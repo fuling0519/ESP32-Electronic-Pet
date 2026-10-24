@@ -100,11 +100,12 @@ let deathKey=null,deathStart=0,lastAgeTick=performance.now(),bleHistorySession=P
 function currentPet(){return manager.view().pet;}
 function syncLifecycle(){
  const p=currentPet(),dead=p&&(p.isDeparted||p.condition==='dead'||p.health==='dead');
- document.querySelector('#afterlife-menu').hidden=!dead;document.querySelector('#tombstone').hidden=true;
+ // drawLifecycle shows the menu once the farewell or grave animation has settled.
+ if(!dead)document.querySelector('#afterlife-menu').hidden=true;
  if(p){PetMemorials.remember(mode==='mock'&&speciesPreview!=='auto'?{...p,previewSpeciesId:Number(speciesPreview)}:p,mode,bleHistorySession);if(mode==='mock'){document.querySelector('#pet-name').textContent=p.name;document.querySelector('#pet-age').textContent='陪伴時長：'+PetMemorials.duration(String(p.ageSeconds))+'（展示有效年齡）';}}
  const key=dead?mode+':'+(p.deviceId||'mock')+':'+p.petId:null;
- if(key!==deathKey){deathKey=key;deathStart=performance.now();}
- if(dead){action=null;resetToken++;bubble.hidden=true;document.querySelector('#illness-notice').hidden=true;root.classList.remove('is-sick');document.querySelector('#tomb-name').textContent=(p.isDeparted?'遠行 · ':'長眠 · ')+p.name+' · '+(p.petId||'未知代號');document.querySelector('#tomb-age').textContent='陪伴 '+PetMemorials.duration(String(p.ageSeconds));}
+ if(key!==deathKey){deathKey=key;deathStart=performance.now();if(key&&!p.isDeparted)window.PetWebSound?.death?.();}
+ if(dead){action=null;resetToken++;bubble.hidden=true;document.querySelector('#illness-notice').hidden=true;root.classList.remove('is-sick');document.querySelector('#afterlife-age').textContent=(p.isDeparted?'遠行 · ':'長眠 · ')+p.name+' · 陪伴 '+PetMemorials.duration(String(p.ageSeconds));}
  const stageOrder=['egg','baby','adult'],stageRank=stageOrder.indexOf(p?.stage);for(const option of document.querySelector('#stage').options){const rank=stageOrder.indexOf(option.value);option.disabled=rank<stageRank||rank>stageRank+1;}
  for(const id of ['stage','condition','reset'])document.querySelector('#'+id).disabled=mode!=='mock'||!!dead;
  document.querySelector('#adopt-egg').disabled=mode!=='mock';document.querySelector('#farewell').disabled=mode!=='mock'||!!dead||!p||p.stage==='egg'||p.sleepMode!=='awake';document.querySelector('#species-preview').disabled=mode!=='mock';document.querySelector('#adoption-note').textContent=mode==='ble'?'裝置模式請在 ESP32 上領養新蛋，網頁等待新狀態回報。':'新蛋使用新代號，舊紀錄留在紀念冊。';
@@ -114,7 +115,7 @@ function drawLifecycle(now){
  if(p.isDeparted||p.condition==='dead'||p.health==='dead'){
   if(p.isDeparted){
    const photoElapsed=now-deathStart,complete=reduced.matches||photoElapsed>=2700;
-   document.querySelector('#afterlife-menu').hidden=!complete;document.querySelector('#tombstone').hidden=true;
+   document.querySelector('#afterlife-menu').hidden=!complete;
    if(p.speciesId===2){if(!window.WyvernAdultView?.paint(ctx,"idle",0,true,{stage:p.stage}))WyvernView.paint(ctx,WyvernFrames[p.stage==='baby'?'kBabyWyvernIdleFrames':'kWyvernIdleFrames'][0]);}
    else if(p.speciesId===1&&window.BirdView){BirdView.still(ctx,p.stage,!p.isDeparted,200,135,3);}else if(p.speciesId===1&&birdHybrid.complete&&birdHybrid.naturalWidth){ctx.imageSmoothingEnabled=false;drawBirdAppearance(200,135,3);}else if(p.speciesId===1&&characterSheet.complete&&characterSheet.naturalWidth){const f=characterSheet.naturalWidth/2172;ctx.drawImage(characterSheet,0,0,680*f,characterSheet.naturalHeight,140,82,100,106);}
    ctx.strokeStyle='#57483a';ctx.lineWidth=2;ctx.strokeRect(85,38,214,155);
@@ -122,15 +123,10 @@ function drawLifecycle(now){
    if(!complete&&photoElapsed>=2600){ctx.fillStyle='#fff';ctx.fillRect(85,38,214,155);}
    ctx.fillStyle='#57483a';ctx.font='16px sans-serif';ctx.fillText(complete?'遠行明信片 · '+p.name:'留下這段陪伴',110,220);return true;
   }
-  const t=reduced.matches?1:Math.min(1,(now-deathStart)/5000);document.querySelector('#afterlife-menu').hidden=t<1;document.querySelector('#tombstone').hidden=t<1;
-  if(t<1){ctx.save();ctx.globalAlpha=1-t;
-   if(p.speciesId===2){if(!window.WyvernAdultView?.paint(ctx,"dead",0,true,{stage:p.stage}))WyvernView.paint(ctx,WyvernFrames[p.stage==='baby'?'kBabyWyvernIdleFrames':'kWyvernIdleFrames'][0]);}else if(p.speciesId===1&&window.BirdView){BirdView.still(ctx,p.stage,!p.isDeparted,200,135,3);}else if(p.speciesId===1&&birdHybrid.complete&&birdHybrid.naturalWidth){ctx.imageSmoothingEnabled=false;drawBirdAppearance(200,135,3);}else if(p.speciesId===1&&characterSheet.complete&&characterSheet.naturalWidth){const f=characterSheet.naturalWidth/2172;ctx.drawImage(characterSheet,0,0,680*f,characterSheet.naturalHeight,140,82,100,106);}
-   // Cover the original pupils, then paint two crossed eyes.
-   ctx.fillStyle='#fffaf0';ctx.strokeStyle='#57483a';ctx.lineWidth=2;ctx.lineCap='round';for(const ex of (p.isDeparted||p.speciesId!==1||window.BirdView?[]:[180,202])){ctx.beginPath();ctx.ellipse(ex,115,7,7,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(ex-3,112);ctx.lineTo(ex+3,118);ctx.moveTo(ex+3,112);ctx.lineTo(ex-3,118);ctx.stroke();}
-   ctx.restore();ctx.save();ctx.globalAlpha=Math.sin(Math.PI*t)*.95;if(window.SharedPetView)SharedPetView.paint(ctx,'kGhostBitmaps',Math.floor(now/650)%2,160,90-t*60,2,'#fffaf0');ctx.restore();
-  }return true;
+  // Soul, grave and resting garden all come from PetDeathView; the menu waits for the grave to settle.
+  const shown=window.PetDeathView?.draw(ctx,{species:p.speciesId,stage:p.stage,name:p.name,elapsed:now-deathStart,now,reduced:reduced.matches,night});
+  document.querySelector('#afterlife-menu').hidden=!(shown?.rest??true);return true;
  }
- document.querySelector('#tombstone').hidden=true;
  if(p.stage==='egg'&&window.PetEggView){const age=Number(p.ageSeconds),visualAge=mode==='mock'?(age<150?0:age<225?240:270):age;PetEggView.draw(ctx,visualAge,now,reduced.matches,mode==='mock',p.petId);return true;}if(p.stage==='egg'){ctx.save();ctx.translate(190,163);ctx.rotate(reduced.matches?0:Math.sin(now/1000)*.035);const g=ctx.createRadialGradient(-8,-18,2,0,0,34);g.addColorStop(0,'#fffdf5');g.addColorStop(1,'#ceb99e');ctx.beginPath();ctx.moveTo(0,-34);ctx.bezierCurveTo(29,-34,36,30,0,30);ctx.bezierCurveTo(-36,30,-29,-34,0,-34);ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#896448';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();return true;}return false;
 }
 document.querySelector('#open-cemetery').onclick=document.querySelector('#visit-graves').onclick=()=>PetMemorials.open(mode==='mock'?'mock:展示花園':currentPet()?.deviceId?'ble:'+currentPet().deviceId:undefined);
