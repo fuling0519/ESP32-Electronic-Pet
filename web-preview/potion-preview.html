@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>治療藥水預覽</title>
+<style>
+body{margin:0;background:#faf3df;color:#675279;font:15px/1.6 'Microsoft JhengHei',sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px}
+h1{font-size:24px;margin:0 0 6px}h2{font-size:17px;margin:22px 0 8px}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+figure{margin:0;flex:1 1 300px}figcaption{font-size:13px;margin-top:4px}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated;border:3px solid #b69ac2;background:#fff5cf}
+.strip canvas{background:#f3ead2}
+button{font:inherit;color:#675279;background:#fff5cf;border:2px solid #b69ac2;padding:6px 14px;cursor:pointer}
+</style>
+<main>
+<h1>治療藥水預覽</h1>
+<p>新版與目前沿用韌體的舊藥水對照（圖下方有標示），同樣是 1.4 秒、以遊戲畫布原尺寸繪製後放大。寵物動作約每秒 5～7 格，可切換節奏比較。<button id="replay" type="button">重新播放</button> <label><input id="reduced" type="checkbox"> 減少動態</label> <label>節奏 <select id="fps"><option value="0">流暢（每個畫面）</option><option value="10">10 格／秒</option><option value="7" selected>7 格／秒（同小飛龍）</option><option value="5">5 格／秒（同小鳥）</option></select></label></p>
+<div class="row">
+ <figure><canvas id="new" width="384" height="256"></canvas><figcaption>新版：拔軟木塞 → 傾倒 → 藥水滴落 → 空瓶淡出</figcaption></figure>
+ <figure><canvas id="old" width="384" height="256"></canvas><figcaption>舊版（韌體點陣圖）</figcaption></figure>
+</div>
+<h2>放大檢視</h2>
+<div class="row strip" id="strip"></div>
+</main>
+<script src="shared-sprites.js"></script><script src="shared-view.js"></script><script src="potion-view.js"></script>
+<script>
+const bg=new Image();bg.src='assets/garden-detailed-day.png';
+const nw=document.querySelector('#new').getContext('2d'),od=document.querySelector('#old').getContext('2d'),reduced=document.querySelector('#reduced'),fps=document.querySelector('#fps');
+let start=performance.now();document.querySelector('#replay').onclick=()=>{start=performance.now();};
+function scene(ctx){ctx.clearRect(0,0,384,256);if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,384,256);}
+function frame(now){
+ const t=((now-start)%2400)/1000;
+ scene(nw);PotionView.draw(nw,t,264,74,reduced.checked,+fps.value);
+ scene(od);if(t<1.4)SharedPetView.paint(od,'kPotionFrames',SharedPetView.potionFrame(t),232,30,3);
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// Zoomed stills at a few moments of the pour.
+for(const [ms,label] of [[150,'登場'],[330,'拔塞'],[560,'傾倒中'],[800,'倒出'],[1050,'快倒完'],[1250,'空瓶']]){
+ const f=document.createElement('figure'),c=document.createElement('canvas');c.width=120;c.height=130;
+ const g=c.getContext('2d');g.imageSmoothingEnabled=false;PotionView.draw(g,ms/1000,66,78,false);
+ f.append(c,Object.assign(document.createElement('figcaption'),{textContent:label}));f.style.flex='1 1 150px';document.querySelector('#strip').append(f);
+}
+</script>
+</html>

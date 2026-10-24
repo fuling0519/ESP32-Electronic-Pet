@@ -45,10 +45,6 @@ statusCard?.addEventListener('beforetoggle',e=>{if(e.newState==='open'&&!fillSta
 statusCard?.addEventListener('toggle',e=>{if(e.newState==='open')placeCard();});
 document.querySelector('#open-cemetery')?.addEventListener('click',()=>statusCard.hidePopover?.());
 window.addEventListener('resize',()=>{if(statusCard?.matches?.(':popover-open'))placeCard();});
-// Narration fades in for each new message and out after a few seconds; screen readers still get every message.
-const caption=document.querySelector('#status');let captionText='',captionTimer=null;
-function showCaption(){const text=caption.textContent.trim();if(!text||text===captionText)return;captionText=text;caption.classList.add('show');clearTimeout(captionTimer);captionTimer=setTimeout(()=>caption.classList.remove('show'),4000);}
-if(caption&&typeof MutationObserver!=='undefined'){new MutationObserver(showCaption).observe(caption,{childList:true,characterData:true,subtree:true});showCaption();}
 function interact(kind){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return false;}
  try{const r=petDataManager.command(kind),now=performance.now(),petId=petDataManager.read().pet.petId;
   // A held pat already has hearts running; keep them instead of restarting.

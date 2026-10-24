@@ -191,3 +191,6 @@ header .icon-button{padding:0}
 /* Paired dialog buttons: one centered row, every button as wide as the widest label. */
 .dialog-actions{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:12px;width:max-content;max-width:100%;margin:18px auto 0}.dialog-actions form{display:contents}.dialog-actions button{width:100%;margin:0}.danger-button,.danger-button:hover{background:#a2554f;color:#fff;border-color:#a2554f}
 .file-warning{margin:0 0 14px;padding:8px 12px;background:#fde3d6;border:2px solid #d99b8a;color:#7a4436;font-size:13px}.file-warning[hidden]{display:none}
+/* The pet's speech floats above its head instead of over its face; it is hidden during treatment so the potion stays clear. */
+#aviary .scene #bubble{top:16%;z-index:5}
+@media(max-width:650px){#aviary .scene #bubble{left:57%}} /* clear of the illness notice in the top-left corner */
