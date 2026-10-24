@@ -1,0 +1,29 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>送別流程預覽</title><style>body{text-align:center;background:#f7f0dd;color:#57483a;font:18px sans-serif;margin:0 16px}.stage{position:relative;width:min(100%,768px);aspect-ratio:3/2;margin:0 auto;border-radius:16px;overflow:hidden}.stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%}.stage img{filter:saturate(.48)}button,select,input{font:inherit;padding:10px;margin:6px}#scrub{width:min(100%,768px);padding:0}#phase{font-weight:700}#card{width:min(100%,600px);height:auto;margin:12px auto;display:block}</style>
+<h1>送別流程檢查</h1><p>獨立預覽，不改存檔。取景與照片、出發與明信片都由程式依寵物自己的圖繪製。</p>
+<select id="species" aria-label="種類"><option value="1">小鳥</option><option value="2" selected>小飛龍</option></select><select id="stage" aria-label="階段"><option value="adult">成年</option><option value="baby">幼年</option></select><select id="night" aria-label="時段"><option value="0">白天</option><option value="1">夜晚</option></select><select id="speed" aria-label="速度"><option value="1">1 倍速</option><option value="0.5">0.5 倍速</option><option value="0.25">0.25 倍速</option></select><label><input type="checkbox" id="reduced">減少動態</label><button id="play">從頭播放</button><button id="pause">暫停</button>
+<div class="stage"><img id="bg" src="assets/garden-detailed-day.png?v=cute-farm-v2-20261016" alt=""><canvas id="art" width="384" height="256"></canvas></div>
+<input type="range" id="scrub" min="0" max="9000" step="50" value="0" aria-label="時間軸"><p><span id="phase"></span> · <span id="time"></span></p>
+<p>0–2 秒取景（四角框收攏、對焦）；2 秒拍照閃光；2.4–3 秒開心跳兩下並冒出摸頭愛心；3–5.6 秒沿小路走遠（成年小龍飛走）；5.8–7 秒明信片落下；7 秒起選單出現。留言依寵物代號固定挑一句。</p>
+<h2>紀念冊明信片</h2><canvas id="card" width="600" height="384"></canvas>
+<script src="pet-rules.js"></script><script src="wyvern-sprites.js"></script><script src="wyvern-view.js"></script><script src="wyvern-adult-view.js?v=demo-tools-20261023"></script><script src="assets/pets/bird/white-idle-data-v4.js"></script><script src="assets/pets/bird/white-sad-data-v1.js"></script><script src="assets/pets/bird/white-sick-data-v1.js"></script><script src="assets/pets/bird/white-dead-data-v1.js"></script><script src="white-bird-view.js?v=dead-size-20261024"></script><script src="bird-view.js?v=dead-pose-20261024"></script><script src="assets/pets/bird/white-activity-data-v1.js"></script><script src="pet-effects.js?v=heart-shade-20261023"></script><script src="farewell-view.js?v=pat-hearts-20261024"></script><script>
+const art=document.querySelector('#art'),ctx=art.getContext('2d'),$=s=>document.querySelector(s),names={finder:'取景',shoot:'拍照',leave:'出發',card:'明信片落下',rest:'完成'};
+// Same device-pixel scaling as the home page, so text and the postcard read the same.
+function fit(){const s=Math.max(2,art.clientWidth/384*(devicePixelRatio||1));art.width=Math.round(384*s);art.height=Math.round(256*s);ctx.setTransform(art.width/384,0,0,art.height/256,0,0);}
+addEventListener('resize',fit);fit();
+let clock=0,last=null,playing=true,run=0;
+const petId=()=>'preview-'+$('#species').value+'-'+$('#stage').value+'-'+run;
+$('#play').onclick=()=>{clock=0;playing=true;run++;$('#pause').textContent='暫停';};
+$('#pause').onclick=()=>{playing=!playing;$('#pause').textContent=playing?'暫停':'繼續';};
+$('#scrub').oninput=()=>{clock=+$('#scrub').value;playing=false;$('#pause').textContent='繼續';};
+for(const id of ['species','stage'])$('#'+id).onchange=()=>{run++;};
+$('#night').onchange=()=>{$('#bg').src='assets/garden-detailed-'+($('#night').value==='1'?'night':'day')+'.png?v=cute-farm-v2-20261016';run++;};
+const today=(d=>d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'))(new Date());
+function frame(now){if(last!==null&&playing)clock+=(now-last)*+$('#speed').value;last=now;
+ ctx.clearRect(0,0,384,256);
+ const opts={species:+$('#species').value,stage:$('#stage').value,name:'Tamama',petId:petId(),age:'2 小時 1 分 5 秒',date:today};
+ const r=PetFarewellView.draw(ctx,{...opts,elapsed:clock,now,reduced:$('#reduced').checked,background:$('#bg')});
+ if(playing)$('#scrub').value=Math.min(9000,clock);$('#phase').textContent=names[r.phase];$('#time').textContent=(clock/1000).toFixed(2)+' 秒';
+ const c=$('#card').getContext('2d');c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,300,192);PetFarewellView.postcard(c,{...opts,photo:PetFarewellView.scene(opts.species,opts.stage,$('#bg'))});
+ requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+</script></html>
