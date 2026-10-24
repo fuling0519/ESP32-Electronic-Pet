@@ -188,3 +188,5 @@ header .icon-button{padding:0}
 /* Keep the site-wide header row and chunky button shadow out of the album. */
 .album header.album-head{display:block;border:0;padding:0;margin:0 0 14px}.album button,.album-viewer button,.album-confirm button{box-shadow:none;min-height:0;min-width:0}.album-open:hover,.album-delete:hover,.album-toast button:hover{background:none}.album-tab:hover{background:#f6ead3}
 @media(max-width:520px){.album{padding:20px 14px 16px}.album-bar{top:-20px;margin:0 -14px 8px;padding:8px 14px 0}.album-actions{margin-left:0}.album-head h2{font-size:24px}.album-tab{padding:7px 10px 6px}.album-grid{gap:24px 0;margin:18px 0}}
+/* Paired dialog buttons: one centered row, every button as wide as the widest label. */
+.dialog-actions{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:12px;width:max-content;max-width:100%;margin:18px auto 0}.dialog-actions form{display:contents}.dialog-actions button{width:100%;margin:0}.danger-button,.danger-button:hover{background:#a2554f;color:#fff;border-color:#a2554f}
