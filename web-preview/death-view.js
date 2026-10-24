@@ -122,12 +122,21 @@ function engrave(ctx,text,x,y,font,max){
  if(w>max)ctx.font=font.replace(/\d+px/,m=>Math.max(8,Math.floor(parseInt(m)*max/w))+'px');
  ctx.fillStyle='#ece7df';ctx.fillText(text,x+1,y+1);ctx.fillStyle='#5d544d';ctx.fillText(text,x,y);ctx.restore();
 }
+// The stone is painted once at 1:1 and drawn as one image: row-by-row rectangles on the home page's
+// non-integer device-pixel scale left faint seams between rows.
+let stoneCanvas=null;
+function stoneSprite(ctx,x,y){
+ const {w,h,cell:c,base}=STONE,pad=2*c,sw=(w+4)*c,sh=(h+base)*c+2;
+ if(!stoneCanvas&&typeof document!=='undefined'){stoneCanvas=Object.assign(document.createElement('canvas'),{width:sw,height:sh});stoneShape(stoneCanvas.getContext('2d'),pad,0);}
+ if(!stoneCanvas){stoneShape(ctx,x,y);return;}
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(stoneCanvas,x-pad,y);ctx.restore();
+}
 function stone(ctx,t,name,shake=true){
  const u=easeOut(span(t,T.stone));if(u<=0)return;
  const {w,h,cell:c,base}=STONE,fullH=(h+base)*c+2,x=STONE_X-w*c/2,y=GROUND-fullH,jitter=shake&&u<1?Math.round(Math.sin(t/30))*1:0;
  ctx.save();ctx.globalAlpha=.25*u;ctx.fillStyle='#2d2a20';ctx.beginPath();ctx.ellipse?.(STONE_X+3,GROUND,w*c/2+12,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
  ctx.save();ctx.beginPath();ctx.rect(0,0,W,GROUND+1);ctx.clip();ctx.translate(jitter,Math.round((1-u)*fullH));
- stoneShape(ctx,x,y);
+ stoneSprite(ctx,x,y);
  const n=span(t,T.name);if(n>0){ctx.globalAlpha=n;const face=x+w*c/2;
   engrave(ctx,'R.I.P',face,y+20,'700 9px "Courier New",monospace',w*c-16);
   ctx.fillStyle='#8a8279';ctx.fillRect(face-14,y+28,28,1);

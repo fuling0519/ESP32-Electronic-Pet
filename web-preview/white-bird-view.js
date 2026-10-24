@@ -1,9 +1,11 @@
-/* Approved white bird base art. Dedicated expression sheets are still pending. */
+/* Approved white bird base art plus idle, sad, sick and lying-down (dead) sheets. */
 (()=>{'use strict';
 const image=new Image();image.src='assets/pets/bird/white-idle-v2.png';
 const idleImage=new Image();idleImage.src='assets/pets/bird/white-idle-sheet-v4.png';
 const sadImage=new Image();sadImage.src='assets/pets/bird/white-sad-sheet-v1.png';
 const sickImage=new Image();sickImage.src='assets/pets/bird/white-sick-sheet-v1.png';
+const deadImage=new Image();deadImage.src='assets/pets/bird/white-dead-v1.png';
+const DEAD_SCALE=1.35;
 function sickMotion(now,reduced=false){
  const t=Math.max(0,now)%10000,u=(t-3000)/4000;
  return {frame:reduced||Math.max(0,now)%2300<1400?0:1,
@@ -20,6 +22,13 @@ function draw(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  if(!image.complete||!image.naturalWidth)return false;
  // Comparable visual size to the adult wyvern's 126px body width; uniform scaling only.
  const height=(p.stage==='adult'?132:106)*scale/3;
+ // Lying down: the source draws the bird smaller than the idle image, so DEAD_SCALE matches its
+ // head-to-rump length to the standing body height; body centred on the feet line.
+ if(p.healthState==='dead'){
+  const d=window.WhiteBirdDeadData;if(!d||!deadImage.complete||!deadImage.naturalWidth)return false;
+  const fit=height/d.source[1]*DEAD_SCALE;ctx.save();ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(deadImage,cx-d.anchor[0]*fit,cy+height*.47-d.anchor[1]*fit,d.crop.width*fit,d.crop.height*fit);ctx.restore();return true;
+ }
  const width=height*image.naturalWidth/image.naturalHeight;
  ctx.save();ctx.imageSmoothingEnabled=false;
  const idle=!action&&!sad&&p.sleepMode!=='normal'&&p.healthState==='healthy'&&!PetRules.updateSad({...p})&&idleImage.complete&&idleImage.naturalWidth&&window.WhiteBirdIdleData;
@@ -56,5 +65,5 @@ function draw(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  }
  ctx.restore();return true;
 }
-window.WhiteBirdView={draw,idleFrame,sadFrame,sickMotion};
+window.WhiteBirdView={draw,idleFrame,sadFrame,sickMotion,DEAD_SCALE};
 })();

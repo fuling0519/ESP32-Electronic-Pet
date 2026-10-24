@@ -26,3 +26,6 @@ white-sad-source-v1.png 為內建 imagegen 依白鳥 v2 製作的橫排兩格：
 
 ## 低頭啄食 v1
 white-bird-feed.js 沿用已生成並整理好的 white-activity-sheet-v1.png 完整半低頭／低頭／抬頭姿勢，沒有再生成或分割頭部。餵食三秒內每0.75秒完成一次啄食共三次，2.25秒後抬頭吞嚥，對應藍色食盆四階段；不附帶喝水水珠。腳底固定201，依兩階段顯示比例將盆移到低頭喙尖下方，保留小龍原餵食呈現。減少動態顯示站姿與遞減食盆。完整 Web 實際餵食、外觀展示中的吃飯及 white-bird-feed-preview.html 共用播放器，不改數值／結算。測試 node web-preview/white-bird-feed-tests.cjs；合成檢查圖 tools/render_white_bird_feed.cjs。
+
+## 長眠 v1
+white-dead-source-v1.png 為使用者以 ChatGPT 依白鳥 v2 產出的綠底單張（提示詞見 white-dead-v1-prompt.md）：往一側倒下躺在地上、閉眼、腮紅、翅膀鬆開、尾巴平放、小腳收在肚子前。`python tools/prepare_white_bird_dead.py` 去綠底、移除小於 200 像素的雜點、裁切，輸出 white-dead-v1.png 與 white-dead-data-v1.js／.json；不縮放、不重畫。原圖與待機 v2 同為 1254 px 畫布，Web 以相同像素比例繪製，身體中心（裁切寬 42%）對準角色中心、底部貼齊腳底線。幼鳥與成鳥共用，按大小區分。`white-bird-view.js` 在 healthState 為 dead 時使用；`BirdView.still(…, closed=true)` 代表長眠外觀（死亡流程、紀念冊），展示工具的「長眠外觀」也改用它，睡眠仍是站姿。測試 node web-preview/white-bird-dead-tests.cjs。

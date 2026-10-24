@@ -68,8 +68,9 @@ function draw(ctx,p,now,action,elapsed=0,previewSad=false,cx=190,cy=126,scale=3,
  }
  return true;
 }
+// closed=true is the resting (dead) look used by the death flow and memorial cards.
 function still(ctx,stage,closed=false,cx=190,cy=126,scale=3,redrawOnLoad=false){
- const p={stage,healthState:'healthy',sleepMode:closed?'normal':'awake',satiety:100,mood:80,cleanliness:100};
+ const p={stage,healthState:closed?'dead':'healthy',sleepMode:closed?'normal':'awake',satiety:100,mood:80,cleanliness:100};
  const render=()=>draw(ctx,p,0,null,0,false,cx,cy,scale);
  // Animated canvases redraw themselves; a late load callback must never paint
  // an old baby frame over a newer egg/incubation frame.

@@ -13,6 +13,7 @@ function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true)
  if(state==='sad')sad=true;
  if(state==='sick')model.healthState='sick';
  if(state==='sleep'||state==='dead')model.sleepMode='normal';
+ if(state==='dead')model.healthState='dead';
  if(state==='feed'){action='feed';elapsed=(time%3000)/1000;}
  if(state==='happy')time=reduced?1800:1600+time%1000;
  const dy=state==='startled'&&!reduced?Math.abs(Math.sin(now/90))*3:0;
