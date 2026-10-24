@@ -21,7 +21,7 @@ GPIO32電容觸摸已接入：短觸戳戳、持續700ms摸頭，採使用者V3�
 
 ## 小鳥 Web 展示入口
 
-下載本專案後，直接以瀏覽器開啟 [web-preview/index.html](web-preview/index.html)，同資料夾的 app.js、style.css 與 assets/ 必須一起保留。此入口是本機模擬展示，不需要安裝套件；裝置連線視窗已接入 BLE 唯讀搜尋與狀態讀取，須透過 localhost／HTTPS 及支援的瀏覽器使用；直接開啟檔案可使用模擬展示。此花園仍以小鳥造型呈現，尚未接入小飛龍美術。正式 Web 進度與驗收只見主企畫第 10 節 W2。
+下載本專案後，雙擊根目錄的 `開啟網頁.cmd`（需要 Python 3），它會在本機啟動伺服器並開啟 `http://localhost:8765/`；同資料夾的 app.js、style.css 與 assets/ 必須一起保留。直接開啟 [web-preview/index.html](web-preview/index.html)（file://）時瀏覽器禁止讀取圖片像素，死亡光環、光點與送別照片會不正常，頁面頂端會顯示提示。此入口是本機模擬展示，不需要安裝套件；裝置連線視窗已接入 BLE 唯讀搜尋與狀態讀取，須透過 localhost／HTTPS 及支援的瀏覽器使用；直接開啟檔案仍可大致試玩模擬展示。此花園仍以小鳥造型呈現，尚未接入小飛龍美術。正式 Web 進度與驗收只見主企畫第 10 節 W2。
 
 ## BLE 狀態檢視入口
 

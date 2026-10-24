@@ -190,3 +190,4 @@ header .icon-button{padding:0}
 @media(max-width:520px){.album{padding:20px 14px 16px}.album-bar{top:-20px;margin:0 -14px 8px;padding:8px 14px 0}.album-actions{margin-left:0}.album-head h2{font-size:24px}.album-tab{padding:7px 10px 6px}.album-grid{gap:24px 0;margin:18px 0}}
 /* Paired dialog buttons: one centered row, every button as wide as the widest label. */
 .dialog-actions{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:12px;width:max-content;max-width:100%;margin:18px auto 0}.dialog-actions form{display:contents}.dialog-actions button{width:100%;margin:0}.danger-button,.danger-button:hover{background:#a2554f;color:#fff;border-color:#a2554f}
+.file-warning{margin:0 0 14px;padding:8px 12px;background:#fde3d6;border:2px solid #d99b8a;color:#7a4436;font-size:13px}.file-warning[hidden]{display:none}

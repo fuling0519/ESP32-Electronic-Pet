@@ -1169,6 +1169,16 @@ erDiagram
 - 瀏覽器有限檢查（本機 http + 內建瀏覽器，桌機寬度）：逐一開啟六組對話框量測，每組兩顆按鈕同一列且寬度相同；未另做手機寬度截圖。
 - 邊界：純 Web 版面，韌體、BLE、養成規則未修改；無實機驗收。
 
+### 2026-10-24 Web 雙擊啟動檔與 file:// 提示
+
+- 需求：使用者以 `file:///…/web-preview/index.html` 開啟時，死亡靈魂的光環位置跑掉，並表示記不住 localhost 網址，習慣直接打開 `index.html`。
+- 原因：file:// 下 Chrome 禁止讀取本機圖片繪到 canvas 後的像素，`death-view.js` 的輪廓掃描失敗並改用固定預設框，光環與光點因此錯位或消失；同一限制也讓 `farewell-view.js` 送別照片無法存入紀念冊、`pet-interactions.js` 觸碰範圍改用預設。程式碼判讀所得，內建瀏覽器無法開 file:// 重現。
+- 實作：根目錄新增 `開啟網頁.cmd`：已有伺服器在 8765 就直接開頁；否則以 `python`（或 `py`）在最小化視窗啟動 `http.server`（只綁 127.0.0.1、目錄 web-preview），等待可連線後開啟 `http://localhost:8765/`，關掉該視窗即停止。`index.html` 頂端新增 `#file-warning`，`app.js` 僅在 `location.protocol==='file:'` 時顯示，說明影響並指向啟動檔。README 與 web-preview/README 改為建議使用啟動檔。不同來源不共用本地存檔：file:// 下養的展示寵物不會出現在 localhost。
+- 自動驗證：`node --test --test-isolation=none web-preview/*tests.cjs` 118 項通過、0 失敗（無新增測試）。
+- 啟動檔檢查：以改用 8799 埠且不開瀏覽器的副本實際執行，伺服器未啟動時能啟動並回應 200，已啟動時直接開頁，兩者皆結束碼 0；未在使用者桌面實際雙擊、未測沒有 Python 的情況。
+- 瀏覽器有限檢查（本機 http + 內建瀏覽器）：localhost 下提示隱藏；強制顯示後檢查樣式。file:// 下的實際顯示未驗證（內建瀏覽器不支援 file://）。
+- 邊界：純 Web 開發工具與提示，韌體、BLE、養成規則未修改；無實機驗收。
+
 ## 2026-10-22 — ESP32-PET BLE 實機驗證進度
 
 ### 1. 已完成

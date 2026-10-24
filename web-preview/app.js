@@ -1,5 +1,7 @@
 /* Presentation only; application state and adapter access go through DataManager. */
 (()=>{'use strict';
+// file:// blocks canvas pixel reads (halo, motes, farewell photo), so point to the localhost launcher.
+if(typeof location!=='undefined'&&location.protocol==='file:'){const w=document.querySelector('#file-warning');if(w)w.hidden=false;}
 const root=document.querySelector('#aviary'),canvas=document.querySelector('#bird'),ctx=canvas.getContext('2d'),status=document.querySelector('#status'),bubble=document.querySelector('#bubble');
 
 const characterSheet=new Image();characterSheet.src='assets/tit-game-smooth.png';
