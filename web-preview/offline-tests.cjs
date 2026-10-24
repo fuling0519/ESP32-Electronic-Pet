@@ -23,17 +23,21 @@ test('memorial postcard keeps a terminal pet photo across reload without changin
  const after=JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId);
  assert.equal(after.photoKind,'scene','new photos are whole-scene shots');
  const {photoKind,...kept}=after;assert.deepEqual({...kept,photo:undefined},{...before,photo:undefined});
- const resumed=boot(storage);resumed.elements.get('#memorial-category').value='departed';
+ const resumed=boot(storage);resumed.c.document.querySelector('#memorial-category').value='departed';
  resumed.c.PetMemorials.open('mock:展示花園');
  const card=resumed.elements.get('#memorial-list').children[0];
- assert.equal(card.className,'memorial-card postcard-card');assert.equal(card.children[0].textContent,'遠行');
- assert.equal(card.children[1].children[0].src,'data:image/png;base64,YQ==');
- assert(!card.children.some(child=>child.className==='mini-stone'));
- card.children.at(-1).onclick();
+ assert.equal(card.className,'album-card departed');
+ const [title,order]=card.children[1].children.map(child=>child.textContent);
+ assert(title.startsWith(pet.name+' · '));assert.equal(order,'第 1 位夥伴 · 遠行');
+ assert(!JSON.stringify(card.children[1].children.map(child=>child.textContent)).includes(pet.petId),'the internal ID is not shown');
+ assert.equal(card.children[2].textContent,'刪除');card.children[2].onclick();
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,undefined,'asking alone deletes nothing');
+ resumed.elements.get('#album-delete-confirm').onclick();
  assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,true);
- const hiddenReload=boot(storage);hiddenReload.elements.get('#memorial-category').value='departed';hiddenReload.c.PetMemorials.open('mock:展示花園');
- const undo=hiddenReload.elements.get('#memorial-list').children.find(child=>child.textContent.startsWith('復原明信片：'));
- assert(undo);undo.onclick();
+ assert.equal(resumed.elements.get('#album-toast').hidden,false);
+ const hiddenReload=boot(storage);hiddenReload.c.document.querySelector('#memorial-category').value='departed';hiddenReload.c.PetMemorials.open('mock:展示花園');
+ assert.equal(hiddenReload.elements.get('#memorial-list').children[0].className,'album-empty');
+ resumed.elements.get('#album-undo').onclick();
  assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,false);
  assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).photo,'data:image/png;base64,YQ==');
 });
@@ -47,12 +51,19 @@ test('complete demo lifecycle reloads consistently from egg through farewell and
  resumed.adopt();assert.notEqual(resumed.read().pet.petId,id);assert.equal(resumed.read().pet.stage,'egg');
 });
 
-test('long sleep retains its original gravestone while travel retains its postcard',()=>{
- const {c,m,elements}=boot();m.preview('adult','dead');c.PetMemorials.remember(m.read().pet,'mock','test');
- elements.get('#memorial-category').value='dead';c.PetMemorials.open('mock:展示花園');
- const card=elements.get('#memorial-list').children.find(child=>child.className==='memorial-card');
- assert(card);assert.equal(card.children[0].className,'mini-stone');assert.equal(card.children[0].textContent,'長眠');
- assert(!card.children.some(child=>child.className==='postcard-photo'||child.className==='postcard-caption'));
+test('album shows resting pets as rest cards with tab counts, never pets still alive',()=>{
+ const {c,m,elements}=boot();const alive=m.read().pet;c.PetMemorials.remember(alive,'mock','test');
+ c.document.querySelector('#memorial-category').value='all';c.PetMemorials.open('mock:展示花園');
+ assert.equal(elements.get('#memorial-list').children[0].className,'album-empty','an alive pet is not a memory');
+ const first=JSON.parse(c.localStorage.getItem('aviary.memorials')).data.find(r=>r.petId===alive.petId).firstSeenAt;
+ m.preview('adult','dead');c.PetMemorials.remember(m.read().pet,'mock','test');
+ const record=JSON.parse(c.localStorage.getItem('aviary.memorials')).data.find(r=>r.petId===alive.petId);
+ assert.equal(record.firstSeenAt,first,'the first-seen date survives the ending');
+ c.document.querySelector('#memorial-category').value='dead';c.PetMemorials.open('mock:展示花園');
+ const card=elements.get('#memorial-list').children.find(child=>child.className==='album-card dead');
+ assert(card);assert.equal(card.children[1].children[1].textContent,'第 1 位夥伴 · 長眠');assert.equal(card.children[2].textContent,'刪除');
+ assert.deepEqual(elements.get('#album-tabs').children.map(b=>b.textContent),['全部','遠行 0','長眠 1']);
+ assert.equal(elements.get('#album-garden').hidden,true,'one garden needs no switch');
 });
 test('pet and poke change mood only, share cooldown, persist and never write BLE',()=>{
  const {m,c,storage}=boot();let now=10000;c.Date=class extends Date{static now(){return now;}};const before=m.read().pet;

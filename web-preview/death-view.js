@@ -13,7 +13,7 @@ const FALLBACK={x:150,y:100,w:80,h:80,points:[]};
 const clamp=v=>Math.max(0,Math.min(1,v)),span=(t,[a,b])=>clamp((t-a)/(b-a));
 const ease=u=>u*u*(3-2*u),easeIn=u=>u*u,easeOut=u=>1-(1-u)*(1-u);
 const hash=i=>{const s=Math.sin(i*12.9898+78.233)*43758.5453;return s-Math.floor(s);};
-function canvas(){return typeof document==='undefined'?null:Object.assign(document.createElement('canvas'),{width:W,height:H});}
+function canvas(w=W,h=H){return typeof document==='undefined'?null:Object.assign(document.createElement('canvas'),{width:w,height:h});}
 // Returns false while the illustrated pose is still loading and a stand-in was drawn instead.
 function pose(ctx,species,stage,state){
  if(species===2){if(window.WyvernAdultView?.paint(ctx,state,0,true,{stage}))return true;if(window.WyvernView)WyvernView.paint(ctx,WyvernFrames[stage==='baby'?'kBabyWyvernIdleFrames':'kWyvernIdleFrames'][0]);return !window.WyvernAdultView;}
@@ -131,15 +131,32 @@ function stoneSprite(ctx,x,y){
  if(!stoneCanvas){stoneShape(ctx,x,y);return;}
  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(stoneCanvas,x-pad,y);ctx.restore();
 }
-function stone(ctx,t,name,shake=true){
+// Oval photo set into the stone face (memorial rest cards): the pet's own idle art on a soft tint.
+// Fractions of the pet's height: band used to find the head's centre, crop centre, visible height (head to just above the feet).
+const CAMEO={band:.3,centre:.47,span:.92};
+// The baby wyvern is chibi: its head is most of its height, so it shows a little more to match the adult.
+const CAMEO_SPAN={'2:baby':1.15};
+function cameo(ctx,cx,cy,species,stage){
+ const rx=11,ry=13,L=layer(species,stage,'idle');
+ ctx.save();ctx.beginPath();ctx.ellipse?.(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fillStyle=species===2?'#e9e0f4':'#e4efd9';ctx.fill();ctx.clip?.();
+ // A half-length portrait: centred under the top band (head, horns, crest; tails start lower), and
+ // zoomed so head to belly fills the oval. Wings and tails may be cut off.
+ if(L&&L.box!==FALLBACK){const b=L.box,top=b.points.filter(([,y])=>y<b.y+b.h*CAMEO.band);
+  const hx=top.length?top.reduce((sum,[x])=>sum+x,0)/top.length:b.x+b.w/2,hy=b.y+b.h*CAMEO.centre,k=2*ry/(b.h*CAMEO.span*(CAMEO_SPAN[species+':'+stage]||1));
+  ctx.imageSmoothingEnabled=true;ctx.drawImage(L.canvas,cx-hx*k,cy-hy*k,W*k,H*k);}
+ ctx.restore();
+ ctx.save();ctx.lineWidth=2;ctx.strokeStyle='#8a7f75';ctx.beginPath();ctx.ellipse?.(cx,cy,rx+1,ry+1,0,0,Math.PI*2);ctx.stroke();
+ ctx.lineWidth=1;ctx.strokeStyle='#e6e0d8';ctx.beginPath();ctx.ellipse?.(cx,cy,rx+2.5,ry+2.5,0,0,Math.PI*2);ctx.stroke();ctx.restore();
+}
+function stone(ctx,t,name,shake=true,photo=null){
  const u=easeOut(span(t,T.stone));if(u<=0)return;
  const {w,h,cell:c,base}=STONE,fullH=(h+base)*c+2,x=STONE_X-w*c/2,y=GROUND-fullH,jitter=shake&&u<1?Math.round(Math.sin(t/30))*1:0;
  ctx.save();ctx.globalAlpha=.25*u;ctx.fillStyle='#2d2a20';ctx.beginPath();ctx.ellipse?.(STONE_X+3,GROUND,w*c/2+12,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
  ctx.save();ctx.beginPath();ctx.rect(0,0,W,GROUND+1);ctx.clip();ctx.translate(jitter,Math.round((1-u)*fullH));
  stoneSprite(ctx,x,y);
  const n=span(t,T.name);if(n>0){ctx.globalAlpha=n;const face=x+w*c/2;
-  engrave(ctx,'R.I.P',face,y+20,'700 9px "Courier New",monospace',w*c-16);
-  ctx.fillStyle='#8a8279';ctx.fillRect(face-14,y+28,28,1);
+  if(photo)cameo(ctx,face,y+19,photo.species,photo.stage);
+  else{engrave(ctx,'R.I.P',face,y+20,'700 9px "Courier New",monospace',w*c-16);ctx.fillStyle='#8a8279';ctx.fillRect(face-14,y+28,28,1);}
   engrave(ctx,name||'',face,y+40,'900 12px "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif',w*c-12);}
  ctx.restore();
 }
@@ -180,14 +197,34 @@ function dim(ctx,t,night){
 }
 function phase(t){return t<T.dissolve[0]?'fall':t<T.ascend[1]?'soul':t<T.rest?'grave':'rest';}
 // Returns {phase, rest}; rest is true once the afterlife menu may show.
-function draw(ctx,{species=1,stage='adult',name='',elapsed=0,now=elapsed,reduced=false,night=false}={}){
+function draw(ctx,{species=1,stage='adult',name='',elapsed=0,now=elapsed,reduced=false,night=false,photo=false}={}){
  const t=reduced?Math.max(elapsed,T.rest):Math.max(0,elapsed);
  ctx.save();ctx.imageSmoothingEnabled=false;dim(ctx,t,night);
  const L=layer(species,stage,'dead'),base=(L||{box:FALLBACK}).box;
  if(t<T.dissolve[1]){if(L)body(ctx,L,t);else pose(ctx,species,stage,'dead');}
  if(t<T.ascend[1]){motes(ctx,{box:base},t);soul(ctx,species,stage,t,base);orb(ctx,t,base);}
- dust(ctx,t);stone(ctx,t,name,!reduced);flowers(ctx,t,now,reduced);if(!reduced)ambient(ctx,t,now,night);
+ dust(ctx,t);stone(ctx,t,name,!reduced,photo?{species,stage}:null);flowers(ctx,t,now,reduced);if(!reduced)ambient(ctx,t,now,night);
  ctx.restore();return {phase:phase(t),rest:t>=T.rest};
 }
-window.PetDeathView={T,draw,phase};
+// --- Rest card for the memorial album: the resting grave, with the pet's photo on the stone, in a
+// 300 x 192 card space, the same as the departure postcard.
+const EPITAPHS=['在花園裡，安穩地睡著了。','謝謝你，陪我走到最後。','這裡的花，會替我陪著你。','下次見面，也要一起曬太陽喔。','好好休息吧，我們都記得你。','晚風很溫柔，就像你的手。'];
+function epitaph(petId){let h=2166136261;for(const ch of String(petId||''))h=Math.imul(h^ch.codePointAt(0),16777619);return EPITAPHS[(h>>>0)%EPITAPHS.length];}
+const CARD={w:300,h:192},REST_SCALE=4;
+function restCard(ctx,{species=1,stage='adult',name='',petId='',label='',background=null}={}){
+ ctx.save();ctx.fillStyle='#f4eee4';ctx.fillRect(0,0,CARD.w,CARD.h);ctx.strokeStyle='#cfc2ad';ctx.lineWidth=1;ctx.strokeRect(.5,.5,CARD.w-1,CARD.h-1);
+ // Only the grave's surroundings are drawn, at REST_SCALE x, so the stone photo and name stay sharp when the card is enlarged.
+ const crop=[90,104,200,88],c=canvas(crop[2]*REST_SCALE,crop[3]*REST_SCALE);
+ if(c){const g=c.getContext('2d');g.scale?.(REST_SCALE,REST_SCALE);g.translate?.(-crop[0],-crop[1]);
+  if(background?.complete&&background.naturalWidth){g.save();if('filter' in g)g.filter='saturate(.55)';g.drawImage(background,0,0,W,H);g.restore();}else{g.fillStyle='#a9c98a';g.fillRect(0,0,W,H);}
+  g.fillStyle='rgba(255,160,110,.16)';g.fillRect(0,0,W,H);draw(g,{species,stage,name,elapsed:T.rest,reduced:true,photo:true});
+  ctx.save();ctx.beginPath();ctx.rect(12,12,276,122);ctx.clip?.();ctx.imageSmoothingEnabled=true;ctx.drawImage(c,0,0,c.width,c.height,12,12,276,122);
+  if(ctx.createRadialGradient){const v=ctx.createRadialGradient(150,73,40,150,73,170);v.addColorStop(0,'rgba(40,30,50,0)');v.addColorStop(1,'rgba(40,30,50,.35)');ctx.fillStyle=v;ctx.fillRect(12,12,276,122);}
+  ctx.restore();}
+ ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.strokeRect(12,12,276,122);
+ ctx.fillStyle='#5d4a3e';ctx.textAlign='center';ctx.font='13px "DFKai-SB","BiauKai","KaiTi","STKaiti",serif';ctx.fillText(epitaph(petId),150,157);
+ ctx.font='9px "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif';ctx.fillStyle='#8a7262';ctx.fillText(label||name,150,177);
+ ctx.restore();
+}
+window.PetDeathView={T,draw,phase,restCard,epitaph,EPITAPHS,CARD};
 })();

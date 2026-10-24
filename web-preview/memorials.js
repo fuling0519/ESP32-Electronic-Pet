@@ -1,4 +1,4 @@
-/* Local observed history, separated by data source and device. Never invent BLE history. */
+/* Local memorial album, separated by data source and device. Never invent BLE history. */
 (()=>{'use strict';
 const uuid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 function valid(r){return Array.isArray(r)&&r.every(x=>x&&typeof x.key==='string'&&typeof x.deviceId==='string'&&['mock','ble'].includes(x.source)&&typeof x.name==='string'&&typeof x.ageSeconds==='string'&&/^\d+$/.test(x.ageSeconds)&&['egg','baby','adult'].includes(x.stage)&&typeof x.dead==='boolean'&&(x.speciesId===undefined||Number.isInteger(x.speciesId)&&x.speciesId>=1&&x.speciesId<=255)&&(x.departed===undefined||typeof x.departed==='boolean')&&!(x.dead&&x.departed));}
@@ -17,42 +17,89 @@ function remember(p,source,session){
  const identity=source==='mock'?p.petId:(p.saveGeneration? p.saveGeneration+':'+p.petId:session+':'+p.petId);
  const key=source+':'+deviceId+':'+identity,dead=p.healthState==='dead'||p.condition==='dead'||p.health==='dead',departed=p.isDeparted===true;
  const record={speciesId:p.speciesId??1,departed,kind:departed?'departed':dead?'dead':'observed',key,source,deviceId,name:p.name,petId:p.petId||'',ageSeconds:String(p.ageSeconds),stage:p.stage,dead,provisional:source==='ble'&&!p.saveGeneration,receivedAt:new Date().toISOString()};
- const next=records.slice(),at=next.findIndex(r=>r.key===key);if(source==='mock'){record.previewSpeciesId=p.previewSpeciesId??(at>=0?next[at].previewSpeciesId:undefined);}if(at<0)next.push(record);else if(!next[at].dead&&!next[at].departed)next[at]=record;else if(source==='mock'&&p.previewSpeciesId&&!next[at].previewSpeciesId)next[at]={...next[at],previewSpeciesId:p.previewSpeciesId};
+ const next=records.slice(),at=next.findIndex(r=>r.key===key);
+ // The album shows when the pet was first seen and its level at the end; earlier sightings keep the first date.
+ record.firstSeenAt=at>=0?(next[at].firstSeenAt||next[at].receivedAt):record.receivedAt;if(Number.isInteger(p.level))record.level=p.level;
+ if(source==='mock'){record.previewSpeciesId=p.previewSpeciesId??(at>=0?next[at].previewSpeciesId:undefined);}if(at<0)next.push(record);else if(!next[at].dead&&!next[at].departed)next[at]=record;else if(source==='mock'&&p.previewSpeciesId&&!next[at].previewSpeciesId)next[at]={...next[at],previewSpeciesId:p.previewSpeciesId};
  if(!PetLocalStore.write('memorials',next))return false;records.splice(0,records.length,...next);return true;
 }
 // Postmark date: when this browser first saw the pet leave, else today.
 function postDate(iso){const d=iso?new Date(iso):new Date(),day=isNaN(d)?new Date():d;return day.getFullYear()+'.'+String(day.getMonth()+1).padStart(2,'0')+'.'+String(day.getDate()).padStart(2,'0');}
 function farewellDate(p){return postDate(records.find(r=>r.departed&&r.petId===p?.petId&&(!p.deviceId||r.deviceId===p.deviceId))?.receivedAt);}
 const gardenDay=typeof Image==='undefined'?null:Object.assign(new Image(),{src:'assets/garden-detailed-day.png?v=cute-farm-v2-20261016'});
-// Departed records show the same postcard as the farewell scene.
-function postcardArt(r){
- const art=document.createElement('canvas');art.width=600;art.height=384;art.className='postcard-art';art.setAttribute('role','img');art.setAttribute('aria-label',r.name+' 的遠行明信片');
- const species=r.previewSpeciesId??r.speciesId??1,saved=validPhoto(r.photo)&&r.photoKind==='scene'?Object.assign(new Image(),{src:r.photo}):null;
- const paint=()=>{const ctx=art.getContext('2d');ctx.setTransform(2,0,0,2,0,0);ctx.clearRect(0,0,300,192);
-  const photo=saved?.complete&&saved.naturalWidth?saved:PetFarewellView.scene(species,r.stage,gardenDay);
-  PetFarewellView.postcard(ctx,{photo,name:r.name,age:duration(r.ageSeconds),date:postDate(r.receivedAt),petId:r.petId,species,stage:r.stage});};
- paint();saved?.addEventListener?.('load',paint);gardenDay?.addEventListener?.('load',paint,{once:true});for(const ms of [400,1200])setTimeout(paint,ms);
- return art;
-}
 function duration(seconds){const n=BigInt(seconds),h=n/3600n,m=n%3600n/60n,s=n%60n;return (h?h+' 小時 ':'')+(m?m+' 分 ':'')+s+' 秒';}
 function hideCard(key,hidden=true){
  const next=records.map(r=>r.key===key?{...r,hiddenFromAlbum:hidden}:r);
  if(!PetLocalStore.write('memorials',next))return false;
  records.splice(0,records.length,...next);renderCards();return true;
 }
+// --- Scrapbook album: departed pets as postcards, resting pets as rest cards, newest first.
+// Pets still alive (or never ended) are kept only as background data for their first-seen date.
+const $=s=>document.querySelector(s);
+const SPECIES={1:'小鳥',2:'小飛龍'},STAGE_LINE={egg:'還是一顆蛋',baby:'長到幼年',adult:'長到成年'};
+const speciesOf=r=>r.previewSpeciesId??r.speciesId??1,ended=r=>r.dead||r.departed;
+const make=(tag,className,text)=>{const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;};
+let garden='mock:展示花園',pendingDelete=null,toastTimer=null;
+function dateRange(r){
+ const end=postDate(r.receivedAt);if(!r.firstSeenAt)return end+' 告別';const start=postDate(r.firstSeenAt);
+ return start===end?end:start.slice(0,4)===end.slice(0,4)?start+' – '+end.slice(5):start+' – '+end;
+}
+// A small fixed tilt per card, so the page looks hand-pasted without shuffling between visits.
+function tilt(r){let h=0;for(const ch of r.key)h=(h*31+ch.codePointAt(0))>>>0;return ((h%5)-2)*.6;}
+function artFor(r,scale=2){
+ const art=make('canvas','album-art');art.width=300*scale;art.height=192*scale;art.setAttribute('role','img');art.setAttribute('aria-label',r.name+(r.departed?' 的遠行明信片':' 的安息卡'));
+ if(!art.getContext)return art;
+ const species=speciesOf(r),saved=r.departed&&validPhoto(r.photo)&&r.photoKind==='scene'&&typeof Image!=='undefined'?Object.assign(new Image(),{src:r.photo}):null;
+ const paint=()=>{const ctx=art.getContext('2d');if(!ctx)return;ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,300,192);
+  if(r.departed&&window.PetFarewellView){const photo=saved?.complete&&saved.naturalWidth?saved:PetFarewellView.scene(species,r.stage,gardenDay);
+   PetFarewellView.postcard(ctx,{photo,name:r.name,age:duration(r.ageSeconds),date:postDate(r.receivedAt),petId:r.petId,species,stage:r.stage});}
+  else if(r.dead&&window.PetDeathView)PetDeathView.restCard(ctx,{species,stage:r.stage,name:r.name,petId:r.petId,label:r.name+' · '+(SPECIES[species]||'未知種類')+' · 長眠',background:gardenDay});};
+ paint();saved?.addEventListener?.('load',paint);gardenDay?.addEventListener?.('load',paint,{once:true});for(const ms of [400,1200])setTimeout(paint,ms);
+ return art;
+}
+function details(r,order){
+ return [r.name+' · '+(SPECIES[speciesOf(r)]||'未知種類'),'第 '+order+' 位夥伴 · '+(r.departed?'遠行':'長眠'),dateRange(r),
+  ['陪伴 '+duration(r.ageSeconds),STAGE_LINE[r.stage],Number.isInteger(r.level)?'Lv '+r.level:null].filter(Boolean).join(' · ')];
+}
+function metaBlock(r,order){
+ const [title,...lines]=details(r,order),meta=make('div','album-meta');meta.append(make('h3','',title));for(const line of lines)meta.append(make('p','',line));
+ if(r.provisional)meta.append(make('small','','舊協定未提供存檔世代；此為本次連線觀察紀錄，跨重新連線可能分成多筆。'));
+ return meta;
+}
+function card(r,order){
+ const c=make('article','album-card '+(r.departed?'departed':'dead'));c.setAttribute('style','--tilt:'+tilt(r)+'deg');
+ const open=make('button','album-open');open.type='button';open.setAttribute('aria-label','放大看 '+r.name+' 的'+(r.departed?'明信片':'安息卡'));open.append(artFor(r));open.onclick=()=>view(r,order);
+ const del=make('button','album-delete','刪除');del.type='button';del.setAttribute('aria-label','刪除 '+r.name+' 的紀念');del.onclick=()=>askDelete(r);
+ c.append(open,metaBlock(r,order),del);return c;
+}
+function view(r,order){$('#album-viewer-body').replaceChildren(artFor(r,3),metaBlock(r,order));$('#album-viewer').showModal?.();}
+function askDelete(r){pendingDelete=r;$('#album-delete-text').textContent='要刪除 '+r.name+' 的紀念嗎？';$('#album-delete').showModal?.();}
+function toast(r){
+ const t=$('#album-toast');$('#album-toast-text').textContent='已刪除 '+r.name+' 的紀念';t.hidden=false;
+ $('#album-undo').onclick=()=>{hideCard(r.key,false);t.hidden=true;};clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},6000);
+}
+const gardenName=key=>key.startsWith('mock:')?'展示花園':key.slice(key.indexOf(':')+1);
 function render(preferred){
- const select=document.querySelector('#cemetery-device'),previous=preferred||select.value;select.replaceChildren();
- const groups=new Map([['mock:展示花園','展示花園（模擬）']]);for(const r of records)groups.set(r.source+':'+r.deviceId,r.deviceId+(r.source==='ble'?'（BLE 本機紀錄）':''));
- for(const [value,label] of groups){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}if(groups.has(previous))select.value=previous;renderCards();
+ if(preferred)garden=preferred;
+ const gardens=new Set([garden,...records.filter(ended).map(r=>r.source+':'+r.deviceId)]),select=$('#cemetery-device');select.replaceChildren();
+ for(const key of gardens){const o=make('option','',gardenName(key));o.value=key;select.append(o);}select.value=garden;
+ // The garden switch only appears when this browser keeps more than one garden.
+ $('#album-garden').hidden=gardens.size<2;renderCards();
 }
-function renderCards(){const selected=document.querySelector('#cemetery-device').value,list=document.querySelector('#memorial-list');list.replaceChildren();
- const category=document.querySelector('#memorial-category').value||'dead';
- const group=records.filter(r=>r.source+':'+r.deviceId===selected&&(r.departed?'departed':r.dead?'dead':'observed')===category);
- const items=group.filter(r=>!r.hiddenFromAlbum).slice().reverse();
- for(const r of group.filter(r=>r.hiddenFromAlbum)){const undo=document.createElement('button');undo.textContent='復原明信片：'+r.name;undo.onclick=()=>hideCard(r.key,false);list.append(undo);}
- if(!items.length){const p=document.createElement('p');p.textContent='這個花園尚未保存寵物紀錄。';list.append(p);}
- for(const r of items){if(r.departed&&window.PetFarewellView){const card=document.createElement('article');card.className='memorial-card postcard-card';const name=document.createElement('h3');name.textContent=r.name+' · '+({1:'小鳥',2:'小飛龍'}[r.previewSpeciesId??r.speciesId??1]||'未知種類');const info=document.createElement('p');info.textContent='代號：'+r.petId+' · '+{egg:'蛋',baby:'幼年',adult:'成年'}[r.stage];card.append(postcardArt(r),name,info);if(r.provisional){const note=document.createElement('small');note.textContent='舊協定未提供存檔世代；此為本次連線觀察紀錄，跨重新連線可能分成多筆。';card.append(note);}const remove=document.createElement('button');remove.textContent='移除明信片';remove.setAttribute('aria-label','移除 '+r.name+' 的明信片');remove.onclick=()=>hideCard(r.key);card.append(remove);list.append(card);continue;}const card=document.createElement('article');card.className=r.dead?'memorial-card':'memorial-card postcard-card';const photo=document.createElement('div');photo.className=r.dead?'memorial-portrait':'postcard-photo';const stone=document.createElement('div');stone.className=r.dead?'mini-stone':'postcard-stamp';stone.textContent=r.departed?'遠行':r.dead?'長眠':'陪伴中';const name=document.createElement('h3');name.textContent=r.name+' · '+({1:'小鳥',2:'小飛龍'}[r.previewSpeciesId??r.speciesId??1]||'未知種類');const info=document.createElement('p');info.textContent='代號：'+r.petId+' · '+{egg:'蛋',baby:'幼年',adult:'成年'}[r.stage];const age=document.createElement('p');age.textContent='陪伴時長（有效年齡）：'+duration(r.ageSeconds);if(r.dead)card.append(stone,name,info,age,photo);else card.append(stone,photo,name,info,age);const caption=document.createElement('p');caption.className='postcard-caption';caption.textContent=r.dead?'把陪伴留在這張明信片裡':r.departed?'帶著回憶，向下一段旅程出發':'花園裡的陪伴時光';if(!r.dead)card.append(caption);const savedPhoto=!r.dead&&validPhoto(r.photo);if(savedPhoto){const image=document.createElement('img');image.src=r.photo;image.alt=r.name+'的告別照片';photo.append(image);}if(!savedPhoto&&(r.previewSpeciesId??r.speciesId??1)===2){const art=document.createElement('canvas');art.width=128;art.height=88;const frame=WyvernView.frameFor({stage:r.stage,sleepMode:r.dead?'normal':'awake',healthState:'healthy',satiety:100,mood:80,cleanliness:100},0,null,0,true);if(!window.WyvernAdultView?.paint(art.getContext('2d'),r.dead?"dead":"idle",0,true,{x:64,y:84,size:.6,stage:r.stage}))WyvernView.paint(art.getContext('2d'),frame.bits,0,0,2);photo.append(art);}if(!savedPhoto&&(r.previewSpeciesId??r.speciesId??1)===1&&r.stage!=='egg'&&window.BirdView){const art=document.createElement('canvas');art.width=192;art.height=132;art.setAttribute('aria-label',(r.stage==='baby'?'幼鳥':'成鳥')+(r.dead?'長眠':'遠行'));BirdView.still(art.getContext('2d'),r.stage,r.dead,96,66,1.8,true);photo.append(art);}if(r.provisional){const note=document.createElement('small');note.textContent='舊協定未提供存檔世代；此為本次連線觀察紀錄，跨重新連線可能分成多筆。';card.append(note);}const remove=document.createElement('button');remove.textContent='移除明信片';remove.setAttribute('aria-label','移除 '+r.name+' 的明信片');remove.onclick=()=>hideCard(r.key);card.append(remove);list.append(card);}
+function renderCards(){
+ const list=$('#memorial-list'),category=$('#memorial-category').value||'all';list.replaceChildren();
+ $('#album-device-note').hidden=!garden.startsWith('ble:');
+ const ordered=records.filter(r=>ended(r)&&r.source+':'+r.deviceId===garden).sort((a,b)=>String(a.receivedAt).localeCompare(String(b.receivedAt)));
+ const order=new Map(ordered.map((r,i)=>[r.key,i+1])),visible=ordered.filter(r=>!r.hiddenFromAlbum);
+ const tabs=$('#album-tabs');tabs.replaceChildren();
+ for(const [value,label,count] of [['all','全部',visible.length],['departed','遠行',visible.filter(r=>r.departed).length],['dead','長眠',visible.filter(r=>r.dead).length]]){
+  const b=make('button','album-tab'+(value===category?' active':''),label+(value==='all'?'':' '+count));b.type='button';b.setAttribute('aria-pressed',String(value===category));
+  b.onclick=()=>{$('#memorial-category').value=value;renderCards();};tabs.append(b);}
+ const shown=visible.filter(r=>category==='all'||(category==='departed')===!!r.departed).reverse();
+ if(!shown.length)list.append(make('p','album-empty',category==='departed'?'這裡還沒有遠行的明信片。':category==='dead'?'這裡還沒有長眠的夥伴。':'花園裡還沒有回憶，好好陪伴現在的夥伴吧。'));
+ for(const r of shown)list.append(card(r,order.get(r.key)));
 }
-window.PetMemorials={uuid,remember,duration,savePhoto,farewellDate,hasDemoName:name=>records.some(r=>r.source==='mock'&&(r.dead||r.departed)&&r.name===name),open(preferred){render(preferred);document.querySelector('#cemetery-dialog').showModal();}};
-document.querySelector('#cemetery-device').onchange=renderCards;document.querySelector('#memorial-category').onchange=renderCards;
+window.PetMemorials={uuid,remember,duration,savePhoto,farewellDate,hasDemoName:name=>records.some(r=>r.source==='mock'&&(r.dead||r.departed)&&r.name===name),open(preferred){render(preferred);$('#cemetery-dialog').showModal();}};
+$('#cemetery-device').onchange=()=>{garden=$('#cemetery-device').value;renderCards();};
+$('#album-delete-confirm').onclick=()=>{const r=pendingDelete;pendingDelete=null;$('#album-delete').close?.();if(r&&hideCard(r.key))toast(r);};
 })();
