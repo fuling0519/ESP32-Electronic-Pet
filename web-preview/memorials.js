@@ -28,10 +28,19 @@ function postDate(iso){const d=iso?new Date(iso):new Date(),day=isNaN(d)?new Dat
 function farewellDate(p){return postDate(records.find(r=>r.departed&&r.petId===p?.petId&&(!p.deviceId||r.deviceId===p.deviceId))?.receivedAt);}
 const gardenDay=typeof Image==='undefined'?null:Object.assign(new Image(),{src:'assets/garden-detailed-day.png?v=cute-farm-v2-20261016'});
 function duration(seconds){const n=BigInt(seconds),h=n/3600n,m=n%3600n/60n,s=n%60n;return (h?h+' 小時 ':'')+(m?m+' 分 ':'')+s+' 秒';}
-function hideCard(key,hidden=true){
- const next=records.map(r=>r.key===key?{...r,hiddenFromAlbum:hidden}:r);
+function setHidden(keys,hidden=true){
+ const set=new Set(keys),next=records.map(r=>set.has(r.key)?{...r,hiddenFromAlbum:hidden}:r);
  if(!PetLocalStore.write('memorials',next))return false;
  records.splice(0,records.length,...next);renderCards();return true;
+}
+// Once the undo window has passed, a deleted record keeps only what stops it being re-created for the
+// current pet; photos, dates and level are dropped so deleted postcards stop filling browser storage.
+const REQUIRED=['key','source','deviceId','name','petId','ageSeconds','stage','dead','departed','speciesId','kind','receivedAt'];
+const bulky=r=>r.hiddenFromAlbum&&Object.keys(r).some(k=>!REQUIRED.includes(k)&&k!=='hiddenFromAlbum');
+function purge(keys){
+ const set=keys?new Set(keys):null,next=records.map(r=>(!set||set.has(r.key))&&bulky(r)?Object.fromEntries([...REQUIRED.filter(k=>k in r).map(k=>[k,r[k]]),['hiddenFromAlbum',true]]):r);
+ if(next.every((r,i)=>r===records[i])||!PetLocalStore.write('memorials',next))return false;
+ records.splice(0,records.length,...next);return true;
 }
 // --- Scrapbook album: departed pets as postcards, resting pets as rest cards, newest first.
 // Pets still alive (or never ended) are kept only as background data for their first-seen date.
@@ -39,7 +48,7 @@ const $=s=>document.querySelector(s);
 const SPECIES={1:'小鳥',2:'小飛龍'},STAGE_LINE={egg:'還是一顆蛋',baby:'長到幼年',adult:'長到成年'};
 const speciesOf=r=>r.previewSpeciesId??r.speciesId??1,ended=r=>r.dead||r.departed;
 const make=(tag,className,text)=>{const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;};
-let garden='mock:展示花園',pendingDelete=null,toastTimer=null;
+let garden='mock:展示花園',pendingDelete=null,toastTimer=null,toastKeys=null,selecting=false;const selected=new Set();
 function dateRange(r){
  const end=postDate(r.receivedAt);if(!r.firstSeenAt)return end+' 告別';const start=postDate(r.firstSeenAt);
  return start===end?end:start.slice(0,4)===end.slice(0,4)?start+' – '+end.slice(5):start+' – '+end;
@@ -68,15 +77,36 @@ function metaBlock(r,order){
 }
 function card(r,order){
  const c=make('article','album-card '+(r.departed?'departed':'dead'));c.setAttribute('style','--tilt:'+tilt(r)+'deg');
- const open=make('button','album-open');open.type='button';open.setAttribute('aria-label','放大看 '+r.name+' 的'+(r.departed?'明信片':'安息卡'));open.append(artFor(r));open.onclick=()=>view(r,order);
- const del=make('button','album-delete','刪除');del.type='button';del.setAttribute('aria-label','刪除 '+r.name+' 的紀念');del.onclick=()=>askDelete(r);
- c.append(open,metaBlock(r,order),del);return c;
+ // While selecting, the whole card (picture, text and tick) toggles it instead of opening the enlarged view.
+ const open=make('button','album-open');open.type='button';open.append(artFor(r));
+ if(selecting){const on=selected.has(r.key),toggle=()=>{on?selected.delete(r.key):selected.add(r.key);renderCards();};
+  c.className+=' selecting'+(on?' selected':'');c.setAttribute('role','checkbox');c.setAttribute('aria-checked',String(on));c.setAttribute('aria-label',r.name);c.setAttribute('tabindex','0');
+  c.onclick=toggle;c.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();toggle();}};open.tabIndex=-1;}
+ else{open.setAttribute('aria-label','放大看 '+r.name+' 的'+(r.departed?'明信片':'安息卡'));open.onclick=()=>view(r,order);}
+ const del=make('button','album-delete','刪除');del.type='button';del.setAttribute('aria-label','刪除 '+r.name+' 的紀念');del.onclick=()=>askDelete([r]);
+ c.append(open,metaBlock(r,order));if(selecting)c.append(make('span','album-check','✓'));else c.append(del);return c;
 }
 function view(r,order){$('#album-viewer-body').replaceChildren(artFor(r,3),metaBlock(r,order));$('#album-viewer').showModal?.();}
-function askDelete(r){pendingDelete=r;$('#album-delete-text').textContent='要刪除 '+r.name+' 的紀念嗎？';$('#album-delete').showModal?.();}
-function toast(r){
- const t=$('#album-toast');$('#album-toast-text').textContent='已刪除 '+r.name+' 的紀念';t.hidden=false;
- $('#album-undo').onclick=()=>{hideCard(r.key,false);t.hidden=true;};clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},6000);
+function askDelete(list){
+ if(!list.length)return;pendingDelete=list;
+ $('#album-delete-text').textContent=list.length===1?'要刪除 '+list[0].name+' 的紀念嗎？':'要刪除選取的 '+list.length+' 筆紀念嗎？';$('#album-delete').showModal?.();
+}
+function toast(list){
+ const t=$('#album-toast'),keys=list.map(r=>r.key);
+ // A newer deletion ends the previous undo window straight away.
+ clearTimeout(toastTimer);if(toastKeys)purge(toastKeys);toastKeys=keys;
+ $('#album-toast-text').textContent=list.length===1?'已刪除 '+list[0].name+' 的紀念':'已刪除 '+list.length+' 筆紀念';t.hidden=false;
+ $('#album-undo').onclick=()=>{clearTimeout(toastTimer);toastKeys=null;setHidden(keys,false);t.hidden=true;};
+ toastTimer=setTimeout(()=>{t.hidden=true;toastKeys=null;purge(keys);},6000);
+}
+function actions(shown){
+ const bar=$('#album-actions');bar.replaceChildren();
+ const button=(text,onclick,className='album-action')=>{const b=make('button',className,text);b.type='button';b.onclick=onclick;bar.append(b);return b;};
+ if(!selecting){if(shown.length)button('選取',()=>{selecting=true;selected.clear();renderCards();});return;}
+ const all=shown.length>0&&shown.every(r=>selected.has(r.key));
+ button(all?'取消全選':'全選',()=>{for(const r of shown)all?selected.delete(r.key):selected.add(r.key);renderCards();});
+ const picked=shown.filter(r=>selected.has(r.key)),del=button('刪除（'+picked.length+'）',()=>askDelete(picked),'album-action danger');del.disabled=!picked.length;
+ button('取消',()=>{selecting=false;selected.clear();renderCards();});
 }
 const gardenName=key=>key.startsWith('mock:')?'展示花園':key.slice(key.indexOf(':')+1);
 function render(preferred){
@@ -94,12 +124,16 @@ function renderCards(){
  const tabs=$('#album-tabs');tabs.replaceChildren();
  for(const [value,label,count] of [['all','全部',visible.length],['departed','遠行',visible.filter(r=>r.departed).length],['dead','長眠',visible.filter(r=>r.dead).length]]){
   const b=make('button','album-tab'+(value===category?' active':''),label+(value==='all'?'':' '+count));b.type='button';b.setAttribute('aria-pressed',String(value===category));
-  b.onclick=()=>{$('#memorial-category').value=value;renderCards();};tabs.append(b);}
+  b.onclick=()=>{$('#memorial-category').value=value;selected.clear();renderCards();};tabs.append(b);}
  const shown=visible.filter(r=>category==='all'||(category==='departed')===!!r.departed).reverse();
  if(!shown.length)list.append(make('p','album-empty',category==='departed'?'這裡還沒有遠行的明信片。':category==='dead'?'這裡還沒有長眠的夥伴。':'花園裡還沒有回憶，好好陪伴現在的夥伴吧。'));
  for(const r of shown)list.append(card(r,order.get(r.key)));
+ actions(shown);
 }
 window.PetMemorials={uuid,remember,duration,savePhoto,farewellDate,hasDemoName:name=>records.some(r=>r.source==='mock'&&(r.dead||r.departed)&&r.name===name),open(preferred){render(preferred);$('#cemetery-dialog').showModal();}};
 $('#cemetery-device').onchange=()=>{garden=$('#cemetery-device').value;renderCards();};
-$('#album-delete-confirm').onclick=()=>{const r=pendingDelete;pendingDelete=null;$('#album-delete').close?.();if(r&&hideCard(r.key))toast(r);};
+$('#album-delete-confirm').onclick=()=>{const list=pendingDelete;pendingDelete=null;$('#album-delete').close?.();if(list&&setHidden(list.map(r=>r.key))){selecting=false;selected.clear();renderCards();toast(list);}};
+$('#cemetery-dialog').addEventListener('close',()=>{selecting=false;selected.clear();});
+// Deletions whose undo window was cut short by closing the page are cleaned up on the next load.
+purge();
 })();

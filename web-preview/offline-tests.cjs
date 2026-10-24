@@ -35,11 +35,32 @@ test('memorial postcard keeps a terminal pet photo across reload without changin
  resumed.elements.get('#album-delete-confirm').onclick();
  assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,true);
  assert.equal(resumed.elements.get('#album-toast').hidden,false);
- const hiddenReload=boot(storage);hiddenReload.c.document.querySelector('#memorial-category').value='departed';hiddenReload.c.PetMemorials.open('mock:展示花園');
- assert.equal(hiddenReload.elements.get('#memorial-list').children[0].className,'album-empty');
  resumed.elements.get('#album-undo').onclick();
  assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).hiddenFromAlbum,false);
- assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).photo,'data:image/png;base64,YQ==');
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId).photo,'data:image/png;base64,YQ==','undo within the window keeps the photo');
+ // Delete again and close the page before the undo window ends: the next load drops the photo.
+ resumed.elements.get('#memorial-list').children[0].children[2].onclick();resumed.elements.get('#album-delete-confirm').onclick();
+ const hiddenReload=boot(storage);hiddenReload.c.document.querySelector('#memorial-category').value='departed';hiddenReload.c.PetMemorials.open('mock:展示花園');
+ assert.equal(hiddenReload.elements.get('#memorial-list').children[0].className,'album-empty');
+ const stub=JSON.parse(storage.get('aviary.memorials')).data.find(r=>r.petId===pet.petId);
+ assert.equal(stub.hiddenFromAlbum,true);assert.equal(stub.photo,undefined,'deleted photos leave browser storage');assert.equal(stub.firstSeenAt,undefined);
+ hiddenReload.c.PetMemorials.remember(pet,'mock','test');
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.filter(r=>r.petId===pet.petId).length,1,'the current pet is not re-created');
+});
+test('album selects several cards, selects all, and deletes them together after one confirmation',()=>{
+ const {c,m,storage,elements}=boot();
+ const base=m.read().pet;for(let i=0;i<3;i++)c.PetMemorials.remember({...base,petId:'p-'+i,name:'P'+i,isDeparted:true},'mock','test');
+ c.document.querySelector('#memorial-category').value='all';c.PetMemorials.open('mock:展示花園');
+ const bar=()=>elements.get('#album-actions').children,cards=()=>elements.get('#memorial-list').children;
+ assert.deepEqual(bar().map(b=>b.textContent),['選取']);bar()[0].onclick();
+ assert.deepEqual(bar().map(b=>b.textContent),['全選','刪除（0）','取消']);assert.equal(bar()[1].disabled,true);
+ cards()[0].onclick();assert.equal(cards()[0].className.includes('selected'),true,'tapping anywhere on the card selects it');assert.equal(bar()[1].textContent,'刪除（1）');
+ bar()[0].onclick();assert.deepEqual(bar().map(b=>b.textContent),['取消全選','刪除（3）','取消']);
+ bar()[1].onclick();assert.equal(elements.get('#album-delete-text').textContent,'要刪除選取的 3 筆紀念嗎？');
+ elements.get('#album-delete-confirm').onclick();
+ assert.equal(JSON.parse(storage.get('aviary.memorials')).data.filter(r=>r.departed&&r.hiddenFromAlbum).length,3);
+ assert.equal(elements.get('#album-toast-text').textContent,'已刪除 3 筆紀念');assert.equal(cards()[0].className,'album-empty');
+ elements.get('#album-undo').onclick();assert.equal(cards().length,3,'one undo brings all of them back');
 });
 test('complete demo lifecycle reloads consistently from egg through farewell and new identity',()=>{
  const storage=new Map(),m=boot(storage).m;m.preview('adult','dead');m.adopt();const egg=m.read().pet,id=egg.petId,species=egg.speciesId;
