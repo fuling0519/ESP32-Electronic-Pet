@@ -143,6 +143,10 @@ header .icon-button{padding:0}
 #aviary :is(.scene,#status)+.care small{font-size:11px}
 #aviary .care button[hidden]{display:none}
 /* Status orb (top-left of the garden) opens the status card popover. */
+/* Toy play: throw count and an exit button float at the top of the garden while it runs. */
+.toy-hud{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:8px;padding:4px 6px 4px 12px;border:2px solid #b69ac2;border-radius:999px;background:#fffaf0e6;box-shadow:2px 2px 0 #cbb1c4;color:#654b55;font-size:13px;white-space:nowrap}
+.toy-hud[hidden]{display:none}
+.toy-hud button{min-height:0;padding:3px 10px;border-radius:999px;font-size:12px}
 .status-orb{position:absolute;left:10px;top:10px;z-index:5;width:52px;height:52px;min-width:0;min-height:0;padding:0;border-radius:50%;border:2px solid #b69ac2;background:#fffaf0;box-shadow:2px 2px 0 #cbb1c4;overflow:hidden;display:grid;place-items:center}
 /* The garden's ".scene canvas" rule pins canvases to the corner; the portrait must sit in the orb's grid instead. */
 .status-orb canvas{position:static;inset:auto;width:44px;height:44px;pointer-events:none}

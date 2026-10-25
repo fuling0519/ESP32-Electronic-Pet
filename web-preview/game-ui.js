@@ -58,7 +58,10 @@ function death(){if(!sound||!audio||audio.state!=='running'||document.hidden)ret
 function shutter(){if(!sound||!audio||audio.state!=='running'||document.hidden)return false;tone(392,45);setTimeout(()=>tone(1568,70),70);return true;}
 window.PetWebSound={death,shutter,reminder(){if(!sound||!audio||audio.state!=='running'||document.hidden||activeTones.size)return false;for(const [i,freq] of [659,523,392].entries())setTimeout(()=>tone(freq,140),i*180);return true;}};document.addEventListener('pointerdown',initAudio,{once:true});
 function start(kind){try{initAudio();selectedMove=0;toneKey=null;lastLevel=false;petDataManager.startGame(kind,performance.now());document.querySelector('#game-picker').hidden=true;inputs.replaceChildren();render();if(kind==='rps')inputs.children[0]?.focus();clearInterval(timer);timer=setInterval(render,50);}catch(error){message.textContent=error.message;}}
-document.querySelector('#start-rps').onclick=()=>start('rps');document.querySelector('#start-memory').onclick=()=>start('memory');next.onclick=()=>{petDataManager.nextRound(performance.now());render();};
-dialog.addEventListener('close',()=>{clearInterval(timer);petDataManager.cancelGame();});
+document.querySelector('#start-rps').onclick=()=>start('rps');
+// Toy play runs in the garden itself, so the picker closes first (closing cancels no toy session yet).
+document.querySelector('#start-toy').onclick=()=>{dialog.close();if(window.PetToyPlay?.start())document.querySelector('#bird')?.scrollIntoView({block:'nearest'});};document.querySelector('#start-memory').onclick=()=>start('memory');next.onclick=()=>{petDataManager.nextRound(performance.now());render();};
+// The close event arrives after a toy session has already started from the picker; leave that one running.
+dialog.addEventListener('close',()=>{clearInterval(timer);if(petDataManager.gameState(performance.now())?.kind!=='toy')petDataManager.cancelGame();});
 window.openPetGames=()=>{document.querySelector('#game-picker').hidden=false;inputs.replaceChildren();message.textContent='兩種寵物共用遊戲；完成整場只結算一次。';next.hidden=true;dialog.showModal();};
 })();

@@ -28,5 +28,14 @@ class PetGame {
  continue(now){this.advance(now);if(this.phase==='round-result'&&now>=this.readyAt){this.round++;this.next(now);}}
  rewards(){if(this.kind==='rps')return this.wins>this.losses?{mood:10,exp:15}:this.wins===this.losses?{mood:6,exp:10}:{mood:3,exp:5};return {mood:this.score===3?10:this.score===2?6:3,exp:this.score===3?15:this.score===2?10:5};}
 }
-window.PetGame=PetGame;
+// Toy play (web only): the garden view runs the throws; each finished throw is reported as answer(1 caught, 0 fetched).
+// Not a contest, so the reward is fixed once all throws are done.
+class PetToyGame {
+ constructor(pet,now,throws=5){this.kind='toy';this.petId=pet.petId;this.stage=pet.stage;this.total=throws;this.round=1;this.throws=0;this.catches=0;this.phase='play';this.settled=false;this.cancelled=false;this.startedAt=now;}
+ advance(){return this;}
+ answer(caught,now){if(this.phase!=='play'||![0,1].includes(caught))return;this.throws++;this.catches+=caught;if(this.throws>=this.total)this.phase='complete';else this.round=this.throws+1;}
+ continue(){}
+ rewards(){return {mood:6,exp:10};}
+}
+window.PetGame=PetGame;window.PetToyGame=PetToyGame;
 })();

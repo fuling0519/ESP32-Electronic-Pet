@@ -48,7 +48,7 @@ class MockSource {
   }
   startGame(kind,now){
     const p=this.pet;if(p.isDeparted||p.healthState!=='healthy'||p.stage==='egg'||p.sleepMode!=='awake')throw new Error('目前不能遊玩');
-    this.game=new PetGame(kind,p,now);return this.gameState(now);
+    this.game=kind==='toy'?new PetToyGame(p,now):new PetGame(kind,p,now);return this.gameState(now);
   }
   gameState(now){
     const g=this.game,p=this.pet;if(!g)return null;
@@ -57,6 +57,7 @@ class MockSource {
     if(g.phase==='complete'&&!g.settled&&!g.cancelled){g.settled=true;g.reward=g.rewards();g.reward.mood=Math.min(g.reward.mood,100-p.mood);p.mood+=g.reward.mood;const beforeExp=PetRules.totalExp(p);g.levelsGained=PetRules.addExp(p,g.reward.exp);g.reward.exp=PetRules.totalExp(p)-beforeExp;PetRules.updateSad(p);this.persist();}
     const state={kind:g.kind,phase:g.phase,round:g.round,score:g.score,index:g.index,correct:g.correct,reward:g.reward,levelsGained:g.levelsGained||0};
     if(g.kind==='rps'&&g.phase==='countdown')state.countdown=Math.max(1,Math.min(3,Math.ceil((g.until-now)/350)));
+    if(g.kind==='toy'){state.throws=g.throws;state.catches=g.catches;state.totalThrows=g.total;}
     if(g.kind==='memory'){state.totalRounds=3;state.noteCount=[2,3,5][g.round-1];if(g.phase==='prepare')state.prepareSeconds=Math.max(1,Math.ceil((g.prepareUntil-now)/1000));}
     // Opponent is hidden until reveal. Memory input never contains the answer sequence.
     if(g.phase==='round-result'||g.phase==='complete'){state.player=g.player;state.opponent=g.opponent;state.outcome=g.outcome;}

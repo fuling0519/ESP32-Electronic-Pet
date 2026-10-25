@@ -17,16 +17,23 @@ function sample(now,cx=190,cy=126){
 }
 // Where the last walking/drinking pose was drawn on each canvas, so effects can follow the bird as it moves.
 const placed=new WeakMap();
+// One sheet frame with its feet at (cx,feet); mirror turns the bird to face right. Returns the scale used, or false.
+function pose(ctx,stage,frame,cx,feet,scale=3,mirror=false){
+ if(!image.complete||!image.naturalWidth||!window.WhiteBirdActivityData)return false;
+ const d=WhiteBirdActivityData,fit=(stage==='adult'?132:106)*scale/3*.94/d.standingHeight;
+ ctx.save();ctx.imageSmoothingEnabled=false;
+ if(mirror){ctx.translate(cx,0);ctx.scale(-1,1);ctx.translate(-cx,0);}
+ ctx.drawImage(image,frame%2*d.cell,Math.floor(frame/2)*d.cell,d.cell,d.cell,cx-d.anchor[0]*fit,feet-d.anchor[1]*fit,d.cell*fit,d.cell*fit);
+ ctx.restore();return fit;
+}
 function draw(ctx,p,now,cx,cy,scale=3,reduced=false){
  placed.delete(ctx);
  if(reduced)return false;
  if(!image.complete||!image.naturalWidth||!window.WhiteBirdActivityData)return false;
  const q=sample(now,cx,cy);if(q.phase==='idle')return false;
  placed.set(ctx,{cx:q.x,cy:q.y});
- const d=WhiteBirdActivityData,fit=(p.stage==='adult'?132:106)*scale/3*.94/d.standingHeight;
- const feet=q.y+(p.stage==='adult'?132:106)*scale/3*.47;
+ const feet=q.y+(p.stage==='adult'?132:106)*scale/3*.47,fit=pose(ctx,p.stage,q.frame,q.x,feet,scale);
  ctx.save();ctx.imageSmoothingEnabled=false;
- ctx.drawImage(image,q.frame%2*d.cell,Math.floor(q.frame/2)*d.cell,d.cell,d.cell,q.x-d.anchor[0]*fit,feet-d.anchor[1]*fit,d.cell*fit,d.cell*fit);
  if(q.ripple){ctx.fillStyle='#bcecf4';ctx.fillRect(q.x-43,feet-2,23,2);ctx.fillStyle='#efffff';ctx.fillRect(q.x-39,feet-4,13,2);}
  // Source-pose beak anchors in the same units as the sheet, not fixed screen offsets.
  // Measured lower beak tips: sipping (-138,-4), raised pose (-122,-256)
@@ -48,5 +55,5 @@ function draw(ctx,p,now,cx,cy,scale=3,reduced=false){
  }
  ctx.restore();return true;
 }
-window.WhiteBirdActivity={sample,draw,placed:ctx=>placed.get(ctx)||null,forget:ctx=>placed.delete(ctx)};
+window.WhiteBirdActivity={sample,draw,pose,placed:ctx=>placed.get(ctx)||null,forget:ctx=>placed.delete(ctx)};
 })();
