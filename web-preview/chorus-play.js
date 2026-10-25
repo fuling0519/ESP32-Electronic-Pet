@@ -164,5 +164,8 @@ document.addEventListener('keydown',e=>{
 });
 function stop(){if(!play)return;if(play.device)window.PetDeviceSession.close(play.device,true);else petDataManager.cancelGame();end('已結束合唱，未完成不結算。');}
 exit.onclick=stop;
-window.PetChorus={start,stop,draw,check,tap,FLOWERS,active:()=>!!play||starting,state:()=>play&&{state:play.state,tune:[...play.tune],index:play.index,round:play.round}};
+// Picker icon: two of the garden's flowers (stems cropped by the frame) and a floating note.
+function icon(canvas){const g=canvas.getContext('2d');g.clearRect(0,0,canvas.width,canvas.height);g.imageSmoothingEnabled=false;
+ g.drawImage(sprites[3].idle,22,4);g.drawImage(sprites[0].lit,-2,0);drawNote(g,40,1,FLOWERS[2].ramp[2],1);}
+window.PetChorus={start,stop,draw,check,tap,icon,FLOWERS,active:()=>!!play||starting,state:()=>play&&{state:play.state,tune:[...play.tune],index:play.index,round:play.round}};
 })();

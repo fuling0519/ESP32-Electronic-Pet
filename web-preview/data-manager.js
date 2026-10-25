@@ -20,7 +20,6 @@ class DataManager {
  startGame(kind,now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.startGame(kind,now);}
  gameState(now){return this.mode==='mock'?this.adapters.mock.gameState(now):null;}
  answerGame(choice,now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.answerGame(choice,now);}
- nextRound(now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.nextRound(now);}
  cancelGame(){this.adapters.mock.cancelGame();}
  // Web play with the real pet: the device decides and settles; the page only relays the game commands.
  deviceGame(cmd,fields){if(this.mode!=='ble')throw new Error('只有裝置模式能和電子雞陪玩');return this.adapters.ble.game(cmd,fields);}

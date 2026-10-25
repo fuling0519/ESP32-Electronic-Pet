@@ -194,5 +194,9 @@ function syncDeviceActivity(){
 exit.onclick=stop;
 // throwTo is for keyboard use and demo checks: the same launch a fling makes, from the hand.
 function throwTo(target,now=performance.now()){if(play?.state!=='ready')return false;launch(P.HAND,P.clampGround(target),now);return true;}
-window.PetToyPlay={start,stop,draw,check,throwTo,active:()=>!!play||starting};
+// Picker icon: the same shaded ball in mid-flight over its shadow, with a dotted arc behind it.
+function icon(canvas){const g=canvas.getContext('2d');g.clearRect(0,0,canvas.width,canvas.height);
+ g.fillStyle='#d9b9c4';for(const [x,y] of [[6,30],[10,24],[15,19]])g.fillRect(x,y,2,2);
+ drawBall(g,{x:31,y:36,z:9});}
+window.PetToyPlay={start,stop,draw,check,throwTo,icon,active:()=>!!play||starting};
 })();

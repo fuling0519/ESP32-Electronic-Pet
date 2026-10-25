@@ -48,25 +48,19 @@ class MockSource {
   }
   startGame(kind,now){
     const p=this.pet;if(p.isDeparted||p.healthState!=='healthy'||p.stage==='egg'||p.sleepMode!=='awake')throw new Error('目前不能遊玩');
-    this.game=kind==='toy'?new PetToyGame(p,now):kind==='chorus'?new PetChorusGame(p,now):new PetGame(kind,p,now);return this.gameState(now);
+    if(!['toy','chorus'].includes(kind))throw new Error('未知遊戲');this.game=kind==='toy'?new PetToyGame(p,now):new PetChorusGame(p,now);return this.gameState(now);
   }
   gameState(now){
     const g=this.game,p=this.pet;if(!g)return null;
     if(g.petId!==p.petId||g.stage!==p.stage||p.healthState!=='healthy'||p.isDeparted||p.sleepMode!=='awake'){g.cancelled=true;g.phase='cancelled';}
     g.advance(now);
     if(g.phase==='complete'&&!g.settled&&!g.cancelled){g.settled=true;g.reward=g.rewards();g.reward.mood=Math.min(g.reward.mood,100-p.mood);p.mood+=g.reward.mood;const beforeExp=PetRules.totalExp(p);g.levelsGained=PetRules.addExp(p,g.reward.exp);g.reward.exp=PetRules.totalExp(p)-beforeExp;PetRules.updateSad(p);this.persist();}
-    const state={kind:g.kind,phase:g.phase,round:g.round,score:g.score,index:g.index,correct:g.correct,reward:g.reward,levelsGained:g.levelsGained||0};
-    if(g.kind==='rps'&&g.phase==='countdown')state.countdown=Math.max(1,Math.min(3,Math.ceil((g.until-now)/350)));
+    const state={kind:g.kind,phase:g.phase,round:g.round,reward:g.reward,levelsGained:g.levelsGained||0};
     if(g.kind==='toy'){state.throws=g.throws;state.catches=g.catches;state.totalThrows=g.total;}
     if(g.kind==='chorus'){state.played=g.played;state.correct=g.correct;state.totalRounds=g.total;}
-    if(g.kind==='memory'){state.totalRounds=3;state.noteCount=[2,3,5][g.round-1];if(g.phase==='prepare')state.prepareSeconds=Math.max(1,Math.ceil((g.prepareUntil-now)/1000));}
-    // Opponent is hidden until reveal. Memory input never contains the answer sequence.
-    if(g.phase==='round-result'||g.phase==='complete'){state.player=g.player;state.opponent=g.opponent;state.outcome=g.outcome;}
-    state.demoIndex=g.noteIndex;if(g.phase==='show')state.lit=g.noteOn?g.sequence[g.noteIndex]:null;state.canContinue=g.phase==='round-result'&&now>=g.readyAt;
     return state;
   }
   answerGame(choice,now){if(this.gameState(now)?.phase==='cancelled')return this.gameState(now);this.game?.answer(choice,now);return this.gameState(now);}
-  nextRound(now){this.game?.continue(now);return this.gameState(now);}
   cancelGame(){if(this.game){this.game.cancelled=true;this.game.phase='cancelled';}}
   // Demo tools only: drop or refill one need so its emote and sad face can be checked without waiting.
   demoNeed(key,value){if(!['satiety','cleanliness','mood'].includes(key))throw new Error('未知需求');const p=this.pet;p[key]=Math.max(0,Math.min(100,value));PetRules.updateSad(p);this.persist();}
