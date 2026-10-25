@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 // Drives pet-interactions.js with a stub DOM and a manual clock/timer queue.
-function boot(){
+function boot(extra={}){
  let now=0;const timers=[],events=[],commands=[],handlers={};
  const el=(extra={})=>Object.assign({style:{},disabled:false,textContent:'',setAttribute(){},append(){},appendChild(){},querySelector:()=>null,getContext:()=>new Proxy({},{get:()=>()=>{}}),showModal(){},open:false},extra);
  const canvas=el({addEventListener:(k,f)=>handlers[k]=f,getBoundingClientRect:()=>({left:0,top:0,width:384,height:256}),setPointerCapture(){}});
@@ -13,7 +13,7 @@ function boot(){
   PetEffects:{HEART_LIFE:500,SHOCK_MS:900,hearts(){},shock(){}},
   petDataManager:{read:()=>({pet,metadata:{source:'mock'}}),command:kind=>{commands.push(kind);return {actual:kind==='pet'?3:-3};}},
   document:{querySelector:s=>s in nodes?nodes[s]:null,createElement:()=>el(),body:el(),dispatchEvent:e=>events.push(e)}};
- c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/pet-interactions.js','utf8'),c);
+ Object.assign(c,extra);c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/pet-interactions.js','utf8'),c);
  const advance=ms=>{now+=ms;for(const t of timers)if(t.f&&t.at<=now){const f=t.f;t.f=null;f();}};
  const press=(x=190,y=130)=>handlers.pointerdown({button:0,clientX:x,clientY:y,pointerId:1,preventDefault(){}});
  const release=(x=190,y=130)=>handlers.pointerup({clientX:x,clientY:y,pointerId:1});
@@ -33,4 +33,18 @@ test('holding past the firmware threshold pets once while held, release ends the
 test('presses outside the pet and the classifier boundary',()=>{
  const t=boot();t.press(10,10);t.advance(800);t.release(10,10);assert.deepEqual(t.commands,[]);
  assert.equal(t.c.PetTouch.classify(699),'poke');assert.equal(t.c.PetTouch.classify(700),'pet');
+});
+test('reacting covers a poke, a held pat and the trailing hearts, so the emote bubble can step aside',()=>{
+ const t=boot(),r=()=>t.c.PetTouch.reacting(t.c.performance.now());assert.equal(r(),false);
+ t.press();t.advance(100);t.release();assert.equal(r(),true);t.advance(899);assert.equal(r(),true);t.advance(1);assert.equal(r(),false);
+ t.press();t.advance(700);assert.equal(r(),true);t.advance(5000);assert.equal(r(),true,'still held');
+ t.release();t.advance(499);assert.equal(r(),true,'last hearts fading');t.advance(1);assert.equal(r(),false);
+});
+test('the demo species picker decides whose head the effects follow',()=>{
+ const hearts=[];let frame=null,species=1;
+ const t=boot({requestAnimationFrame:f=>{frame=f;},PetArtStage:{species:()=>species,shown:()=>'adult'},PetBirdPlacement:()=>({cx:170,cy:137,stage:'adult'}),
+  WhiteBirdView:{anchors:()=>({x:163,y:137,headX:159,headY:107})},WyvernAdultView:{interactionTarget:()=>({x:200,y:120,rx:80,ry:70}),paint:()=>false}});
+ t.c.PetEffects.hearts=(ctx,ms,o)=>hearts.push(o);
+ t.press(163,137);t.advance(700);frame(t.c.performance.now());assert.equal(hearts.at(-1).x,159,'bird shown: its measured head');
+ species=2;frame(t.c.performance.now());assert.equal(hearts.at(-1).x,200,'wyvern shown on the same save: its live target');
 });

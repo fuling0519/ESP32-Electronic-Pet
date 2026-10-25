@@ -13,11 +13,12 @@ function sprite(ctx,name,index,x,y,width,alpha=1){
  ctx.restore();return true;
 }
 function phaseAt(t){return t<0?'待機':t<.3?'海綿進場':t<1.6?'擦洗起泡':t<2?'準備沖洗':t<3.4?'淋浴沖洗':t<duration?'水滴與亮點收尾':'完成';}
-function pose(species,stage){
- const ratio=stage==='baby'?.82:1,bottom=species==='bird'?126+(stage==='adult'?132:106)*.47:177;
+// `at` is where the renderer actually put the torso: {x, bottom}. Without it the pet is assumed centred at 190.
+function pose(species,stage,at={}){
+ const ratio=stage==='baby'?.82:1,bottom=at.bottom??(species==='bird'?126+(stage==='adult'?132:106)*.47:177);
  // Use the torso bounds, excluding tails, horns and outstretched wings.
  const bodyWidth=species==='bird'?(stage==='baby'?72:90):(stage==='baby'?76:96);
- return {ratio,bottom,bodyWidth,bodyY:bottom-(species==='bird'?34:30)*ratio};
+ return {cx:at.x??190,ratio,bottom,bodyWidth,bodyY:bottom-(species==='bird'?34:30)*ratio};
 }
 function spongePose(t,p){
  const u=clamp((t-.3)/1.3),halfSpan=p.bodyWidth*.22;
@@ -25,7 +26,7 @@ function spongePose(t,p){
  // Three alternating strokes descend through the torso. Cosine slows each
  // horizontal reversal; the vertical easing joins entry and exit smoothly.
  const entering=ease(t/.3),leaving=ease((t-1.6)/.35);
- return {x:190+halfSpan*Math.cos(u*Math.PI*3)+(1-entering)*104+leaving*112,
+ return {x:p.cx+halfSpan*Math.cos(u*Math.PI*3)+(1-entering)*104+leaving*112,
   y:top+(bottom-top)*ease(u)+leaving*12*p.ratio,
   width:60,alpha:entering*(1-leaving),active:t>=.3&&t<1.6};
 }
@@ -37,7 +38,7 @@ function showerPose(t,p){
  const halfSpan=p.bodyWidth*.18;
  // Each smoothstep leg has zero speed at both ends, including both reversals.
  const sweep=t<2?0:t<2.35?-halfSpan*ease((t-2)/.35):t<3?-halfSpan+2*halfSpan*ease((t-2.35)/.65):halfSpan*(1-ease((t-3)/.4));
- const targetX=190+sweep,targetY=p.bodyY;
+ const targetX=p.cx+sweep,targetY=p.bodyY;
  const enter=ease((t-1.65)/.3),exit=ease((t-3.4)/.3);
  const nx=targetX-flowEnd[0]*ws,ny=targetY-flowEnd[1]*ws-(1-enter)*58-exit*58;
  const x=nx-(nozzle[0]-anchor[0])*ss,y=ny-(nozzle[1]-anchor[1])*ss;
@@ -52,11 +53,11 @@ function contactTime(start,end,predicate,exposure){
  return Infinity;
 }
 function foamSchedule(p,motions){
- const key=[p.bodyWidth,p.ratio,p.bottom].join('/');
+ const key=[p.cx,p.bodyWidth,p.ratio,p.bottom].join('/');
  if(!motions&&foamSchedules.has(key))return foamSchedules.get(key);
  const sponge=motions?.sponge||spongePose,shower=motions?.shower||showerPose;
  const clumps=foamPatches.map(([dx,dy,width,peak])=>{
-  const x=190+dx*p.ratio,y=p.bodyY+dy*p.ratio,w=width*p.ratio;
+  const x=p.cx+dx*p.ratio,y=p.bodyY+dy*p.ratio,w=width*p.ratio;
   const touched=contactTime(.3,1.6,t=>{
    const s=sponge(t,p);return s.active&&Math.pow((s.x-x)/(24+w*.14),2)+Math.pow((s.y-y)/18,2)<=1;
   },.025);
@@ -85,10 +86,10 @@ function foamAt(ctx,t,p,reduced=false){
   if(state)sprite(ctx,'foam',state.index,clump.x,clump.y+state.slide,clump.width,state.alpha);
  }
 }
-function draw(ctx,t,{species='bird',stage='adult',reduced=false}={}){
+function draw(ctx,t,{species='bird',stage='adult',reduced=false,at}={}){
  if(!window.CleaningAnimationData||t<0||t>=duration)return;
- const p=pose(species,stage);ctx.save();ctx.imageSmoothingEnabled=false;
- if(reduced){foamAt(ctx,t,p,true);sprite(ctx,'sponge',0,215,p.bodyY-4,60);ctx.restore();return;}
+ const p=pose(species,stage,at);ctx.save();ctx.imageSmoothingEnabled=false;
+ if(reduced){foamAt(ctx,t,p,true);sprite(ctx,'sponge',0,p.cx+25,p.bodyY-4,60);ctx.restore();return;}
  foamAt(ctx,t,p);
  if(t<1.95){
   const sponge=spongePose(t,p);
@@ -109,7 +110,7 @@ function draw(ctx,t,{species='bird',stage='adult',reduced=false}={}){
   else sprite(ctx,'drops',Math.min(4,2+Math.floor((q-.72)/.28*3)),x,impact,18,1-clamp((q-.9)/.1));
  }
  // Let the final drops fall and the head leave before the clean sparkle.
- for(const [offset,x,y] of [[0,133,p.bodyY-28],[.08,247,p.bodyY-41]]){
+ for(const [offset,x,y] of [[0,p.cx-57,p.bodyY-28],[.08,p.cx+57,p.bodyY-41]]){
   const q=(t-3.72-offset)/.4;if(q>=0&&q<1)sprite(ctx,'sparkle',Math.min(4,Math.floor(q*5)),x,y,22);
  }
  ctx.restore();

@@ -6,7 +6,9 @@ function draw(ctx,species,stage,t,reduced=false){
  if(species==='bird')WhiteBirdView.draw(ctx,p,0,'clean',0,false,190,126,3);
  else if(WyvernAdultView.paint(ctx,'idle',0,true,{stage}));
  else WyvernView.draw(ctx,p,0,'clean',0,true);
- CleaningAnimationView.draw(ctx,t,{species,stage,reduced});ctx.restore();
+ // The bird's tail widens its image to the right; centre the effects on the torso instead.
+ const a=species==='bird'&&WhiteBirdView.anchors?.(stage,190,126,3,'base');
+ CleaningAnimationView.draw(ctx,t,{species,stage,reduced,at:a?{x:a.x,bottom:a.feet}:undefined});ctx.restore();
 }
 window.CleaningAnimationScene={draw};
 })();

@@ -7,6 +7,11 @@ let preview='auto',enabled=false,reaction=null;
 function syncControls(p,allow){enabled=!!allow;if(!enabled){preview='auto';reaction=null;}}
 function setPreview(state){preview=states.some(([value])=>value===state)?state:'auto';}
 document.addEventListener('pet-interaction-complete',e=>{if(enabled&&e.detail){const p=window.petDataManager?.read().pet;if(p)reaction={kind:e.detail.kind,petId:p.petId,start:performance.now()};}});
+// A held pat keeps the calm face until release (like the wyvern's smile); the white bird has no separate happy art,
+// so without this a sad bird would start crying again 1.2 s into the hold.
+document.addEventListener('pet-touch-hold',e=>{const p=window.petDataManager?.read().pet;if(!enabled||!p)return;
+ if(e.detail?.holding)reaction={kind:'pet',petId:p.petId,start:performance.now(),holding:true};
+ else if(reaction?.holding)reaction={...reaction,start:performance.now(),holding:false};});
 function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true){
  const model={...p,healthState:'healthy',sleepMode:'awake',mood:80,satiety:80,cleanliness:100,sadReasons:{mood:false,satiety:false,cleanliness:false}};
  let action=null,elapsed=0,sad=false,time=reduced?0:now;
@@ -15,7 +20,7 @@ function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true)
  if(state==='sleep'||state==='dead')model.sleepMode='normal';
  if(state==='dead')model.healthState='dead';
  if(state==='feed'){action='feed';elapsed=(time%3000)/1000;}
- if(state==='happy')time=reduced?1800:1600+time%1000;
+ if(state==='happy'){action='happy';time=reduced?1800:1600+time%1000;}
  const dy=state==='startled'&&!reduced?Math.abs(Math.sin(now/90))*3:0;
  const drawn=state==='idle'||state==='water'?idle(ctx,model,time,cx,cy,scale,reduced,state==='water'):baseDraw(ctx,model,time,action,elapsed,sad,cx,cy-dy,scale);
  if(!drawn)return false;
@@ -70,7 +75,7 @@ function idleActive(p){return enabled&&['auto','idle'].includes(preview)&&p?.hea
 BirdView.draw=function(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  if(!enabled||action||p.isDeparted||p.healthState==='dead'||!['baby','adult'].includes(p.stage))return baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
  let state=preview;
- if(reaction&&(reaction.petId!==p.petId||now-reaction.start>=1200||p.healthState!=='healthy'||p.sleepMode!=='awake'))reaction=null;
+ if(reaction&&(reaction.petId!==p.petId||!reaction.holding&&now-reaction.start>=1200||p.healthState!=='healthy'||p.sleepMode!=='awake'))reaction=null;
  const fromReaction=state==='auto'&&!!reaction;
  if(fromReaction)state=reaction.kind==='pet'?'happy':'startled';
  if(state==='auto')return !sad&&idleActive(p)?idle(ctx,p,now,cx,cy,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false):baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);

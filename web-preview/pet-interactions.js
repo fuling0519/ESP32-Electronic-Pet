@@ -12,7 +12,9 @@ const overlay=document.createElement('canvas');overlay.width=384;overlay.height=
 let down=null,effect=null,holdTimer=null,lastFill=0,orbKey='';
 const result=document.querySelector('#status'),petButton=document.querySelector('#touch-pet'),pokeButton=document.querySelector('#touch-poke');
 function allowed(){const s=petDataManager.read(),p=s.pet;return s.metadata.source==='mock'&&p&&['baby','adult'].includes(p.stage)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!document.querySelector('[data-action="feed"]').disabled&&!document.querySelector('#game-dialog').open&&!document.querySelector('#farewell-dialog').open;}
-function touchTarget(){return window.WyvernAdultView?.interactionTarget(petDataManager.read().pet)||{x:190,y:130,rx:100,ry:90};}
+// The bird stands left of centre with its tail to the right, so its touch area and effects follow the drawn torso.
+function birdAnchors(p){const at=shownSpecies(p)===1&&window.PetBirdPlacement?.();return at&&window.WhiteBirdView?.anchors?.(at.stage,at.cx,at.cy,3,'idle');}
+function touchTarget(){const p=petDataManager.read().pet,a=birdAnchors(p);return a?{x:a.x,y:a.y,rx:100,ry:90}:window.WyvernAdultView?.interactionTarget(p)||{x:190,y:130,rx:100,ry:90};}
 function hit(p){const t=touchTarget();return ((p.x-t.x)/t.rx)**2+((p.y-t.y)/t.ry)**2<=1;}
 function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*384/r.width,y:(e.clientY-r.top)*256/r.height};}
 function fillStatus(){const p=petDataManager.read().pet;if(!p)return false;const species=p.speciesId===2?'小飛龍':'小鳥',stage=p.stage==='baby'?'幼年':p.stage==='adult'?'成年':'蛋',health=p.isDeparted?'已遠行':p.healthState==='dead'?'長眠':p.healthState==='sick'?'生病':'健康',sleep=p.sleepMode==='normal'?'睡眠':'清醒';const age=p.ageSeconds==null?'—':Math.floor(Number(p.ageSeconds)/86400)+' 天';const set=(id,value)=>{const el=document.querySelector(id);if(el)el.textContent=value;};const setMeter=(id,value)=>{const el=document.querySelector(id);if(el){const numeric=Number(value);el.value=Number.isFinite(numeric)?Math.max(0,Math.min(100,numeric)):0;}};set('#status-pet-name',p.name||'未命名');set('#status-pet-health',health);set('#status-pet-stage',stage);set('#status-pet-sleep',sleep);set('#status-pet-species',species);set('#status-age',age);set('#status-satiety',p.satiety??'—');setMeter('#status-satiety-progress',p.satiety);set('#status-mood',p.mood??'—');setMeter('#status-mood-progress',p.mood);set('#status-cleanliness',p.cleanliness??'—');setMeter('#status-cleanliness-progress',p.cleanliness);const expMax=Number(p.expToNextLevel),expValue=Number(p.exp);const hasExp=Number.isFinite(expMax)&&expMax>0&&Number.isFinite(expValue);const expPercent=hasExp?Math.max(0,Math.min(100,expValue/expMax*100)):0;set('#status-exp',p.expToNextLevel===0?'MAX':(p.exp==null?'—':p.exp+' / '+p.expToNextLevel));const expProgress=document.querySelector('#status-exp-progress');if(expProgress){expProgress.max=100;expProgress.value=expPercent;expProgress.setAttribute('aria-label',hasExp?'經驗值 '+p.exp+' / '+p.expToNextLevel:'經驗值');}const image=document.querySelector('#status-pet-image');if(image){renderPortrait(image,p);image.setAttribute('aria-label',species+' '+stage);}return true;}
@@ -65,14 +67,17 @@ canvas.addEventListener('pointercancel',endTouch);
 // A long press on phones would otherwise open the context menu and cancel the pat.
 canvas.addEventListener('contextmenu',e=>{if(allowed())e.preventDefault();});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-// Head centre and heart spread per role; adult wyvern follows its live (flight) target.
+// Head centre and heart spread per role; adult wyvern follows its live (flight) target. The bird's head comes from
+// its measured eye line (birdAnchors), so its dx/dy only apply when no placement is known.
 const HEADS={'2:adult':{dx:0,dy:-22,spread:56,bangDy:-48},'2:baby':{dx:0,dy:-18,spread:46,bangDy:-40},'1:adult':{dx:-10,dy:-14,spread:62,bangDy:-44},'1:baby':{dx:-10,dy:-8,spread:54,bangDy:-36}};
-// Touch is mock-only, where ?preview=wyvern|bird overrides the shown species (as in app.js).
-function shownSpecies(p){const m=/(?:[?&])preview=(wyvern|bird)(?:&|$)/.exec(location.search||'');return m?(m[1]==='wyvern'?2:1):p.speciesId;}
+// Touch is mock-only, where the demo species picker or ?preview=wyvern|bird overrides the shown species (as in app.js).
+function shownSpecies(p){const picked=window.PetArtStage?.species?.(p);if(picked)return picked;const m=/(?:[?&])preview=(wyvern|bird)(?:&|$)/.exec(location.search||'');return m?(m[1]==='wyvern'?2:1):p.speciesId;}
 // Reactions draw the bird at the centre (its walk pauses), so anchor to the touch target.
-function head(p){const t=touchTarget(),o=HEADS[shownSpecies(p)+':'+(window.PetArtStage?.shown(p)||p.stage)]||HEADS['2:adult'];return {x:t.x+o.dx,y:t.y+o.dy,spread:o.spread,bangDy:o.bangDy};}
+function head(p){const o=HEADS[shownSpecies(p)+':'+(window.PetArtStage?.shown(p)||p.stage)]||HEADS['2:adult'],a=birdAnchors(p);if(a)return {x:a.headX,y:a.headY,spread:o.spread,bangDy:o.bangDy};const t=touchTarget();return {x:t.x+o.dx,y:t.y+o.dy,spread:o.spread,bangDy:o.bangDy};}
 function heartsAlive(now){return effect?.kind==='pet'&&now-effect.start<effect.until+PetEffects.HEART_LIFE;}
 function releaseHearts(){if(effect?.kind==='pet'&&effect.until===Infinity)effect.until=performance.now()-effect.start;}
+// The emote bubble steps aside while a touch reaction plays, so its icon never sits under the hearts or the exclamation.
+function reacting(now=performance.now()){if(down?.petting)return true;if(!effect)return false;const ms=now-effect.start;return ms>=0&&ms<(effect.kind==='pet'?effect.until+PetEffects.HEART_LIFE:PetEffects.SHOCK_MS);}
 function draw(now){pen.clearRect(0,0,384,256);petButton.disabled=pokeButton.disabled=!allowed();const shown=petDataManager.read().pet;statusButton.hidden=!shown;if(shown){const key=portraitKey(shown);if(orbKey!==key&&renderPortrait(orbImage,shown))orbKey=key;if(statusCard.matches?.(':popover-open')&&now-lastFill>500){lastFill=now;fillStatus();}}else statusCard.hidePopover?.();
  if(effect){const p=petDataManager.read().pet,ms=now-effect.start,end=effect.kind==='pet'?effect.until+PetEffects.HEART_LIFE:PetEffects.SHOCK_MS;
  if(ms>=end||!p||p.petId!==effect.petId||p.healthState==='dead'||p.isDeparted)effect=null;else{const h=head(p),r=reduced.matches;
@@ -80,6 +85,6 @@ function draw(now){pen.clearRect(0,0,384,256);petButton.disabled=pokeButton.disa
  else PetEffects.shock(pen,ms,{x:h.x+h.spread-6,y:h.y+h.bangDy,reduced:r});}}
  requestAnimationFrame(draw);}
 requestAnimationFrame(draw);
-window.PetTouch={PETTING_MS,classify};
+window.PetTouch={PETTING_MS,classify,reacting};
 window.PetPortrait={render:renderPortrait,boxes:PORTRAIT_BOXES};
 })();

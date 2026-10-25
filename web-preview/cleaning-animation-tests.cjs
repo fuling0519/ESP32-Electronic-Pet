@@ -96,3 +96,13 @@ test('lather requires actual sponge contact; rinse waits for water contact and c
  assert.ok(!render(3.4).some(x=>x.file.includes('foam-sheet')));
  assert.equal(render(1,'bird','adult',true).filter(x=>x.file.includes('foam-sheet')).length,5);
 });
+test('a measured torso placement moves the sponge, foam, rinse and sparkles together',()=>{
+ const centred=v.pose('bird','adult'),placed=v.pose('bird','adult',{x:154,bottom:199}),dx=154-190,dy=199-centred.bottom;
+ assert.equal(centred.cx,190);assert.equal(placed.cx,154);assert.equal(placed.bodyY-centred.bodyY,dy);
+ for(const t of [.3,.8,1.2,1.6])assert.ok(Math.abs(v.spongePose(t,placed).x-v.spongePose(t,centred).x-dx)<1e-9);
+ for(const t of [2,2.5,3.2])assert.ok(Math.abs(v.showerPose(t,placed).impactX-v.showerPose(t,centred).impactX-dx)<1e-9);
+ const a=v.foamSchedule(centred),b=v.foamSchedule(placed);
+ a.forEach((clump,i)=>{assert.ok(Math.abs(b[i].x-clump.x-dx)<1e-9);assert.ok(Math.abs(b[i].born-clump.born)<.01);});
+ const sparks=at=>{const calls=[],ctx={globalAlpha:1,imageSmoothingEnabled:false,save(){},restore(){},drawImage(im,...args){calls.push({file:im.file,args});}};v.draw(ctx,3.8,{species:'bird',stage:'adult',at});return calls.filter(x=>x.file.includes('sparkle')).map(x=>x.args[4]);};
+ assert.deepEqual(sparks({x:154,bottom:centred.bottom}),sparks(undefined).map(x=>x+dx));
+});

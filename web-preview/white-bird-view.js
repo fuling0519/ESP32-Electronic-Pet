@@ -5,6 +5,8 @@ const idleImage=new Image();idleImage.src='assets/pets/bird/white-idle-sheet-v4.
 const sadImage=new Image();sadImage.src='assets/pets/bird/white-sad-sheet-v1.png';
 const sickImage=new Image();sickImage.src='assets/pets/bird/white-sick-sheet-v1.png';
 const deadImage=new Image();deadImage.src='assets/pets/bird/white-dead-v1.png';
+// Closed smiling eyes drawn onto the idle image (tools/draw_white_bird_happy.py); shown while being petted.
+const happyImage=new Image();happyImage.src='assets/pets/bird/white-happy-v1.png?v=left-eye-tilt-20261025';
 const DEAD_SCALE=1.35;
 function sickMotion(now,reduced=false){
  const t=Math.max(0,now)%10000,u=(t-3000)/4000;
@@ -17,9 +19,22 @@ function idleFrame(now,reduced=false){
  if(!reduced)while(index<3&&t>=WhiteBirdIdleData.times[index])t-=WhiteBirdIdleData.times[index++];
  return index;
 }
+// Torso centre and eye line as fractions of the drawn height from (cx,cy), measured from the white body
+// pixels with the tail excluded. The base image (used during care) sits further left than the idle sheets.
+const ANCHORS={base:{body:-.12,headX:-.13,headY:-.2},idle:{body:-.053,headX:-.085,headY:-.23}};
+function anchors(stage,cx=190,cy=126,scale=3,pose='idle'){
+ const h=(stage==='adult'?132:106)*scale/3,a=ANCHORS[pose]||ANCHORS.idle;
+ return {x:cx+a.body*h,y:cy,headX:cx+a.headX*h,headY:cy+a.headY*h,feet:cy+h*.47,height:h};
+}
 function draw(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  if(action==='feed'&&window.WhiteBirdFeed?.draw(ctx,p,elapsed,scale,window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false))return true;
  if(!image.complete||!image.naturalWidth)return false;
+ if(action==='happy'&&happyImage.complete&&happyImage.naturalWidth){
+  // Same canvas as the base image, shifted to where the idle sheets stand so a pat does not jump sideways;
+  // a small hop every 250 ms (seamless over the demo's 1 s loop).
+  const h=(p.stage==='adult'?132:106)*scale/3,lift=Math.round(Math.abs(Math.sin(now*Math.PI/250))*2*scale/3);
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(happyImage,cx-h/2+(ANCHORS.idle.body-ANCHORS.base.body)*h,cy-h/2-lift,h,h);ctx.restore();return true;
+ }
  // Comparable visual size to the adult wyvern's 126px body width; uniform scaling only.
  const height=(p.stage==='adult'?132:106)*scale/3;
  // Lying down: the source draws the bird smaller than the idle image, so DEAD_SCALE matches its
@@ -63,5 +78,5 @@ function draw(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
  }
  ctx.restore();return true;
 }
-window.WhiteBirdView={draw,idleFrame,sadFrame,sickMotion,DEAD_SCALE};
+window.WhiteBirdView={draw,anchors,idleFrame,sadFrame,sickMotion,DEAD_SCALE};
 })();

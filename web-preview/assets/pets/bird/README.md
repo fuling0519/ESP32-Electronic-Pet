@@ -29,3 +29,6 @@ white-bird-feed.js 沿用已生成並整理好的 white-activity-sheet-v1.png �
 
 ## 長眠 v1
 white-dead-source-v1.png 為使用者以 ChatGPT 依白鳥 v2 產出的綠底單張（提示詞見 white-dead-v1-prompt.md）：往一側倒下躺在地上、閉眼、腮紅、翅膀鬆開、尾巴平放、小腳收在肚子前。`python tools/prepare_white_bird_dead.py` 去綠底、移除小於 200 像素的雜點、裁切，輸出 white-dead-v1.png 與 white-dead-data-v1.js／.json；不縮放、不重畫。原圖與待機 v2 同為 1254 px 畫布，Web 以相同像素比例繪製，身體中心（裁切寬 42%）對準角色中心、底部貼齊腳底線。幼鳥與成鳥共用，按大小區分。`white-bird-view.js` 在 healthState 為 dead 時使用；`BirdView.still(…, closed=true)` 代表長眠外觀（死亡流程、紀念冊），展示工具的「長眠外觀」也改用它，睡眠仍是站姿。測試 node web-preview/white-bird-dead-tests.cjs。
+
+## 摸摸開心 v1
+white-happy-v1.png 由 `python tools/draw_white_bird_happy.py` 從 white-idle-v2.png 程式繪製，非生成圖：只把兩眼用周圍毛色漸層補平（避開腮紅與輪廓），再依原圖約 8.7 px 像素格畫上向上彎、順時針傾斜（右眼 36°、左眼 28°）的瞇眼笑弧線（配合臉部四分之三側轉，外側眼尾往下）；弧線以原本睜眼的深色像素重心為中心、蓋住眼睛上半部，與鳥喙的間距和睜眼時相同；左眼依使用者手動擺放的版本擬合，再往左 2 格、往上 2 格；腮紅、喙、翅膀、尾巴不動。同為 1254 px 畫布，`white-bird-view.js` 以 action `happy` 繪製時平移到待機圖集的站位（左緣與待機一致，不會左右跳動），每 250ms 輕跳 2px。摸摸反應（含長按到放開後 1.2 秒）與展示工具的「開心」使用；減少動態不跳。測試 node web-preview/white-bird-idle-tests.cjs。
