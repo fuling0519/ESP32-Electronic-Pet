@@ -264,3 +264,10 @@ test('baby walks on the ground left and right, rests mostly, and turns on a stan
  assert.equal(advance(view,ctx,p,24000,25500).state,'flight');
  assert(view.interactionTarget(p).x>190,'touch area follows the walk');
 });
+test('device mode keeps touch reactions while demo previews stay off',()=>{
+ const {c,view,events}=boot(),p=pet();c.petDataManager={read:()=>({pet:p})};
+ view.setPreview('sad');view.syncControls(p,false,true);assert.equal(view.resolve(p,100,null),'idle');
+ events.get('pet-interaction-complete')({detail:{kind:'poke'}});view.syncControls(p,false,true);
+ assert.equal(view.resolve(p,100,null),'shock');
+ view.syncControls(p,false,false);assert.equal(view.resolve(p,100,null),'idle','touch off drops the reaction');
+});

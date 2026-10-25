@@ -86,15 +86,11 @@ test('album shows resting pets as rest cards with tab counts, never pets still a
  assert.deepEqual(elements.get('#album-tabs').children.map(b=>b.textContent),['全部','遠行 0','長眠 1']);
  assert.equal(elements.get('#album-garden').hidden,true,'one garden needs no switch');
 });
-test('pet and poke change mood only, share cooldown, persist and never write BLE',()=>{
- const {m,c,storage}=boot();let now=10000;c.Date=class extends Date{static now(){return now;}};const before=m.read().pet;
- assert.equal(m.command('pet').actual,3);assert.equal(m.read().pet.mood,before.mood+3);assert.equal(m.read().pet.exp,before.exp);assert.throws(()=>m.command('poke'),/3秒/);
- now+=3000;assert.equal(m.command('poke').actual,-3);assert.equal(boot(storage).m.read().pet.mood,before.mood);
- c.PetSources.mock.pet.mood=100;now+=3000;assert.equal(m.command('pet').actual,0);c.PetSources.mock.pet.mood=1;now+=3000;assert.equal(m.command('poke').actual,-1);assert.equal(m.read().pet.mood,0);
+test('touch is visual only: the data layer has no pet or poke command and never changes mood',()=>{
+ const {m,storage}=boot(),before=m.read().pet;
+ for(const kind of ['pet','poke'])assert.throws(()=>m.command(kind),/不支援/);
+ assert.deepEqual(m.read().pet,before);assert.deepEqual(boot(storage).m.read().pet.mood,before.mood);
  m.select('ble');assert.throws(()=>m.command('pet'),/唯讀/);
-});
-test('touch rejects egg, sleep, sickness, games and terminal pets',()=>{
- const {m}=boot();m.startGame('rps',0);assert.throws(()=>m.command('pet'),/遊戲/);m.cancelGame();m.preview('adult','sleep');assert.throws(()=>m.command('poke'));m.preview('adult','sick');assert.throws(()=>m.command('pet'));m.preview('adult','dead');assert.throws(()=>m.command('poke'));m.adopt();assert.throws(()=>m.command('pet'));
 });
 test('RPS countdown exposes 3 2 1 only, memory prepares five seconds and uses 2 3 5 notes',()=>{
  const {m,c}=boot();m.startGame('rps',0);m.answerGame(0,0);for(const [time,n] of [[0,3],[349,3],[350,2],[700,1]]){const s=m.gameState(time);assert.equal(s.countdown,n);assert.equal(s.opponent,undefined);}assert.equal(m.gameState(1050).phase,'round-result');m.cancelGame();m.startGame('memory',0);assert.equal(m.gameState(4999).phase,'prepare');assert.equal(m.gameState(4999).lit,undefined);assert.equal(m.gameState(5000).phase,'show');assert.equal(c.PetSources.mock.game.sequence.length,2);const g=c.PetSources.mock.game;g.round=2;g.next(6000);assert.equal(g.sequence.length,3);g.round=3;g.next(7000);assert.equal(g.sequence.length,5);

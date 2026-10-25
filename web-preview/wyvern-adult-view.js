@@ -105,9 +105,10 @@ function setPreview(state){
  if(next!==preview){preview=next;lastState='';resetMotion();}
 }
 function eligible(p){return p&&['adult','baby'].includes(p.stage)&&!p.isDeparted&&p.healthState!=='dead';}
-function syncControls(p,enabled){
+// Touch reactions also play in device mode, so they have their own switch (defaulting to the demo one).
+function syncControls(p,enabled,touch=enabled){
  if(controlsEnabled!==enabled||!eligible(p))resetMotion();controlsEnabled=enabled;
- if(!enabled){preview='auto';reaction=null;}
+ if(!enabled)preview='auto';if(!touch)reaction=null;
 }
 // Head pat smiles from pointer-down; release restarts the 1.2 s window so the
 // face stays happy through the tap delay until the interaction completes.

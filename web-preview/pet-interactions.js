@@ -1,4 +1,5 @@
-/* Mock-only touch gestures plus the status dialog for either source. No raw adapter access or BLE writes. */
+/* Touch gestures and the status dialog for either source. Touch is a visual reaction only, like the firmware's
+ * copper pad: it never changes needs, mood or EXP, so it needs no adapter access or BLE writes. */
 (()=>{'use strict';
 const scene=document.querySelector('.scene'),canvas=document.querySelector('#bird');
 // The care dock floats over the garden; on narrow screens it would cover the pet, so it sits below the message bar instead.
@@ -11,7 +12,8 @@ function classify(heldMs){return heldMs>=PETTING_MS?'pet':'poke';}
 const overlay=document.createElement('canvas');overlay.width=384;overlay.height=256;overlay.className='touch-effects';overlay.setAttribute('aria-hidden','true');scene.append(overlay);const pen=overlay.getContext('2d');
 let down=null,effect=null,holdTimer=null,lastFill=0,orbKey='';
 const result=document.querySelector('#status'),petButton=document.querySelector('#touch-pet'),pokeButton=document.querySelector('#touch-poke');
-function allowed(){const s=petDataManager.read(),p=s.pet;return s.metadata.source==='mock'&&p&&['baby','adult'].includes(p.stage)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!document.querySelector('[data-action="feed"]').disabled&&!document.querySelector('#game-dialog').open&&!document.querySelector('#farewell-dialog').open;}
+// Care buttons are always disabled in device mode, so there only a growth transition counts as busy.
+function allowed(){const s=petDataManager.read(),p=s.pet,busy=s.metadata.source==='mock'?document.querySelector('[data-action="feed"]').disabled:!!window.PetGrowthView?.active;return !!p&&['baby','adult'].includes(p.stage)&&p.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!busy&&!document.querySelector('#game-dialog').open&&!document.querySelector('#farewell-dialog').open;}
 // The bird stands left of centre with its tail to the right, so its touch area and effects follow the drawn torso.
 function birdAnchors(p){const at=shownSpecies(p)===1&&window.PetBirdPlacement?.();return at&&window.WhiteBirdView?.anchors?.(at.stage,at.cx,at.cy,3,'idle');}
 function touchTarget(){const p=petDataManager.read().pet,a=birdAnchors(p);return a?{x:a.x,y:a.y,rx:100,ry:90}:window.WyvernAdultView?.interactionTarget(p)||{x:190,y:130,rx:100,ry:90};}
@@ -47,10 +49,10 @@ statusCard?.addEventListener('beforetoggle',e=>{if(e.newState==='open'&&!fillSta
 statusCard?.addEventListener('toggle',e=>{if(e.newState==='open')placeCard();});
 document.querySelector('#open-cemetery')?.addEventListener('click',()=>statusCard.hidePopover?.());
 window.addEventListener('resize',()=>{if(statusCard?.matches?.(':popover-open'))placeCard();});
-function interact(kind){if(!allowed()){result.textContent='目前不能觸碰：請在展示模式、清醒健康且動作結束後互動。';return false;}
- try{const r=petDataManager.command(kind),now=performance.now(),petId=petDataManager.read().pet.petId;
-  // A held pat already has hearts running; keep them instead of restarting.
-  if(kind!=='pet'||!heartsAlive(now))effect={kind,start:now,until:kind==='pet'?1200:Infinity,petId};result.textContent=(kind==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！')+' 心情 '+(r.actual>=0?'+':'')+r.actual+'。';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind}}));return true;}catch(e){result.textContent=e.message;return false;}}
+function interact(kind){if(!allowed()){result.textContent='目前不能觸碰：請在寵物清醒健康且動作結束後互動。';return false;}
+ const now=performance.now(),petId=petDataManager.read().pet.petId;
+ // A held pat already has hearts running; keep them instead of restarting.
+ if(kind!=='pet'||!heartsAlive(now))effect={kind,start:now,until:kind==='pet'?1200:Infinity,petId};result.textContent=kind==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind}}));return true;}
 petButton.onclick=()=>interact('pet');pokeButton.onclick=()=>interact('poke');
 
 function startPetting(){holdTimer=null;if(!down)return;const now=performance.now();
@@ -70,7 +72,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 // Head centre and heart spread per role; adult wyvern follows its live (flight) target. The bird's head comes from
 // its measured eye line (birdAnchors), so its dx/dy only apply when no placement is known.
 const HEADS={'2:adult':{dx:0,dy:-22,spread:56,bangDy:-48},'2:baby':{dx:0,dy:-18,spread:46,bangDy:-40},'1:adult':{dx:-10,dy:-14,spread:62,bangDy:-44},'1:baby':{dx:-10,dy:-8,spread:54,bangDy:-36}};
-// Touch is mock-only, where the demo species picker or ?preview=wyvern|bird overrides the shown species (as in app.js).
+// In demo mode the species picker or ?preview=wyvern|bird overrides the shown species (as in app.js).
 function shownSpecies(p){const picked=window.PetArtStage?.species?.(p);if(picked)return picked;const m=/(?:[?&])preview=(wyvern|bird)(?:&|$)/.exec(location.search||'');return m?(m[1]==='wyvern'?2:1):p.speciesId;}
 // Reactions draw the bird at the centre (its walk pauses), so anchor to the touch target.
 function head(p){const o=HEADS[shownSpecies(p)+':'+(window.PetArtStage?.shown(p)||p.stage)]||HEADS['2:adult'],a=birdAnchors(p);if(a)return {x:a.headX,y:a.headY,spread:o.spread,bangDy:o.bangDy};const t=touchTarget();return {x:t.x+o.dx,y:t.y+o.dy,spread:o.spread,bangDy:o.bangDy};}

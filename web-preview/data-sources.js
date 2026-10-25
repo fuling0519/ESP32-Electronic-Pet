@@ -76,14 +76,6 @@ class MockSource {
       p.healthState='healthy';if(p.timers){p.timers.danger=0;p.timers.sick=0;}
       if(p.stage==='baby'&&p.ageSeconds>=3900)p.stage='adult';const levelsGained=PetRules.addExp(p,5);PetRules.updateSad(p);this.persist();return {treated:true,levelsGained};
     }
-    if(kind==='pet'||kind==='poke'){
-      if(p.healthState!=='healthy')throw new Error('寵物不舒服，請先治療再互動');
-      if(this.game&&!['complete','cancelled'].includes(this.game.phase))throw new Error('請先結束遊戲');
-      const now=Date.now();if(this.lastInteraction?.petId===p.petId&&now-this.lastInteraction.at<3000)throw new Error('讓牠休息一下，互動間隔為3秒');
-      const before=p.mood;p.mood=Math.max(0,Math.min(100,p.mood+(kind==='pet'?3:-3)));
-      this.lastInteraction={petId:p.petId,at:now};PetRules.updateSad(p);this.persist();
-      return {key:'mood',actual:p.mood-before,levelsGained:0,interaction:kind};
-    }
     const rules={feed:['satiety',20],clean:['cleanliness',30]},rule=rules[kind];if(!rule)throw new Error('不支援的展示操作');
     const [key,gain]=rule,actual=Math.min(gain,100-p[key]);p[key]+=actual;
     if(p.healthState==='healthy'&&p.satiety>0&&p.cleanliness>0&&p.timers)p.timers.danger=0;
