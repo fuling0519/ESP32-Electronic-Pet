@@ -100,12 +100,26 @@ int main() {
         pet.advanceSeconds(clock.consumeElapsedSeconds(4010));
         ui.update(Hardware::InputEvent::None,4010);
         assert(pet.ageSeconds()==beforeNeed.ageSeconds+2 && pet.cleanliness()==60);
-        pet.setMood(40); ui.update(Hardware::InputEvent::None,4020);
-        assert(!ui.touchContextAllowed() && !ui.onTouchEvent(TouchEvent::Poke,4020));
-        pet.setMood(44); ui.update(Hardware::InputEvent::None,4030); assert(!ui.touchContextAllowed());
-        pet.setMood(45); ui.update(Hardware::InputEvent::None,4040); assert(ui.touchContextAllowed());
-        pet.setSick(true); ui.update(Hardware::InputEvent::None,4050);
-        assert(!ui.touchContextAllowed() && !ui.onTouchEvent(TouchEvent::PettingStarted,4050));
+        // Sad but healthy pets accept touch: the reaction shows over the sad image, which
+        // returns afterwards, and the care reminder waits until the reaction ends.
+        assert(ui.onTouchEvent(TouchEvent::PettingReleased,4010)); ui.update(Hardware::InputEvent::None,4260);
+        const unsigned reminders=careReminders;
+        pet.setMood(40); assert(ui.onTouchEvent(TouchEvent::Poke,4270));
+        ui.update(Hardware::InputEvent::None,4270); ui.render(); const auto sadShock=pixels;
+        assert(ui.touchContextAllowed() && careReminders==reminders);
+        ui.update(Hardware::InputEvent::None,4769); assert(careReminders==reminders);
+        ui.update(Hardware::InputEvent::None,4770); assert(careReminders==reminders+1);
+        // 10400 and 20800 share the same bird idle and sad wyvern frame.
+        ui.update(Hardware::InputEvent::None,10400); ui.render(); const auto sadImage=pixels;
+        assert(sadShock!=sadImage);
+        assert(ui.onTouchEvent(TouchEvent::PettingStarted,10400)); ui.render(); assert(pixels!=sadImage);
+        assert(ui.onTouchEvent(TouchEvent::PettingReleased,10500));
+        ui.update(Hardware::InputEvent::None,10750);
+        ui.update(Hardware::InputEvent::None,20800); ui.render(); assert(pixels==sadImage);
+        assert(pet.mood()==40);
+        pet.setMood(44); ui.update(Hardware::InputEvent::None,20810); assert(ui.touchContextAllowed());
+        pet.setSick(true); ui.update(Hardware::InputEvent::None,20820);
+        assert(!ui.touchContextAllowed() && !ui.onTouchEvent(TouchEvent::PettingStarted,20820));
     }
     {
         Hardware::Sound sound; auto pet=healthy(Pet::SpeciesId::Bird,Pet::LifeStage::Baby);
@@ -171,5 +185,5 @@ int main() {
         assert(pet.isDead()); ui.update(Hardware::InputEvent::None,2400);
         assert(ui.screen()==Ui::ScreenId::DeathAnimation && !ui.touchContextAllowed());
     }
-    puts("PASS: real UI touch frames/HUD, one-shot reactions, dirty flag, cap/tail, navigation, care, sleep, sad/sick, growth/farewell and unchanged pet values.");
+    puts("PASS: real UI touch frames/HUD, one-shot reactions, dirty flag, cap/tail, navigation, care, sleep, sad touch with deferred reminder, sick, growth/farewell and unchanged pet values.");
 }

@@ -238,14 +238,15 @@ uint8_t UiController::eggCrackStage(uint32_t now) const {
     return 0;
 }
 
+// Sad (but not sick) pets accept touch too: the reaction plays, then the sad image
+// returns, and a pending care reminder waits until the reaction ends.
 bool UiController::touchContextAllowed() const {
-    return screen_ == ScreenId::Home && !pet_.isEnded() && !pet_.isSick() && !sad_ &&
+    return screen_ == ScreenId::Home && !pet_.isEnded() && !pet_.isSick() &&
         pet_.lifeStage() != Pet::LifeStage::Egg && pet_.lifeStage() == observedLifeStage_ &&
         pet_.petId() == observedPetId_ && pet_.sleepMode() == Pet::SleepMode::Awake &&
-        pet_.mood() > 40 && pet_.satiety() > 25 && pet_.cleanliness() > 25 &&
         !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
         !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
-        !careReminderPending_ && !treatmentNotice_ && !deepSleepPending_ &&
+        !treatmentNotice_ && !deepSleepPending_ &&
         pendingAction_ == UiAction::None;
 }
 
@@ -283,7 +284,8 @@ void UiController::updateTouchReaction(uint32_t now) {
     if (touchReaction_ == TouchReaction::Poke) {
         if (elapsed >= T::PokeAnimationMs) {
             touchReaction_ = TouchReaction::None;
-            pokeRecovered_ = pet_.lifeStage() == Pet::LifeStage::Baby;
+            // A sad baby goes straight back to its sad image, not the idle recovery pose.
+            pokeRecovered_ = pet_.lifeStage() == Pet::LifeStage::Baby && !sad_;
             dirty_ = true;
         } else {
             const uint8_t frame = elapsed >= T::PokeFirstPhaseMs;
@@ -889,6 +891,7 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
         !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
         !treating_ && !careLevelUpPending_ &&
         !levelUpActive_ && pendingAction_ == UiAction::None &&
+        touchReaction_ == TouchReaction::None &&
         event == Hardware::InputEvent::None && !sound_.isPlaying() &&
         (!careReminderPlayed_ || static_cast<uint32_t>(now - lastCareReminderAt_) >= kCareReminderCooldownMs)) {
         sound_.playCareReminder();
@@ -1211,14 +1214,15 @@ void UiController::renderHome() {
     } else if (careAfterglow_ == CareAfterglow::Happy) {
         // Shown even while sad: the reward answers the care, then sad returns.
         PetIcons::drawTouchHappy(display_, careAfterglowFrame_, pet_.lifeStage(), pet_.speciesId());
+    } else if (!treating_ && touchReaction_ == TouchReaction::Poke) {
+        // Touch reactions show over sadness too; the sad image returns when they end.
+        PetIcons::drawTouchPoke(display_, touchFrame_ == 0, false, pet_.lifeStage(), pet_.speciesId());
+    } else if (!treating_ && (touchReaction_ == TouchReaction::Petting || touchReaction_ == TouchReaction::Tail)) {
+        PetIcons::drawTouchHappy(display_, touchFrame_, pet_.lifeStage(), pet_.speciesId());
     } else if (sad && pet_.lifeStage() != Pet::LifeStage::Egg) {
         PetIcons::drawSadPet(display_, 32, 6,
                             treating_ ? treatmentVisualStage_ : pet_.lifeStage(),
                             treating_ ? 0 : homeAnimationFrame_, pet_.speciesId(), !treating_);
-    } else if (!treating_ && touchReaction_ == TouchReaction::Poke) {
-        PetIcons::drawTouchPoke(display_, touchFrame_ == 0, false, pet_.lifeStage(), pet_.speciesId());
-    } else if (!treating_ && (touchReaction_ == TouchReaction::Petting || touchReaction_ == TouchReaction::Tail)) {
-        PetIcons::drawTouchHappy(display_, touchFrame_, pet_.lifeStage(), pet_.speciesId());
     } else if (!treating_ && pokeRecovered_) {
         PetIcons::drawTouchPoke(display_, false, true, pet_.lifeStage(), pet_.speciesId());
     } else {
