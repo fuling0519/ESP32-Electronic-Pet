@@ -288,3 +288,10 @@ test('BLE writes whole messages one at a time, so a heartbeat never overlaps a f
  const [result,heartbeat]=await Promise.all([finish,beat]);
  assert.equal(result.mood_gain,6);assert.equal(heartbeat.ok,true);assert.deepEqual(order.slice(-2),['game_finish','game_heartbeat']);
 });
+test('device info lists the games the firmware can settle; the first web-play firmware means toy only',()=>{
+ const {c,m}=boot(),ble=c.PetSources.ble;ble.connection='ready';
+ ble.info={v:1,type:'device_info',features:['web_game'],games:['toy','chorus',3]};m.select('ble');
+ assert.deepEqual([...m.view('ble').games],['toy','chorus'],'non-string entries are dropped');
+ ble.info={v:1,type:'device_info',features:['web_game']};assert.equal(m.view('ble').games,null,'missing list stays unknown; the page treats it as toy only');
+ ble.connection='disconnected';ble.info={v:1,type:'device_info',features:['web_game'],games:['toy','chorus']};assert.equal(m.view('ble').games,null,'no list without a live connection');
+});

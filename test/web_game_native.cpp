@@ -22,7 +22,9 @@ static void sessionRules() {
     WebGameSession s;
     WebGameKind kind;
     assert(WebGameSession::parseKind("toy", kind) && kind == WebGameKind::Toy);
+    assert(WebGameSession::parseKind("chorus", kind) && kind == WebGameKind::Chorus);
     assert(!WebGameSession::parseKind("rps", kind) && !WebGameSession::parseKind(nullptr, kind));
+    assert(WebGameSession::minDurationMs(WebGameKind::Chorus) == 12000 && strcmp(WebGameSession::kindName(WebGameKind::Chorus), "chorus") == 0);
     assert(WebGameSession::minDurationMs(WebGameKind::Toy) == 15000);
     const uint32_t id = s.begin(WebGameKind::Toy, 1000);
     assert(id != 0 && s.active() && s.id() == id);
@@ -65,6 +67,26 @@ static void sessionRules() {
     WebGameSession r;
     const uint32_t rolled = r.begin(WebGameKind::Toy, 0xFFFFF000u);
     assert(r.check(rolled, score(5, 1), 0xFFFFF000u + 15000u, reward) == Finish::Ok);
+
+    // Chorus: correct/total out of three tunes, tiered like the web memory notes; a toy score does not count.
+    WebGameSession c;
+    const uint32_t sung = c.begin(WebGameKind::Chorus, 0);
+    Games::WebGameScore chorus; chorus.total = 3; chorus.correct = 3;
+    assert(c.check(sung, chorus, 11999, reward) == Finish::TooEarly);
+    assert(c.check(sung, score(5, 3), 12000, reward) == Finish::InvalidScore);
+    Games::WebGameScore bad = chorus; bad.total = 4; assert(c.check(sung, bad, 12000, reward) == Finish::InvalidScore);
+    bad = chorus; bad.correct = 4; assert(c.check(sung, bad, 12000, reward) == Finish::InvalidScore);
+    bad = chorus; bad.correct = -1; assert(c.check(sung, bad, 12000, reward) == Finish::InvalidScore);
+    const int tiers[4][2] = {{3, 5}, {3, 5}, {6, 10}, {10, 15}};
+    for (int right = 0; right <= 3; ++right) {
+        chorus.correct = right;
+        assert(c.check(sung, chorus, 12000, reward) == Finish::Ok);
+        assert(reward.mood == tiers[right][0] && reward.exp == tiers[right][1]);
+    }
+    // A toy session still ignores chorus fields.
+    WebGameSession t;
+    const uint32_t toy = t.begin(WebGameKind::Toy, 0);
+    assert(t.check(toy, chorus, 20000, reward) == Finish::InvalidScore);
 }
 
 static void commandParsing() {
@@ -72,7 +94,8 @@ static void commandParsing() {
     assert(Ble::isGameCommand("game_start") && Ble::isGameCommand("game_cancel") && !Ble::isGameCommand("get_status"));
     assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"toy\",\"pet_id\":\"18446744073709551615\"}", r), "ok") == 0);
     assert(r.type == Ble::GameRequest::Type::Start && r.kind == WebGameKind::Toy && r.petId == UINT64_MAX && r.commandId == 9);
-    assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"chorus\",\"pet_id\":\"42\"}", r), "invalid_value") == 0);
+    assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"chorus\",\"pet_id\":\"42\"}", r), "ok") == 0 && r.kind == WebGameKind::Chorus);
+    assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"rps\",\"pet_id\":\"42\"}", r), "invalid_value") == 0);
     assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"toy\",\"pet_id\":42}", r), "missing_field") == 0);
     assert(strcmp(parse("{\"cmd\":\"game_start\",\"game\":\"toy\",\"pet_id\":\"-4\"}", r), "invalid_value") == 0);
     assert(strcmp(parse("{\"cmd\":\"game_start\",\"pet_id\":\"42\"}", r), "missing_field") == 0);
@@ -83,7 +106,11 @@ static void commandParsing() {
     assert(strcmp(parse("{\"cmd\":\"game_cancel\",\"session\":3051}", r), "missing_field") == 0);
     assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{\"throws\":5,\"catches\":2}}", r), "ok") == 0);
     assert(r.type == Ble::GameRequest::Type::Finish && r.score.throws == 5 && r.score.catches == 2);
-    assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{\"throws\":5}}", r), "missing_field") == 0);
+    // A partial pair parses; the session rejects it for its game (catches stays -1 here).
+    assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{\"throws\":5}}", r), "ok") == 0 && r.score.catches == -1);
+    assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{\"correct\":2,\"total\":3}}", r), "ok") == 0 && r.score.correct == 2 && r.score.total == 3 && r.score.throws == -1);
+    assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{\"correct\":\"2\",\"total\":3}}", r), "missing_field") == 0);
+    assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\",\"score\":{}}", r), "missing_field") == 0);
     assert(strcmp(parse("{\"cmd\":\"game_finish\",\"session\":\"7\"}", r), "missing_field") == 0);
     uint64_t v = 0;
     assert(!Ble::parseDecimal("", v) && !Ble::parseDecimal(" 1", v) && !Ble::parseDecimal("18446744073709551616", v));
@@ -93,5 +120,5 @@ static void commandParsing() {
 int main() {
     sessionRules();
     commandParsing();
-    puts("PASS: web play session start/heartbeat/timeout, finish checks, single payout with replay, cancel/end idempotence, rollover and BLE game command parsing.");
+    puts("PASS: web play session start/heartbeat/timeout, finish checks, single payout with replay, cancel/end idempotence, rollover and BLE game command parsing, including chorus scores and tiers.");
 }

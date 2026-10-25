@@ -188,6 +188,7 @@ void Link::processCommand() {
     filter["v"]=true; filter["id"]=true; filter["cmd"]=true;
     filter["game"]=true; filter["pet_id"]=true; filter["session"]=true;
     filter["score"]["throws"]=true; filter["score"]["catches"]=true;
+    filter["score"]["correct"]=true; filter["score"]["total"]=true;
     StaticJsonDocument<384> d;
     auto err=deserializeJson(d,rxJson_,rxLength_,DeserializationOption::Filter(filter));
     if (err || !d.is<JsonObject>()) { result(0,false,"malformed_message"); return; }
@@ -219,6 +220,7 @@ void Link::processCommand() {
     info["protocol_version"]=1; info["firmware_version"]=PET_FIRMWARE_VERSION;
     info["max_message_bytes"]=kMaxJson; info["device_id"]=deviceId_;
     info.createNestedArray("features").add("web_game");
+    JsonArray games=info.createNestedArray("games"); games.add("toy"); games.add("chorus");
     char json[kMaxJson+1]; size_t len=serializeJson(info,json,sizeof(json));
     if (len && len<=kMaxJson) queue(json,false);
 }

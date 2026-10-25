@@ -3,13 +3,14 @@
 
 namespace Games {
 
-// Web toy games started over BLE. The browser only reports what was played; this
+// Web play games (toy, chorus) started over BLE. The browser only reports what was played; this
 // class decides whether a result counts, and remembers the last result so a
 // resent finish replies again without paying twice. Hardware-free for native tests.
-enum class WebGameKind : uint8_t { None, Toy };
+enum class WebGameKind : uint8_t { None, Toy, Chorus };
 enum class WebGameEnd : uint8_t { None, DeviceCancel, HeartbeatTimeout, PetState, Disconnected };
 
-struct WebGameScore { int32_t throws = -1, catches = -1; };
+// Each game reads its own pair; -1 means the browser did not send that field.
+struct WebGameScore { int32_t throws = -1, catches = -1, correct = -1, total = -1; };
 struct WebGameReward { uint8_t mood = 0; uint16_t exp = 0; };
 struct WebGameResult { uint8_t moodGain = 0; uint16_t expGain = 0; uint8_t levelsGained = 0; };
 

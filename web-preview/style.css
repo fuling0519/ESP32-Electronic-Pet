@@ -40,7 +40,9 @@
 #treat-button.treatment-hidden{opacity:0;transform:scale(.9);pointer-events:none;flex:0 0 0;min-width:0;max-width:0;padding-left:0;padding-right:0;overflow:hidden}
 #treat-button[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.health-icon,.health-badge,#treat-button{transition:none}.sick .sick-icon,.healing .sick-icon{animation:none}}
-#afterlife-menu[hidden]{display:none}#afterlife-age{font-weight:700}
+#afterlife-menu[hidden]{display:none}
+/* The game picker hides the dialog games' stage, answers and key hint until one starts. */
+#game-inputs[hidden],#game-dialog .game-stage[hidden],#game-dialog p[hidden]{display:none}#afterlife-age{font-weight:700}
 #afterlife-menu{text-align:center;margin:18px 0;padding:18px;background:#eee5d8;border:2px solid var(--line)}#afterlife-menu button{margin:6px}#adoption-note{font-size:12px}
 /* Shared pet controls; existing garden artwork remains unchanged. */
 #pet-species,#pet-exp{font-size:.85rem;line-height:1.5}

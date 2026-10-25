@@ -58,12 +58,18 @@ function death(){if(!sound||!audio||audio.state!=='running'||document.hidden)ret
 function shutter(){if(!sound||!audio||audio.state!=='running'||document.hidden)return false;tone(392,45);setTimeout(()=>tone(1568,70),70);return true;}
 // note(): a short game tone that follows the page's sound switch (garden chorus).
 window.PetWebSound={death,shutter,note(freq,ms=220){initAudio();tone(freq,ms);},reminder(){if(!sound||!audio||audio.state!=='running'||document.hidden||activeTones.size)return false;for(const [i,freq] of [659,523,392].entries())setTimeout(()=>tone(freq,140),i*180);return true;}};document.addEventListener('pointerdown',initAudio,{once:true});
-function start(kind){try{initAudio();selectedMove=0;toneKey=null;lastLevel=false;petDataManager.startGame(kind,performance.now());document.querySelector('#game-picker').hidden=true;inputs.replaceChildren();render();if(kind==='rps')inputs.children[0]?.focus();clearInterval(timer);timer=setInterval(render,50);}catch(error){message.textContent=error.message;}}
+function start(kind){try{stageBoard.hidden=keyboardHint.hidden=inputs.hidden=false;initAudio();selectedMove=0;toneKey=null;lastLevel=false;petDataManager.startGame(kind,performance.now());document.querySelector('#game-picker').hidden=true;inputs.replaceChildren();render();if(kind==='rps')inputs.children[0]?.focus();clearInterval(timer);timer=setInterval(render,50);}catch(error){message.textContent=error.message;}}
 document.querySelector('#start-rps').onclick=()=>start('rps');
 // Toy play runs in the garden itself, so the picker closes first (closing cancels no toy session yet).
 document.querySelector('#start-toy').onclick=()=>{dialog.close();if(window.PetToyPlay?.start())document.querySelector('#bird')?.scrollIntoView({block:'nearest'});};
 document.querySelector('#start-chorus').onclick=()=>{dialog.close();if(window.PetChorus?.start())document.querySelector('#bird')?.scrollIntoView({block:'nearest'});};document.querySelector('#start-memory').onclick=()=>start('memory');next.onclick=()=>{petDataManager.nextRound(performance.now());render();};
 // The close event arrives after a toy session has already started from the picker; leave that one running.
 dialog.addEventListener('close',()=>{clearInterval(timer);if(!['toy','chorus'].includes(petDataManager.gameState(performance.now())?.kind))petDataManager.cancelGame();});
-window.openPetGames=()=>{document.querySelector('#game-picker').hidden=false;inputs.replaceChildren();message.textContent='兩種寵物共用遊戲；完成整場只結算一次。';next.hidden=true;dialog.showModal();};
+// Device mode lists only the garden games the ESP32 can settle; the old dialog games stay demo-only.
+window.openPetGames=()=>{const device=petDataManager.mode==='ble',games=device?window.PetDeviceSession?.games()||[]:['toy','chorus'];
+ document.querySelector('#start-rps').hidden=document.querySelector('#start-memory').hidden=device;
+ document.querySelector('#start-toy').hidden=!games.includes('toy');document.querySelector('#start-chorus').hidden=!games.includes('chorus');
+ // The stage box, answer area and keyboard hint belong to the dialog games; they show once one starts.
+ stageBoard.hidden=keyboardHint.hidden=inputs.hidden=true;stageBoard.textContent='';
+ document.querySelector('#game-picker').hidden=false;inputs.replaceChildren();message.textContent=device?'和電子雞上的寵物一起玩；玩完由電子雞結算。':'兩種寵物共用遊戲；完成整場只結算一次。';next.hidden=true;dialog.showModal();};
 })();

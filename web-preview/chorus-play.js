@@ -1,6 +1,7 @@
 /* Garden chorus (web only): four flowers in the foreground are the keys. Each round the pet sings a short tune,
  * each note lighting its flower; the player sings it back by tapping the flowers (or keys 1-4). Three rounds of
- * 3, 4 and 5 notes, no time pressure. The session and its one-time reward go through DataManager (demo mode). */
+ * 3, 4 and 5 notes, no time pressure. Demo mode settles through DataManager; device mode plays with the real pet
+ * over BLE (device-session.js): the ESP32 opens the session and computes the reward from the tunes sung right. */
 (()=>{'use strict';
 const scene=document.querySelector('.scene'),canvas=document.querySelector('#bird'),status=document.querySelector('#status');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -14,7 +15,8 @@ const FLOWERS=[
  {x:214,freq:659,name:'Mi',ramp:['#3b5a99','#567bc0','#7a9ede','#a3c0ef','#cfe0fb','#f2f7ff']},
  {x:266,freq:784,name:'Sol',ramp:['#64458f','#8562b5','#a582d2','#c3a6e7','#e1d1f7','#f8f3ff']}];
 const BASE_Y=252,ROUND_NOTES=[3,4,5],INTRO_MS=1300,NOTE_ON=430,NOTE_GAP=230,LIGHT_MS=320,RESULT_MS=1500,FINALE_MS=2600;
-let play=null;
+const TOTAL_ROUNDS=3;
+let play=null,starting=false;
 function say(text){status.textContent=text;}
 // The pet stands a little further back than on Home, so the flower row in front never covers its feet.
 function homeFor(species,stage){return species===2?{x:190,y:160}:{x:172,y:stage==='adult'?180:176};}
@@ -57,20 +59,27 @@ function drawNote(ctx,x,y,colour,alpha){ctx.save();ctx.globalAlpha=alpha;for(let
  const px=Math.round(x+c*2),py=Math.round(y+r*2);ctx.fillStyle='#4a3348';ctx.fillRect(px,py+2,2,2);ctx.fillStyle=colour;ctx.fillRect(px,py,2,2);}ctx.restore();}
 
 // --- Game flow ----------------------------------------------------------------------------------------------
-function counts(){const g=petDataManager.gameState(performance.now());return g?.kind==='chorus'?g:null;}
+// Device mode counts rounds here; demo mode counts them in the data layer's session.
+function counts(){if(play?.device)return {played:play.played,correct:play.correct,totalRounds:TOTAL_ROUNDS};const g=petDataManager.gameState(performance.now());return g?.kind==='chorus'?g:null;}
 function showCount(){const g=counts();if(g)count.textContent='第 '+Math.min(g.played+1,g.totalRounds)+'／'+g.totalRounds+' 首 · 唱對 '+g.correct;}
 function tune(length){const notes=[];for(let i=0;i<length;i++)notes.push(crypto.getRandomValues(new Uint32Array(1))[0]%FLOWERS.length);return notes;}
-function start(){
- if(play||window.PetToyPlay?.active())return false;
- if(petDataManager.mode!=='mock'){say('花園合唱目前只能在展示模式玩。');return false;}
- const now=performance.now();
- try{petDataManager.startGame('chorus',now);}catch(e){say(e.message);return false;}
- const p=petDataManager.read().pet,species=window.PetArtStage?.species?.(p)||p.speciesId,stage=window.PetArtStage?.shown?.(p)||p.stage;
- play={species,stage,home:homeFor(species,stage),state:'intro',since:now,round:0,tune:[],index:0,lights:[],notes:[],mood:null,sung:-1};
+function begin(p,device){
+ const now=performance.now(),species=window.PetArtStage?.species?.(p)||p.speciesId,stage=window.PetArtStage?.shown?.(p)||p.stage;
+ play={species,stage,home:homeFor(species,stage),state:'intro',since:now,round:0,tune:[],index:0,lights:[],notes:[],mood:null,sung:-1,device,played:0,correct:0};
  hud.hidden=false;showCount();say('聽牠唱，再點花朵唱回去！（鍵盤 1～4，Esc 結束）');
- return true;
 }
-function end(text){play=null;hud.hidden=true;if(text)say(text);}
+function start(){
+ if(play||starting||window.PetToyPlay?.active())return false;
+ if(petDataManager.mode==='ble'){startDevice();return true;}
+ try{petDataManager.startGame('chorus',performance.now());}catch(e){say(e.message);return false;}
+ begin(petDataManager.read().pet,null);return true;
+}
+async function startDevice(){
+ starting=true;say('正在請電子雞準備合唱……');let device;
+ try{device=await window.PetDeviceSession.start('chorus',text=>{if(play?.device===device)end(text);});}catch(e){starting=false;say(e.message);return;}
+ starting=false;begin(device.pet,device);
+}
+function end(text){if(play?.device)window.PetDeviceSession.close(play.device);play=null;hud.hidden=true;if(text)say(text);}
 function setState(state,now){play.state=state;play.since=now;}
 function light(i,now,fromPet){
  const f=FLOWERS[i];play.lights.push({i,until:now+LIGHT_MS});window.PetWebSound?.note?.(f.freq,fromPet?300:200);
@@ -84,7 +93,14 @@ function tap(i,now){
  if(i!==play.tune[play.index]){play.ok=false;play.mood='shock';play.lights.push({i:play.tune[play.index],until:now+RESULT_MS,hint:true});setState('result',now);say('啊，不是這朵～應該是亮起來的那朵。');return;}
  if(++play.index>=play.tune.length){play.ok=true;play.mood='happy';setState('result',now);say('唱對了！好好聽～');}
 }
+function finishDevice(){
+ const device=play.device,score={correct:play.correct,total:TOTAL_ROUNDS};
+ setState('settling',performance.now());play.mood=null;say('正在請電子雞結算……');
+ window.PetDeviceSession.finish(device,score).then(r=>{if(play?.device!==device)return;setState('finale',performance.now());play.mood='happy';count.textContent='完成！唱對 '+score.correct+'／'+TOTAL_ROUNDS;
+  say('一起唱得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));},e=>{if(play?.device===device)end(e.message);});
+}
 function report(now){
+ if(play.device){play.played++;play.correct+=play.ok?1:0;play.mood=null;if(play.played>=TOTAL_ROUNDS){finishDevice();return;}play.round++;showCount();beginRound(now);return;}
  let g;try{g=petDataManager.answerGame(play.ok?1:0,now);}catch(e){end(e.message);return;}
  play.mood=null;
  if(g?.phase==='complete'){setState('finale',now);play.mood='happy';count.textContent='完成！唱對 '+g.correct+'／'+g.totalRounds;
@@ -94,6 +110,7 @@ function report(now){
 // Called every frame (also while the garden shows something else) so a cancelled session never leaves the page stuck.
 function check(now){
  if(!play||play.state==='finale')return !!play;
+ if(play.device){const why=window.PetDeviceSession.check(play.device);if(why){end(why);return false;}return true;}
  const g=petDataManager.gameState(now);
  if(petDataManager.mode!=='mock'||!g||g.kind!=='chorus'||g.phase==='cancelled'){end('合唱中斷，這次沒有結算。');return false;}
  return true;
@@ -145,7 +162,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'){e.preventDefault();stop();return;}
  const i=['1','2','3','4'].indexOf(e.key);if(i>=0&&play.state==='listen'){e.preventDefault();tap(i,performance.now());}
 });
-function stop(){if(!play)return;petDataManager.cancelGame();end('已結束合唱，未完成不結算。');}
+function stop(){if(!play)return;if(play.device)window.PetDeviceSession.close(play.device,true);else petDataManager.cancelGame();end('已結束合唱，未完成不結算。');}
 exit.onclick=stop;
-window.PetChorus={start,stop,draw,check,tap,FLOWERS,active:()=>!!play,state:()=>play&&{state:play.state,tune:[...play.tune],index:play.index,round:play.round}};
+window.PetChorus={start,stop,draw,check,tap,FLOWERS,active:()=>!!play||starting,state:()=>play&&{state:play.state,tune:[...play.tune],index:play.index,round:play.round}};
 })();

@@ -117,7 +117,7 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 設計理由、雙端畫面與分工見 [Web 陪玩 BLE 規則](../docs/features/web-game-ble-plan.md)；本節是介面規格。實作與驗證進度只看主台帳。
 
-**能力與狀態。** `device_info` 新增可選字串陣列 `features`，含 `"web_game"` 才支援本節命令。`status` 頂層新增可選字串 `activity`：`idle`（主畫面閒置，可開局）、`device_game`（電子雞上的猜拳／記憶音符中）、`web_game`（本連線的 Web 陪玩中）、`busy`（其他頁面或流程）。缺少時視為舊韌體，不開放裝置模式陪玩；未知值不可當成 `idle`。`activity` 改變時推送完整快照。
+**能力與狀態。** `device_info` 新增可選字串陣列 `features`，含 `"web_game"` 才支援本節命令；可選字串陣列 `games` 列出可開局的遊戲（目前 `["toy","chorus"]`），缺少時只有 `toy`（2026-10-25 第一版韌體）。`status` 頂層新增可選字串 `activity`：`idle`（主畫面閒置，可開局）、`device_game`（電子雞上的猜拳／記憶音符中）、`web_game`（本連線的 Web 陪玩中）、`busy`（其他頁面或流程）。缺少時視為舊韌體，不開放裝置模式陪玩；未知值不可當成 `idle`。`activity` 改變時推送完整快照。
 
 **命令**（皆先回 `command_result`）：
 
@@ -125,12 +125,13 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 {"v":1,"id":7,"cmd":"game_start","game":"toy","pet_id":"42"}
 {"v":1,"id":8,"cmd":"game_heartbeat","session":"3051"}
 {"v":1,"id":12,"cmd":"game_finish","session":"3051","score":{"throws":5,"catches":3}}
+{"v":1,"id":14,"cmd":"game_finish","session":"3052","score":{"correct":2,"total":3}}
 {"v":1,"id":13,"cmd":"game_cancel","session":"3051"}
 ```
 
-- `game_start`：`game` 目前只有 `toy`，未知值回 `invalid_value`；`pet_id` 與目前個體不同回 `pet_changed`；寵物不是健康清醒的幼年／成年回 `not_allowed`；`activity` 不是 `idle` 回 `busy`。成功另送 `{"v":1,"type":"game_session","id":7,"session":"3051","game":"toy","min_ms":15000,"heartbeat_ms":5000,"timeout_ms":15000}`，電子雞切到「網頁陪玩中」。`session` 為十進位字串、非 0，每次開機重新起算。
+- `game_start`：`game` 為 `toy`（丟玩具）或 `chorus`（花園合唱），其他值回 `invalid_value`；`pet_id` 與目前個體不同回 `pet_changed`；寵物不是健康清醒的幼年／成年回 `not_allowed`；`activity` 不是 `idle` 回 `busy`。成功另送 `{"v":1,"type":"game_session","id":7,"session":"3051","game":"toy","min_ms":15000,"heartbeat_ms":5000,"timeout_ms":15000}`（`min_ms`：`toy` 15000、`chorus` 12000），電子雞切到「網頁陪玩中」。`session` 為十進位字串、非 0，每次開機重新起算。
 - `game_heartbeat`：每 `heartbeat_ms` 一次；超過 `timeout_ms` 沒收到，韌體取消該局。局號不符回 `invalid_session`。
-- `game_finish`：`score` 依遊戲驗證（`toy`：`throws` 必須為 5、`catches` 為 0～5 整數，否則 `invalid_value`）；開局未滿 `min_ms` 回 `too_early`；兩者都不結束該局。成功時由韌體套用獎勵（`toy` 固定心情 +6、EXP +10，心情上限 100）、解除鎖定並另送 `{"v":1,"type":"game_result","id":12,"session":"3051","mood_gain":6,"exp_gain":10,"levels_gained":0}`，增量為實際值。以同一局號重送時原樣回覆，不重複加值。
+- `game_finish`：`score` 依遊戲驗證（`toy`：`throws` 必須為 5、`catches` 為 0～5 整數；`chorus`：`total` 必須為 3、`correct` 為 0～3 整數；不符或缺欄回 `invalid_value`，欄位型別錯誤回 `missing_field`）；開局未滿 `min_ms` 回 `too_early`；兩者都不結束該局。成功時由韌體套用獎勵（`toy` 固定心情 +6、EXP +10；`chorus` 依唱對首數 3／2／0～1 為心情 +10／+6／+3、EXP +15／+10／+5；心情上限 100）、解除鎖定並另送 `{"v":1,"type":"game_result","id":12,"session":"3051","mood_gain":6,"exp_gain":10,"levels_gained":0}`，增量為實際值。以同一局號重送時原樣回覆，不重複加值。
 - `game_cancel`：不發獎勵並解除鎖定；對已結束的局重送也回 `ok`。
 
 **韌體主動結束** 時送 `{"v":1,"type":"game_session_end","session":"3051","reason":"device_cancel"}`，`reason` 為 `device_cancel`（電子雞長按）、`heartbeat_timeout`、`pet_state`（生病、睡眠、成長、死亡、送別或換個體）。藍牙斷線時韌體立即取消該局（無法通知），重連後由 `activity` 得知。

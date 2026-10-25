@@ -16,18 +16,7 @@ function say(text){status.textContent=text;}
 // Device mode counts throws here; demo mode counts them in the data layer's session.
 function counts(){if(play?.device)return {throws:play.throws,catches:play.catches,total:TOTAL_THROWS};const g=petDataManager.gameState(performance.now());return g?.kind==='toy'?{throws:g.throws,catches:g.catches,total:g.totalThrows}:null;}
 function showCount(){const c=counts();if(c)count.textContent='第 '+Math.min(c.throws+1,c.total)+'／'+c.total+' 球 · 接住 '+c.catches;}
-// Why device-mode play cannot start now, or '' when it can.
-function deviceBlocker(){
- const v=petDataManager.view('ble'),p=petDataManager.read('ble').pet;
- if(!v.webGame)return v.connection==='ready'?'這台電子雞的韌體還不支援網頁陪玩。':'請先連接電子雞。';
- if(v.activity==='device_game')return '牠正在電子雞上陪你玩，等那邊玩完吧。';
- if(v.activity!=='idle')return '請先讓電子雞回到主畫面。';
- if(!p||!['baby','adult'].includes(p.stage)||p.healthState!=='healthy'||p.sleepMode!=='awake'||p.isDeparted)return '寵物現在不能陪玩。';
- return play||starting?'正在陪玩中。':'';
-}
-const DEVICE_ERRORS={busy:'電子雞正在忙，請先讓它回到主畫面。',not_allowed:'寵物現在不能陪玩。',pet_changed:'電子雞上的寵物換了，請等狀態更新後再試。',invalid_session:'電子雞已經結束這局了。'};
-const END_REASONS={device_cancel:'在電子雞上結束了陪玩，這局沒有結算。',heartbeat_timeout:'太久沒收到網頁的訊號，電子雞結束了這局，沒有結算。',pet_state:'寵物的狀態變了，這局沒有結算。'};
-function deviceError(e){return DEVICE_ERRORS[e?.code]||e?.message||'電子雞沒有回應。';}
+// Device sessions (start, heartbeat, finish, cancel, early-end checks) live in device-session.js, shared with the chorus.
 function begin(p,device){
  const now=performance.now(),species=window.PetArtStage?.species?.(p)||p.speciesId,stage=window.PetArtStage?.shown?.(p)||p.stage,home=homeFor(species,stage);
  play={species,stage,home,move:P.moves(species,stage),pet:{...home,facing:-1,lift:0},ball:{...P.HAND,z:0},state:'ready',since:now,last:now,caught:false,device,throws:0,catches:0};
@@ -39,19 +28,12 @@ function start(){
  try{petDataManager.startGame('toy',performance.now());}catch(e){say(e.message);return false;}
  begin(petDataManager.read().pet,null);return true;
 }
-function sendCancel(session){petDataManager.cancelDeviceGame(session);}
 async function startDevice(){
- const blocked=deviceBlocker();if(blocked){say(blocked);return;}
- const p=petDataManager.read('ble').pet;starting=true;say('正在請電子雞準備陪玩……');
- let s;try{s=await petDataManager.deviceGame('game_start',{game:'toy',pet_id:p.petId});}catch(e){starting=false;say(deviceError(e));return;}
- starting=false;
- const session=s.session,heartbeatMs=Number(s.heartbeat_ms)||5000;
- if(petDataManager.mode!=='ble'){sendCancel(session);return;}
- begin(p,{session,minMs:Number(s.min_ms)||0,startedAt:performance.now(),
-  timer:setInterval(()=>{if(play?.device?.session!==session)return;petDataManager.deviceGame('game_heartbeat',{session}).catch(e=>{if(e?.code&&play?.device?.session===session)end(deviceError(e)+' 這局沒有結算。');});},heartbeatMs)});
- // A heartbeat lost in transport is not fatal: the next one, or the device's own timeout, settles it.
+ starting=true;say('正在請電子雞準備陪玩……');let device;
+ try{device=await window.PetDeviceSession.start('toy',text=>{if(play?.device===device)end(text);});}catch(e){starting=false;say(e.message);return;}
+ starting=false;begin(device.pet,device);
 }
-function end(text){if(play?.device)clearInterval(play.device.timer);play=null;hud.hidden=true;if(text)say(text);document.dispatchEvent(new CustomEvent('pet-toy-end'));}
+function end(text){if(play?.device)window.PetDeviceSession.close(play.device);play=null;hud.hidden=true;if(text)say(text);document.dispatchEvent(new CustomEvent('pet-toy-end'));}
 function setState(state,now){play.state=state;play.since=now;}
 function launch(from,to,now){play.flight=P.flight(from,to);play.thrownAt=now;play.caught=false;setState('chase',now);say('去吧！');}
 // Where the ball sits when the pet holds it, from the pet's feet (pet.x,pet.y), facing and size.
@@ -63,24 +45,12 @@ function mouth(pose){
  return pet.lift>.05?{x:pet.x+f*42*s,y:pet.y-(35+22*pet.lift)*s-10*s}:{x:pet.x,y:pet.y-56*s};
 }
 function face(target){const dx=target.x-play.pet.x;if(Math.abs(dx)>.5)play.pet.facing=dx>0?1:-1;}
-// Device mode: the ESP32 settles the session; too early means wait out its minimum time and send again.
+// Device mode: the ESP32 settles the session (device-session.js waits out its minimum time and retries lost writes).
 function finishDevice(){
- const {session}=play.device,score={throws:play.throws,catches:play.catches};
+ const device=play.device,score={throws:play.throws,catches:play.catches};
  setState('settling',performance.now());say('正在請電子雞結算……');
- let transportRetries=3;
- const attempt=async()=>{
-  if(play?.device?.session!==session)return;
-  try{const r=await petDataManager.deviceGame('game_finish',{session,score});if(play?.device?.session!==session)return;
-   clearInterval(play.device.timer);setState('finale',performance.now());count.textContent='完成！接住 '+score.catches+'／'+TOTAL_THROWS;
-   say('玩得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));
-  }catch(e){if(play?.device?.session!==session)return;
-   if(e.code==='too_early'){setTimeout(attempt,Math.max(300,play.device.minMs-(performance.now()-play.device.startedAt)+300));return;}
-   // No code means the write or the reply was lost, not a refusal; resending is safe because the device replays
-   // the same result for a session it already settled.
-   if(!e.code&&transportRetries-->0){setTimeout(attempt,600);return;}
-   end(deviceError(e)+' 這局沒有結算。');}
- };
- attempt();
+ window.PetDeviceSession.finish(device,score).then(r=>{if(play?.device!==device)return;setState('finale',performance.now());count.textContent='完成！接住 '+score.catches+'／'+TOTAL_THROWS;
+  say('玩得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));},e=>{if(play?.device===device)end(e.message);});
 }
 function report(now){
  if(play.device){play.throws++;play.catches+=play.caught?1:0;if(play.throws>=TOTAL_THROWS){finishDevice();return;}play.ball={...P.HAND,z:0};setState('ready',now);showCount();say('再丟一次！');return;}
@@ -94,10 +64,7 @@ function check(now){
  syncDeviceActivity();
  if(!play||play.state==='finale')return !!play;
  if(play.device){
-  const v=petDataManager.view('ble');
-  if(petDataManager.mode!=='ble'){sendCancel(play.device.session);end('已離開裝置模式，這局沒有結算。');return false;}
-  if(v.connection!=='ready'){end('藍牙斷線，這局沒有結算。');return false;}
-  if(v.gameEnd?.session===play.device.session){end(END_REASONS[v.gameEnd.reason]||'電子雞結束了這局，沒有結算。');return false;}
+  const why=window.PetDeviceSession.check(play.device);if(why){end(why);return false;}
   return true;
  }
  const g=petDataManager.gameState(now);
@@ -215,7 +182,7 @@ document.addEventListener('keydown',e=>{
   e.preventDefault();throwTo({x:120+Math.random()*200,y:150+Math.random()*55});
  }
 });
-function stop(){if(!play)return;if(play.device)sendCancel(play.device.session);else petDataManager.cancelGame();end('已結束陪玩，未完成不結算。');}
+function stop(){if(!play)return;if(play.device)window.PetDeviceSession.close(play.device,true);else petDataManager.cancelGame();end('已結束陪玩，未完成不結算。');}
 // While someone plays on the ESP32 itself, the garden says so once (and again when it is over).
 function syncDeviceActivity(){
  const activity=petDataManager.mode==='ble'?petDataManager.view('ble').activity:null;
@@ -227,6 +194,5 @@ function syncDeviceActivity(){
 exit.onclick=stop;
 // throwTo is for keyboard use and demo checks: the same launch a fling makes, from the hand.
 function throwTo(target,now=performance.now()){if(play?.state!=='ready')return false;launch(P.HAND,P.clampGround(target),now);return true;}
-window.PetToyPlay={start,stop,draw,check,throwTo,deviceBlocker,active:()=>!!play||starting,
- deviceSupported:()=>petDataManager.view('ble').webGame};
+window.PetToyPlay={start,stop,draw,check,throwTo,active:()=>!!play||starting};
 })();

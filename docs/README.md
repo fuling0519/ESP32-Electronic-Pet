@@ -59,6 +59,7 @@
 - 功能與硬體：[聲音設定](testing/volume-test.md)、[觸摸](testing/touch-test.md)、[深度睡眠](testing/deep-sleep-test.md)。
 - 種類與生命週期：[小飛龍](testing/wyvern-test.md)、[送別與紀念冊](testing/farewell-test.md)。
 - 小遊戲：[猜拳驗收](testing/rps-game-test.md)；記憶音符與 EXP 的驗收方法各保留在功能文件內。
+- 韌體建置：平常只編正式版（`pio run -e esp32dev`）並跑 `tools/test_rps.ps1`。改到測試環境開關會影響的檔案（`platformio.ini`、`src/`／`include/` 的標頭檔，或使用 `PET_*_TEST` 等開關的原始檔）時，提交前用 `tools/build_all.ps1` 同時編 4 個環境、一次看完全部 18 個結果；加 `-Auto` 會依 git 變更自動決定要全編還是只編正式版。
 
 ## 操作、歷史與預覽
 

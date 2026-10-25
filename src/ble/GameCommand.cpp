@@ -48,10 +48,22 @@ const char* parseGameCommand(const char* cmd, JsonVariantConst message, uint32_t
         if (strcmp(cmd, "game_heartbeat") == 0) request.type = GameRequest::Type::Heartbeat;
         else if (strcmp(cmd, "game_cancel") == 0) request.type = GameRequest::Type::Cancel;
         else if (strcmp(cmd, "game_finish") == 0) {
-            JsonVariantConst throws = message["score"]["throws"], catches = message["score"]["catches"];
-            if (!throws.is<int32_t>() || !catches.is<int32_t>()) return "missing_field";
-            request.score.throws = throws.as<int32_t>();
-            request.score.catches = catches.as<int32_t>();
+            // Each game sends its own pair (toy: throws/catches, chorus: correct/total); the session checks
+            // that the pair for its game is present and in range.
+            JsonVariantConst score = message["score"];
+            if (!score.is<JsonObjectConst>()) return "missing_field";
+            const char* names[] = {"throws", "catches", "correct", "total"};
+            int32_t* fields[] = {&request.score.throws, &request.score.catches,
+                                 &request.score.correct, &request.score.total};
+            bool any = false;
+            for (uint8_t i = 0; i < 4; ++i) {
+                JsonVariantConst value = score[names[i]];
+                if (value.isNull()) continue;
+                if (!value.is<int32_t>()) return "missing_field";
+                *fields[i] = value.as<int32_t>();
+                any = true;
+            }
+            if (!any) return "missing_field";
             request.type = GameRequest::Type::Finish;
         } else return "unknown_command";
     }

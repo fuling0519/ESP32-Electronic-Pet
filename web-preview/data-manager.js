@@ -10,7 +10,7 @@ function presentation(p){if(!p)return null;return {...p,health:p.healthState,con
 class DataManager {
  constructor(adapters){this.adapters=adapters;this.mode='mock';}
  select(mode){if(!['mock','ble'].includes(mode))throw new Error('未知資料來源');if(this.mode!==mode)this.cancelGame();this.mode=mode;}
- read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null}});}
+ read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null,games:s.games??null}});}
  view(mode=this.mode){const s=this.read(mode);return {...s.metadata,pet:presentation(s.pet)};}
  command(kind){if(this.mode!=='mock')throw new Error('BLE 僅提供唯讀查詢');return this.adapters.mock.command(kind);}
  preview(stage,condition){if(this.mode!=='mock')throw new Error('裝置狀態由 ESP32 決定');this.adapters.mock.preview(stage,condition);}

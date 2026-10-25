@@ -46,7 +46,7 @@
 {"v":1,"id":7,"cmd":"game_start","game":"toy","pet_id":"42"}
 ```
 
-- `game`：Web 遊戲代號。首版只有 `toy`（丟玩具）；之後的 `chorus`（花園合唱）等需先在第 6 節表格登記，韌體不認得回 `invalid_value`。
+- `game`：Web 遊戲代號：`toy`（丟玩具）、`chorus`（花園合唱，2026-10-25 加入）。新遊戲需先在第 6 節表格登記，韌體不認得回 `invalid_value`；`device_info.games` 列出目前韌體可開局的遊戲。
 - `pet_id`：Web 看到的寵物 ID。和目前個體不同回 `pet_changed`，避免舊畫面替新寵物開局。
 - 寵物不符合資格（第 5 節）回 `not_allowed`；`activity` 不是 `idle` 回 `busy`。
 - 成功時另送事件：
@@ -117,7 +117,7 @@ Web 每 `heartbeat_ms`（5 秒）送一次。韌體超過 `timeout_ms`（15 秒�
 | `game` | `score` 欄位 | 驗證 | 獎勵 | `min_ms` |
 |---|---|---|---|---|
 | `toy` 丟玩具 | `throws` 整數、`catches` 整數 | `throws == 5`、`0 ≤ catches ≤ 5` | 固定心情 +6、EXP +10 | 15000 |
-| `chorus` 花園合唱（Web 展示模式已有，韌體尚未登記） | `correct`、`total` | 待定案；Web 版為 `total == 3`、`0 ≤ correct ≤ 3` | Web 版：3 首 +10／15、2 首 +6／10、0～1 首 +3／5 | 待定 |
+| `chorus` 花園合唱（2026-10-25 登記） | `correct`、`total` 整數 | `total == 3`、`0 ≤ correct ≤ 3` | 唱對 3 首 +10／+15、2 首 +6／+10、0～1 首 +3／+5 | 12000 |
 
 新增遊戲 = 在此表登記 + 韌體加一列規則 + 更新 `features` 或韌體版本；Web 不能自訂獎勵。
 

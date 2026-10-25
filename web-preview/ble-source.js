@@ -18,7 +18,8 @@ class BleSource {
   constructor(){this.cache=PetLocalStore.read('device-snapshot',validCache);if(this.cache)this.cache.pet=mapStatus(this.cache.wire);this.connection='disconnected';this.message='尚未連接裝置';this.listeners=new Set();this.session=0;this.nextId=1;this.partial=null;this.pending=new Map();this.gameEnd=null;}
   // activity is only meaningful from a live connection; an old cached snapshot never says the device is idle.
   read(){return {source:'ble',connection:this.connection,pet:this.cache?.pet??null,receivedAt:this.cache?.receivedAt??null,message:this.message,stale:this.connection!=='ready',
-   activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd};}
+   activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd,
+   games:this.connection==='ready'&&Array.isArray(this.info?.games)?this.info.games.filter(g=>typeof g==='string'):null};}
   subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
   emit(){for(const fn of this.listeners)fn(this.read());}
   command(){throw new Error('此版本僅提供 BLE 唯讀，照顧命令未開放。');}
