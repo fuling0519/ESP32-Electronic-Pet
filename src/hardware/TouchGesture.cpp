@@ -17,8 +17,22 @@ TouchEvent TouchGesture::sample(uint16_t raw, uint32_t now, bool allowed) {
     sampledAt_ = now;
     if (!allowed) cancel();
     if (!raw) { cancel(); return TouchEvent::Cancelled; }
-    low_ = raw < T::TouchBelow;
-    const bool high = raw > T::ReleaseAbove;
+    if (!baseline_) baseline_ = static_cast<uint32_t>(raw) << T::BaselineShift;
+    const int32_t base = baseline();
+    low_ = raw < base - T::TouchDrop;
+    const bool high = raw > base - T::ReleaseDrop;
+    // A "touch" that never ends is a baseline that stepped down: start over from here.
+    if (!low_) lowRun_ = false;
+    else if (!lowRun_) { lowRun_ = true; lowSince_ = now; }
+    else if (static_cast<uint32_t>(now - lowSince_) >= T::RebaselineMs) {
+        baseline_ = static_cast<uint32_t>(raw) << T::BaselineShift;
+        lowRun_ = false;
+        cancel();
+        return TouchEvent::Cancelled;
+    }
+    // Learn only from released readings, never during a gesture.
+    if ((state_ == State::Blocked || state_ == State::Idle) && !low_)
+        baseline_ = baseline_ - (baseline_ >> T::BaselineShift) + raw;
     if (state_ == State::Blocked) {
         count_ = high ? count_ + 1 : 0;
         if (count_ >= T::ConfirmSamples) { state_ = State::Idle; count_ = 0; }
@@ -62,6 +76,10 @@ TouchEvent TouchGesture::sample(uint16_t raw, uint32_t now, bool allowed) {
         case State::Blocked: break;
     }
     return tick(now, allowed);
+}
+
+uint16_t TouchGesture::baseline() const {
+    return static_cast<uint16_t>(baseline_ >> T::BaselineShift);
 }
 
 TouchEvent TouchGesture::tick(uint32_t now, bool allowed) {

@@ -22,7 +22,7 @@ TouchEvent TouchInput::update(uint32_t now, bool allowed) {
         const TouchEvent event = gesture_.sample(raw, now, allowed);
         if (HardwareConfig::Touch::Debug && static_cast<uint32_t>(now - debugAt_) >= 1000) {
             debugAt_ = now;
-            Serial.printf("Touch raw=%u allowed=%u\n", raw, allowed);
+            Serial.printf("Touch raw=%u base=%u allowed=%u\n", raw, gesture_.baseline(), allowed);
         }
         return event;
     }

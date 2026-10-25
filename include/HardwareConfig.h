@@ -47,10 +47,18 @@ namespace Touch {
 // Sleep cycles use RTC_SLOW_CLK; keep the original inter-measurement setting.
 constexpr uint16_t MeasureCycles = 40000;
 constexpr uint16_t SleepCycles = 0x1000;
-// 2026-10-22 soldered MODE 1: touched 592-642, released 718-745.
-// Thresholds still require gesture/long-run hardware acceptance.
-constexpr uint16_t TouchBelow = 670;
-constexpr uint16_t ReleaseAbove = 690;
+// The released reading drifts between days (MODE 1: 718-745 on 2026-10-22,
+// 640-648 on 2026-10-25), so thresholds follow a learned released baseline
+// instead of fixed values. Touched readings sat 30-170 below it both days.
+// Touch: raw < baseline - TouchDrop. Release: raw > baseline - ReleaseDrop.
+constexpr uint16_t TouchDrop = 20;
+constexpr uint16_t ReleaseDrop = 12;
+// While idle and not touched the baseline moves 1/2^BaselineShift of the way
+// to each reading (1/16 per 30 ms sample: about 1 s to follow a step).
+constexpr uint8_t BaselineShift = 4;
+// A reading that stays "touched" this long is taken as a baseline step down:
+// the gesture is cancelled and the baseline restarts from the current reading.
+constexpr uint32_t RebaselineMs = 30000;
 constexpr uint8_t ConfirmSamples = 3;
 constexpr uint32_t SampleIntervalMs = 30;
 constexpr uint32_t MaximumSampleGapMs = 150;
