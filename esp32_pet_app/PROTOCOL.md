@@ -2,7 +2,7 @@
 
 更新：2026-10-01；對應韌體 1.1.0（NimBLE-Arduino 2.5.0）。協定 v1 以新增可忽略欄位維持向後相容。文件角色：共用介面規格；驗證與開發進度只看 [主台帳](../docs/project-plan.md#progress)。
 
-本文件是韌體與 Flutter App 共用規格。ESP32 是 GATT Peripheral／Server；App 是 Central／Client。v1 先提供裝置資訊與唯讀狀態，不提供照顧、睡眠控制或重置。
+本文件是韌體與 Flutter App 共用規格。ESP32 是 GATT Peripheral／Server；App 是 Central／Client。v1 先提供裝置資訊與唯讀狀態；Web 陪玩與「養成同步」節的寫入命令只在韌體以 `features` 宣告後才可使用，不提供重置。
 
 ## GATT
 
@@ -83,7 +83,7 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 
 `malformed_message`（封包／UTF-8／JSON 無效）、`missing_field`（欄位缺少或型別錯誤）、`unsupported_version`、`unknown_command`、`invalid_value`、`busy`、`not_supported`、`internal_error`。不支援版本的回覆可附 `supported_versions`。
 
-v1 基本命令為 `get_device_info`、`get_status`；宣告 `features` 含 `web_game` 的韌體另接受下方「Web 陪玩」節的四個遊戲命令。A／B／C、照顧、睡眠與 reset 指令均未啟用，收到時回錯誤；新增命令前需同步更新本規格與兩端實作。
+v1 基本命令為 `get_device_info`、`get_status`；宣告 `features` 含 `web_game` 的韌體另接受下方「Web 陪玩」節的四個遊戲命令；宣告 `care`、`lifecycle`、`memorials` 的韌體另接受「養成同步」節的對應命令。未宣告的命令、A／B／C 與 reset 指令均未啟用，收到時回錯誤；新增命令前需同步更新本規格與兩端實作。
 
 ## 固定裝置 ID 與韌體組交接
 
@@ -99,9 +99,9 @@ v1 基本命令為 `get_device_info`、`get_status`；宣告 `features` 含 `web
 
 一般睡眠 `normal` 可持續 BLE；Deep Sleep 會終止 BLE 連線，醒來重新初始化並廣播。前端顯示斷線、舊資料與最後收到時間，由使用者重新連線並查最新快照；不要求背景自動重連，也不能將所有斷線推斷為睡眠。
 
-v1 不新增 `sleep:"deep"`，也不新增遠端睡眠命令。韌體不得在入睡前發布現有前端不接受的列舉；若將來需要可辨識睡眠預告，先另行擴充共用規格。恢復連線後回報實際可用狀態。
+v1 不新增 `sleep:"deep"`，也不新增遠端 Deep Sleep 命令（一般睡眠的入睡／起床見「養成同步」節）。韌體不得在入睡前發布現有前端不接受的列舉；若將來需要可辨識睡眠預告，先另行擴充共用規格。恢復連線後回報實際可用狀態。
 
-`saveGeneration`／個體 UUID、事件佇列、配對驗證、revision 和遠端命令不屬於本版 v1 介面；是否已實作與後續交付追蹤統一看主台帳。
+`saveGeneration`／個體 UUID、事件佇列、配對驗證與 revision 不屬於本版 v1 介面；遠端命令只限「Web 陪玩」與「養成同步」兩節所列；是否已實作與後續交付追蹤統一看主台帳。
 
 規格中的拒絕規則是相容性要求，不等於已完成所有錯誤輸入測試。兩端分片重複／逾時／重新起始與版本錯誤處理仍需依 BLE-S1／BLE-S2 補測，不把文件敘述當作測試結果。
 
@@ -111,7 +111,7 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 舊 App 忽略新欄位；新 App 收到整組缺少時允許舊韌體快照，等級／經驗顯示 --。只缺部分、欄位為 null、型別或範圍錯誤、EXP 達到或超過正門檻、門檻為 0 卻有 EXP 時，拒絕整份快照。新韌體每次完整狀態都提供三欄，遊戲結算後沿用狀態通知；真正 Deep Sleep 仍斷線，醒後重新讀取。
 
-送別不提供遠端操作命令。客戶端需更新才能辨識 `is_departed`；舊客戶端忽略新增欄位時，可能把最後健康快照顯示為仍在養。紀念冊仍只在裝置端瀏覽。
+客戶端需更新才能辨識 `is_departed`；舊客戶端忽略新增欄位時，可能把最後健康快照顯示為仍在養。遠端送別與紀念冊讀取／刪除見「養成同步」節，未宣告對應 `features` 的韌體仍只在裝置端操作。
 
 ## Web 陪玩（2026-10-25 定案）
 
@@ -139,3 +139,87 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 **錯誤碼新增：** `not_allowed`、`pet_changed`、`invalid_session`、`too_early`。
 
 **限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
+
+## 養成同步（2026-10-26 定案，尚未實作）
+
+設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體尚未宣告下列任何旗標，實作與驗證進度只看主台帳。
+
+**能力。** `device_info.features` 新增 `pet_events`、`care`、`lifecycle`、`memorials`，各自開放下方對應的事件或命令；缺少即不支援。`device_info` 另加可選物件 `rules`：`sick_after_seconds`、`death_after_sick_seconds`、`memorial_limit`（皆為正整數），Web 以此顯示倒數與滿額，不自行寫死門檻。
+
+**狀態快照（有出現才代表支援，缺少時維持舊行為）。** `pet` 新增：
+
+| 欄位 | 型別／值 | 規則 |
+|---|---|---|
+| `pet.sad_reasons` | 字串陣列，元素 `mood`、`satiety`、`cleanliness`、`sick`，不重複 | 韌體含緩衝的傷心判斷；空陣列為不傷心，蛋與終止個體固定為空。有此欄位時客戶端不得自行推算 |
+| `pet.danger_seconds` | 整數 0～4294967295 | 飽食或清潔持續為 0 的累計秒數 |
+| `pet.sick_seconds` | 整數 0～4294967295 | 生病後累計有效秒數；健康時為 0 |
+| `pet.death_cause` | `untreated_sickness` | 只在 `is_dead:true` 時出現；未知值顯示為未知原因 |
+
+頂層新增 `memorial_count`（整數 0～255，含溢位槽）與 `memorial_hash`（8 位小寫 hex，紀念冊有效紀錄穩定編碼的 CRC32，內容不變就不變）。兩者須同時出現或同時缺少。
+
+`activity` 新增：`menu`（停在韌體可自動退回的選單或狀態頁）、`sleeping`（一般睡眠畫面閒置）、`ended`（死亡或遠行後的結束畫面，或由其進入的紀念冊瀏覽頁，且無動畫與保存重試）。`game_start` 仍只接受 `idle`。可退回頁面的清單由韌體決定，客戶端只看 `activity`。
+
+**事件 `pet_event`**（`pet_events`）：
+
+```json
+{"v":1,"type":"pet_event","pet_id":"42","event":"fed","source":"device"}
+```
+
+`event` 為 `fed`、`cleaned`、`treated`、`slept`、`woke`、`hatched`、`grew`、`level_up`（附 `level`）、`got_sick`、`died`、`departed`、`adopted`（`pet_id` 為新個體）、`memorial_added`、`memorial_deleted`（附 `memorial_pet_id`）。玩家操作類事件附 `source`：`device` 或 `web`。只在連線中盡力送出，不排隊、不補發；客戶端只用來選擇動畫，不得據此改變狀態。傳送佇列滿時優先捨棄事件。未知 `event` 忽略。
+
+**寫入命令共通規則。** `care`、`depart`、`adopt`、`delete_memorial` 皆含必填 `op`：16 位小寫 hex，代表玩家的一次操作，重送沿用同值。韌體在記憶體保留最近 8 筆；同一 `op` 再來時不重新執行，已完成就重送相同的 `action_result`（`id` 換成本次命令 ID），仍在執行就再回 `command_result` ok；同一 `op` 搭配不同命令、動作或目標回 `op_conflict`。`op` 不保存，客戶端只在同一頁面、未收到 `action_result` 且距首次送出不滿 30 秒時重送。
+
+回覆分兩段：`command_result` 立即回覆，`ok:true` 代表已接受並保證之後送出 `action_result`；拒絕時帶錯誤碼。執行完成後送：
+
+```json
+{"v":1,"type":"action_result","id":21,"op":"9f2c41d07ab3e815","action":"feed","outcome":"done","changes":{"satiety":20,"exp":3,"levels_gained":0}}
+```
+
+`outcome` 為 `done`（已執行並保存，`changes` 為實際增量）或 `failed`（附 `code`：`not_allowed`、`pet_changed`、`save_failed`）。客戶端等待上限 10 秒，逾時視為結果不明，重讀狀態。資格先檢查，通過後韌體才從 `menu` 頁退回主畫面（從結束畫面進入的退回結束畫面）並執行，電子雞照搖桿操作播放動畫與音效。
+
+**`care`**（`care`）：
+
+```json
+{"v":1,"id":21,"cmd":"care","action":"feed","pet_id":"42","op":"9f2c41d07ab3e815"}
+```
+
+| `action` | `activity` | 寵物條件 | `changes` |
+|---|---|---|---|
+| `feed` | `idle`、`menu` | 幼年／成年、清醒、未終止 | `satiety`、`exp`、`levels_gained` |
+| `clean` | `idle`、`menu` | 同上 | `cleanliness`、`exp`、`levels_gained` |
+| `treat` | `idle`、`menu` | 同上且生病 | `exp`、`levels_gained`、`grew` |
+| `sleep` | `idle`、`menu` | 同上 | 空物件 |
+| `wake` | `sleeping` | 一般睡眠中、未終止 | `grew` |
+
+數值已滿仍為 `done`，增量為 0。其他 `action` 回 `invalid_value`；`pet_id` 不符回 `pet_changed`；寵物條件不符回 `not_allowed`；`activity` 不符回 `busy`。治療在倒藥動畫結束後才結算，`action_result` 約晚 1.2 秒。
+
+**`depart`／`adopt`**（`lifecycle`）：
+
+```json
+{"v":1,"id":40,"cmd":"depart","pet_id":"42","op":"…"}
+{"v":1,"id":41,"cmd":"adopt","pet_id":"42","op":"…"}
+```
+
+- `depart`：`activity` 為 `idle` 或 `menu`，幼年／成年、清醒、未終止（生病可送別）；`memorial_count` 達 `rules.memorial_limit` 回 `memorial_full`。韌體不再要求裝置端確認，客戶端必須先自行確認。`done` 代表遠行旗標已保存；`changes.memorial_saved` 為 false 時，韌體依既有規則重試寫入紀念紀錄，成功後以 `memorial_hash` 反映。
+- `adopt`：`pet_id` 為已結束的目前個體，`activity` 為 `ended`，其紀念紀錄已保存且 `memorial_count` 不超過 `rules.memorial_limit`（否則 `memorial_full`）。名字與種類由韌體亂數決定；`changes` 為 `new_pet_id`（十進位字串）、`name`、`species_id`。
+
+**紀念冊**（`memorials`）：
+
+```json
+{"v":1,"id":30,"cmd":"get_memorials","offset":0}
+{"v":1,"id":31,"cmd":"delete_memorial","memorial_pet_id":"3","op":"…"}
+```
+
+`get_memorials` 唯讀、不需 `op`，`offset` 為 0 起的整數；成功時另送一頁，每頁最多 5 筆，依保存順序：
+
+```json
+{"v":1,"type":"memorials","id":30,"hash":"5c1e09ab","total":7,"offset":0,"items":[{"pet_id":"3","name":"Tamama","species_id":1,"age_seconds":"3600","kind":"resting","stage":"adult","protected":false}]}
+```
+
+`kind` 為 `resting` 或 `departed`；`stage` 為 `egg`、`baby`、`adult` 或 `unknown`；`protected` 為目前已告別、尚未領養的那一筆。分頁途中 `hash` 改變時，客戶端從 `offset` 0 重讀。
+
+`delete_memorial` 以紀錄的 `pet_id` 指定；`activity` 須為 `idle`、`menu`、`sleeping` 或 `ended`。找不到回 `not_found`（客戶端視為已刪除），`protected` 回 `not_allowed`。韌體不要求裝置端確認，客戶端必須先自行確認。
+
+**錯誤碼新增：** `op_conflict`、`memorial_full`、`not_found`、`save_failed`（僅出現在 `action_result.code`）。
+
+**限制：** 沒有配對驗證，且送別與刪除不需裝置端確認，附近能連線的 Central 都能執行；只靠單一連線與 `busy` 規則降低風險。`op` 快取只在記憶體，回覆前重開機又重送時可能重複執行一次。單片 16 bytes 下，擴充後的狀態約 0.7 秒、紀念冊每頁約 1 秒送完。

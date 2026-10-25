@@ -22,6 +22,7 @@
 - [PROTOCOL.md](../esp32_pet_app/PROTOCOL.md)：UUID、命令、欄位、分片及相容性要求。兩組修改介面時共同更新；規格要求不代表驗收通過。
 - [Web 計畫](features/web-phase-plan.md)：W0～W8 工作範圍、依賴及驗收條件。進度在主台帳，改需求／分工才改本檔。
 - [Web 陪玩 BLE 規則](features/web-game-ble-plan.md)：Web 小遊戲經 BLE 由韌體結算、雙端互鎖的設計理由與分工；介面以 PROTOCOL.md「Web 陪玩」節為準。
+- [裝置與 Web 養成同步](features/device-sync-ble-plan.md)：照顧、睡眠、送別、領養與紀念冊雙向同步的設計理由、使用者決定 D1～D4、Web 對帳與分階段分工；介面以 PROTOCOL.md「養成同步」節為準。
 - [架構](reference/architecture.md)：原始碼責任與資料流，模組邊界改變時更新。
 - [觸摸第一階段方案](features/touch-interaction-phase1.md)：保存來源分析與已確認美術；觸摸功能已實作並有部分實機觸發回報，2026-10-22焊接完成後已更新MODE 1校正，完整互動驗收待補，最新結果見主台帳及[觸摸驗收](testing/touch-test.md)。
 - [OLED 排版](reference/ui-layout-guide.md)：OLED 排版規則與已接受的座標基準，版面規格改變時更新；驗收結果回主台帳。
