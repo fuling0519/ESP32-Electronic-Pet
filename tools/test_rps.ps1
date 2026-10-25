@@ -89,4 +89,17 @@ if ($LASTEXITCODE) { throw 'Wyvern storage tests failed.' }
 if ($LASTEXITCODE) { throw 'Storage retry test build failed.' }
 & "$outputPath/storage-retry.exe"
 if ($LASTEXITCODE) { throw 'Storage retry tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/web_game_native.cpp `
+    src/games/WebGameSession.cpp src/ble/GameCommand.cpp -o "$outputPath/web-game.exe"
+if ($LASTEXITCODE) { throw 'Web game session test build failed.' }
+& "$outputPath/web-game.exe"
+if ($LASTEXITCODE) { throw 'Web game session tests failed.' }
+$webPlaySources = @('test/web_play_ui_native.cpp','src/ui/UiController.cpp','src/ui/PetIcons.cpp',
+    'src/games/RpsGame.cpp','src/games/MemoryNotes.cpp','src/pet/PetData.cpp',
+    'src/pet/PetSnapshot.cpp','src/pet/PetClock.cpp','src/storage/Memorials.cpp')
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" @webPlaySources @objects -o "$outputPath/web-play-ui.exe"
+if ($LASTEXITCODE) { throw 'Web play UI test build failed.' }
+& "$outputPath/web-play-ui.exe"
+if ($LASTEXITCODE) { throw 'Web play UI tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"

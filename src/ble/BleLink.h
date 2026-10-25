@@ -4,6 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include "pet/PetData.h"
+#include "ble/GameCommand.h"
 class NimBLECharacteristic;
 class NimBLEServer;
 namespace Ble {
@@ -12,6 +13,17 @@ public:
     bool init();
     void stop();
     void update(const Pet::PetData& pet, uint32_t nowMs);
+    bool isConnected() const { return connected_; }
+
+    // Web play: one parsed game command waits here until the application takes it
+    // and answers with reply() plus, on success, the matching event.
+    bool takeGameRequest(GameRequest& request);
+    void reply(uint32_t commandId, const char* code);
+    void sendGameSession(uint32_t commandId, uint32_t session, const char* game, uint32_t minMs);
+    void sendGameResult(uint32_t commandId, uint32_t session, const Games::WebGameResult& result);
+    void sendSessionEnd(uint32_t session, const char* reason);
+    // idle, device_game, web_game or busy; included in every status snapshot.
+    void setActivity(const char* activity);
 private:
     static constexpr uint16_t kMaxJson = 1024;
     static constexpr uint16_t kMaxFrame = 20;
@@ -56,5 +68,7 @@ private:
     uint32_t lastFrameAt_ = 0, lastStatusAt_ = 0;
     uint32_t lastHeapAt_ = 0;
     char lastStatus_[kMaxJson + 1]{};
+    GameRequest gameRequest_{};
+    const char* activity_ = "busy";
 };
 }  // namespace Ble

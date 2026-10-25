@@ -250,6 +250,32 @@ bool UiController::touchContextAllowed() const {
         pendingAction_ == UiAction::None;
 }
 
+bool UiController::webGameStartAllowed() const {
+    return screen_ == ScreenId::Home && homeFocus_ == HomeFocus::None &&
+        !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
+        !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
+        !treatmentNotice_ && !deepSleepPending_ && pendingAction_ == UiAction::None;
+}
+
+bool UiController::deviceGameActive() const {
+    return screen_ == ScreenId::GameSelect || screen_ == ScreenId::PlayCare;
+}
+
+void UiController::beginWebPlay(uint32_t now) {
+    cancelTouchReaction();
+    setScreen(ScreenId::WebPlay);
+    webPlayStartedAt_ = now; webPlayFrame_ = 0; webPlayHint_ = false;
+    dirty_ = true;
+}
+
+void UiController::endWebPlay(uint8_t previousLevel, uint32_t now) {
+    if (screen_ != ScreenId::WebPlay) return;
+    setScreen(ScreenId::Home);
+    if (pendingAction_ == UiAction::EndWebGame) pendingAction_ = UiAction::None;
+    dirty_ = true;
+    onCareRewardApplied(previousLevel, now);
+}
+
 void UiController::cancelTouchReaction() {
     if (touchReaction_ != TouchReaction::None || pokeRecovered_) dirty_ = true;
     touchReaction_ = TouchReaction::None;
@@ -875,6 +901,26 @@ bool UiController::update(Hardware::InputEvent event, uint32_t now, bool directi
             }
             break;
 
+        case ScreenId::WebPlay: {
+            // Only a long press acts: it ends the session; everything else waits.
+            if (event == Hardware::InputEvent::LongPress) {
+                pendingAction_ = UiAction::EndWebGame;
+                sound_.playCancel();
+                break;
+            }
+            namespace T = HardwareConfig::Touch;
+            const uint32_t elapsed = now - webPlayStartedAt_;
+            const uint8_t fps = pet_.speciesId() == Pet::SpeciesId::Wyvern ?
+                T::WyvernFramesPerSecond : T::BirdFramesPerSecond;
+            const uint8_t count = PetIcons::touchHappyFrameCount(pet_.lifeStage(), pet_.speciesId());
+            const uint8_t frame = count ? static_cast<uint8_t>((static_cast<uint64_t>(elapsed) * fps / 1000) % count) : 0;
+            const bool hint = (elapsed / 2000) % 2 == 1;
+            if (frame != webPlayFrame_ || hint != webPlayHint_) {
+                webPlayFrame_ = frame; webPlayHint_ = hint; dirty_ = true;
+            }
+            break;
+        }
+
         case ScreenId::Boot:
         case ScreenId::HatchTransition:
         case ScreenId::GrowTransition:
@@ -916,7 +962,7 @@ void UiController::render() {
     if ((screen_ == ScreenId::Home || screen_ == ScreenId::Sleeping ||
          screen_ == ScreenId::DetailedStatus ||
          screen_ == ScreenId::FeedCare || screen_ == ScreenId::CleanCare ||
-         screen_ == ScreenId::PlayCare) &&
+         screen_ == ScreenId::PlayCare || screen_ == ScreenId::WebPlay) &&
         pet_.displayRevision() != lastRenderedPetRevision_) dirty_ = true;
     if (!dirty_ || !display_.isInitialized()) return;
 
@@ -948,6 +994,7 @@ void UiController::render() {
         case ScreenId::Graveyard: renderGraveyard(); break;
         case ScreenId::DeleteMemorialConfirm: renderDeleteMemorialConfirm(); break;
         case ScreenId::AdoptionBlocked: renderAdoptionBlocked(); break;
+        case ScreenId::WebPlay: renderWebPlay(); break;
     }
     display_.update();
     lastRenderedPetRevision_ = pet_.displayRevision();
@@ -984,6 +1031,7 @@ const char* UiController::screenName() const {
         case ScreenId::Graveyard: return "GRAVEYARD";
         case ScreenId::DeleteMemorialConfirm: return "DELETE_MEMORIAL_CONFIRM";
         case ScreenId::AdoptionBlocked: return "ADOPTION_BLOCKED";
+        case ScreenId::WebPlay: return "WEB_PLAY";
     }
     return "UNKNOWN";
 }
@@ -1257,6 +1305,17 @@ void UiController::renderHome() {
         }
     }
     if (careAfterglow_ == CareAfterglow::Sparkle) drawSparkles(display_, careAfterglowFrame_, 33, 94);
+}
+
+// Web play waiting screen: the happy pat animation with the side status icons; the one
+// text line below the pet (where the EXP bar sits on Home) alternates its two messages.
+void UiController::renderWebPlay() {
+    display_.clear();
+    PetIcons::drawMood(display_, 3, 3, pet_.moodState());
+    PetIcons::drawHunger(display_, 3, 22, pet_.hungerState());
+    PetIcons::drawTouchHappy(display_, webPlayFrame_, pet_.lifeStage(), pet_.speciesId());
+    const char* text = webPlayHint_ ? "長按結束" : "網頁陪玩中";
+    display_.drawUiText(static_cast<int16_t>((128 - display_.uiTextWidth(text)) / 2), 62, text);
 }
 
 void UiController::renderPetFooter() {

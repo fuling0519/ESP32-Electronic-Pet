@@ -1,7 +1,9 @@
-/* BLE v1 transport -> domain snapshot. Only the two read-only queries are sent. */
+/* BLE v1 transport -> domain snapshot. Sends the two read-only queries, plus the Web play game commands when the
+ * firmware declares the web_game feature (see PROTOCOL.md, Web 陪玩). Care commands are still not sent. */
 (()=>{'use strict';
 const UUID={service:'7d2a0001-8b7c-4f3a-9c2d-1e5f6a7b8c90',command:'7d2a0002-8b7c-4f3a-9c2d-1e5f6a7b8c90',event:'7d2a0003-8b7c-4f3a-9c2d-1e5f6a7b8c90'};
 const decimal=x=>typeof x==='string'&&/^\d+$/.test(x);
+const GAME_COMMANDS=['game_start','game_heartbeat','game_finish','game_cancel'];
 function mapStatus(msg){
   const p=msg?.pet;
   if(msg?.v!==1||msg.type!=='status'||!p||!decimal(p.id)||!decimal(p.age_seconds)||typeof p.name!=='string'||!p.name.trim()||!['egg','baby','adult'].includes(p.life_stage)||!['healthy','sick','dead'].includes(p.health)||typeof p.is_dead!=='boolean'||p.is_dead!==(p.health==='dead')||!['awake','normal'].includes(p.sleep)||!['satiety','mood','cleanliness'].every(k=>Number.isInteger(p[k])&&p[k]>=0&&p[k]<=100)||msg.device_id!=null&&!/^esp32-[A-F0-9]{12}$/.test(msg.device_id))throw new Error('裝置狀態格式或版本不相容，未套用資料。');
@@ -13,13 +15,15 @@ function mapStatus(msg){
 }
 function validCache(c){try{return c&&typeof c.receivedAt==='string'&&Number.isFinite(Date.parse(c.receivedAt))&&!!mapStatus(c.wire);}catch{return false;}}
 class BleSource {
-  constructor(){this.cache=PetLocalStore.read('device-snapshot',validCache);if(this.cache)this.cache.pet=mapStatus(this.cache.wire);this.connection='disconnected';this.message='尚未連接裝置';this.listeners=new Set();this.session=0;this.nextId=1;this.partial=null;this.pending=new Map();}
-  read(){return {source:'ble',connection:this.connection,pet:this.cache?.pet??null,receivedAt:this.cache?.receivedAt??null,message:this.message,stale:this.connection!=='ready'};}
+  constructor(){this.cache=PetLocalStore.read('device-snapshot',validCache);if(this.cache)this.cache.pet=mapStatus(this.cache.wire);this.connection='disconnected';this.message='尚未連接裝置';this.listeners=new Set();this.session=0;this.nextId=1;this.partial=null;this.pending=new Map();this.gameEnd=null;}
+  // activity is only meaningful from a live connection; an old cached snapshot never says the device is idle.
+  read(){return {source:'ble',connection:this.connection,pet:this.cache?.pet??null,receivedAt:this.cache?.receivedAt??null,message:this.message,stale:this.connection!=='ready',
+   activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd};}
   subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
   emit(){for(const fn of this.listeners)fn(this.read());}
   command(){throw new Error('此版本僅提供 BLE 唯讀，照顧命令未開放。');}
   stop(){clearTimeout(this.fragmentTimer);this.partial=null;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error('連線已中止'));}this.pending.clear();}
-  disconnect(){++this.session;this.stop();this.writer=null;if(this.event){this.event.removeEventListener('characteristicvaluechanged',this.onValue);this.event=null;}if(this.device){this.device.removeEventListener('gattserverdisconnected',this.onDisconnect);this.device.gatt?.disconnect();}this.connection='disconnected';this.message='已斷線，保留最後收到的資料';this.emit();}
+  disconnect(){++this.session;this.stop();this.writer=null;this.info=null;this.writeChain=null;if(this.event){this.event.removeEventListener('characteristicvaluechanged',this.onValue);this.event=null;}if(this.device){this.device.removeEventListener('gattserverdisconnected',this.onDisconnect);this.device.gatt?.disconnect();}this.connection='disconnected';this.message='已斷線，保留最後收到的資料';this.emit();}
   async connect(){
     if(['selecting','connecting','waiting'].includes(this.connection))return;
     this.disconnect();const session=++this.session;
@@ -40,12 +44,28 @@ class BleSource {
   }
   async query(cmd){
     if(!['get_device_info','get_status'].includes(cmd))throw new Error('唯讀查詢限制');
+    return this.request(cmd,{});
+  }
+  // Web play: resolves with game_session / game_result for start / finish, or the command_result otherwise.
+  // A refusal rejects with an Error whose code is the protocol error code (busy, too_early, ...).
+  async game(cmd,fields={}){
+    if(!GAME_COMMANDS.includes(cmd))throw new Error('不支援的遊戲命令');
+    if(this.connection!=='ready'||!this.info?.features?.includes?.('web_game'))throw new Error('這台電子雞目前不能網頁陪玩');
+    // A new session must not inherit an end notice from an earlier one (session numbers restart with the device).
+    if(cmd==='game_start')this.gameEnd=null;
+    return this.request(cmd,fields);
+  }
+  async request(cmd,fields){
     const id=this.nextId++,session=this.session;
     const response=new Promise((resolve,reject)=>{this.pending.set(id,{cmd,resolve,reject,timer:setTimeout(()=>{this.pending.delete(id);reject(new Error('等待裝置回覆逾時，請重新連線。'));},8000)});});
     // Attach a handler before async writes to avoid an unhandled timeout rejection.
     response.catch(()=>{});
-    try{const bytes=new TextEncoder().encode(JSON.stringify({v:1,id,cmd})),count=Math.ceil(bytes.length/16),messageId=id%65536;
-      for(let i=0;i<count;i++){if(session!==this.session)throw new Error('連線已中止');const data=new Uint8Array(4+Math.min(16,bytes.length-i*16));data[0]=messageId&255;data[1]=messageId>>8;data[2]=i;data[3]=count;data.set(bytes.slice(i*16,i*16+16),4);await this.writer.writeValueWithResponse(data);}await response;
+    try{const bytes=new TextEncoder().encode(JSON.stringify({...fields,v:1,id,cmd})),count=Math.ceil(bytes.length/16),messageId=id%65536;
+      const write=async()=>{for(let i=0;i<count;i++){if(session!==this.session)throw new Error('連線已中止');const data=new Uint8Array(4+Math.min(16,bytes.length-i*16));data[0]=messageId&255;data[1]=messageId>>8;data[2]=i;data[3]=count;data.set(bytes.slice(i*16,i*16+16),4);await this.writer.writeValueWithResponse(data);}};
+      // Web Bluetooth allows one GATT write at a time and the ESP32 reassembles one message at a time, so whole
+      // messages are written in order (a heartbeat waits for a finish's fragments). Replies are awaited outside the chain.
+      const written=(this.writeChain||Promise.resolve()).catch(()=>{}).then(write);this.writeChain=written;
+      await written;return await response;
     }catch(e){const p=this.pending.get(id);if(p){clearTimeout(p.timer);this.pending.delete(id);p.reject(e);}throw e;}
   }
   receive(value){try{
@@ -59,7 +79,14 @@ class BleSource {
   }catch(e){clearTimeout(this.fragmentTimer);this.partial=null;this.message=e.message;this.emit();}}
   messageReceived(msg){
     if(msg.v!==1){this.disconnect();throw new Error('不支援的 BLE 協定版本，已停止查詢');}
-    if(msg.type==='command_result'){const p=this.pending.get(msg.id);if(p&&msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);p.reject(new Error('裝置拒絕查詢：'+String(msg.code)));}return;}
+    if(msg.type==='command_result'){const p=this.pending.get(msg.id);if(!p)return;
+     if(msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);const e=new Error('裝置拒絕'+(GAME_COMMANDS.includes(p.cmd)?'遊戲命令':'查詢')+'：'+String(msg.code));e.code=String(msg.code);p.reject(e);}
+     else if(p.cmd==='game_heartbeat'||p.cmd==='game_cancel'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
+     return;}
+    // Game events answer the start/finish command with the same id; a device-side end is kept for the play view.
+    if(msg.type==='game_session'||msg.type==='game_result'){const p=this.pending.get(msg.id);
+     if(p&&p.cmd===(msg.type==='game_session'?'game_start':'game_finish')&&decimal(msg.session)){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}return;}
+    if(msg.type==='game_session_end'){if(decimal(msg.session)){this.gameEnd={session:msg.session,reason:String(msg.reason)};this.emit();}return;}
     if(msg.type==='device_info'){if(msg.protocol_version!==1){this.disconnect();throw new Error('裝置協定版本不相容，已停止查詢');}if(msg.device_id!=null&&!/^esp32-[A-F0-9]{12}$/.test(msg.device_id)||typeof msg.firmware_version!=='string'||msg.max_message_bytes!==1024)throw new Error('裝置資訊不相容');this.info=msg;}
     else if(msg.type==='status'){const pet=mapStatus(msg);if(this.info?.device_id&&pet.deviceId&&this.info.device_id!==pet.deviceId)throw new Error('裝置 ID 不一致');this.cache={wire:msg,pet,receivedAt:new Date().toISOString()};PetLocalStore.write('device-snapshot',this.cache);this.connection='ready';this.message='已收到 ESP32 完整狀態（唯讀）';}
     else return;

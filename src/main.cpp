@@ -19,6 +19,7 @@
 #endif
 #include "ui/UiController.h"
 #include "ble/BleLink.h"
+#include "games/WebGameSession.h"
 #include "power/DeepSleep.h"
 #include "HardwareConfig.h"
 #if defined(PET_SAD_TEST_MODE)
@@ -57,6 +58,11 @@ private:
     bool deleteSelectedMemorial();
     void requestDeepSleep(uint32_t now);
     void serviceDeepSleep(Hardware::InputEvent event, uint32_t now);
+    bool webGameEligible() const;
+    void endWebGame(Games::WebGameEnd reason, uint32_t now);
+    void handleGameRequest(const Ble::GameRequest& request, uint32_t now);
+    void serviceWebGame(uint32_t now);
+    Games::WebGameSession webGame;
 
     Hardware::Display display;
     Hardware::Input input;
@@ -403,6 +409,97 @@ void Application::serviceSadTest(uint32_t now) {
 }
 #endif
 
+// Web play over BLE. The browser reports what was played; the session decides whether it
+// counts and the reward comes from here, so the browser never sends mood or EXP values.
+bool Application::webGameEligible() const {
+    return !pet.isEnded() && !pet.isSick() && pet.lifeStage() != Pet::LifeStage::Egg &&
+        pet.sleepMode() == Pet::SleepMode::Awake;
+}
+
+void Application::endWebGame(Games::WebGameEnd reason, uint32_t now) {
+    const uint32_t session = webGame.id();
+    if (webGame.end(reason) && reason != Games::WebGameEnd::Disconnected)
+        ble.sendSessionEnd(session, Games::WebGameSession::endReason(reason));
+    ui.endWebPlay(pet.level(), now);
+}
+
+void Application::handleGameRequest(const Ble::GameRequest& r, uint32_t now) {
+    using Type = Ble::GameRequest::Type;
+    using Finish = Games::WebGameSession::Finish;
+    switch (r.type) {
+        case Type::Start:
+            if (webGame.active()) ble.reply(r.commandId, "busy");
+            else if (r.petId != pet.petId()) ble.reply(r.commandId, "pet_changed");
+            else if (!webGameEligible()) ble.reply(r.commandId, "not_allowed");
+            else if (!ui.webGameStartAllowed()) ble.reply(r.commandId, "busy");
+            else {
+                const uint32_t session = webGame.begin(r.kind, now);
+                ui.beginWebPlay(now);
+                ble.reply(r.commandId, "ok");
+                ble.sendGameSession(r.commandId, session, Games::WebGameSession::kindName(r.kind),
+                                    Games::WebGameSession::minDurationMs(r.kind));
+            }
+            break;
+        case Type::Heartbeat:
+            ble.reply(r.commandId, webGame.heartbeat(r.session, now) ? "ok" : "invalid_session");
+            break;
+        case Type::Finish: {
+            Games::WebGameReward reward;
+            switch (webGame.check(r.session, r.score, now, reward)) {
+                case Finish::Ok: {
+                    const uint8_t moodBefore = pet.mood(), previousLevel = pet.level();
+                    pet.changeMood(reward.mood);
+                    Games::WebGameResult result;
+                    result.expGain = pet.gainExp(reward.exp);
+                    result.moodGain = static_cast<uint8_t>(pet.mood() - moodBefore);
+                    result.levelsGained = static_cast<uint8_t>(pet.level() - previousLevel);
+                    webGame.complete(result);
+                    ui.endWebPlay(previousLevel, now);
+                    save.markDirty(now);
+                    sound.playSuccess();
+                    ble.reply(r.commandId, "ok");
+                    ble.sendGameResult(r.commandId, r.session, result);
+                    break;
+                }
+                case Finish::Replay:
+                    ble.reply(r.commandId, "ok");
+                    ble.sendGameResult(r.commandId, r.session, webGame.lastResult());
+                    break;
+                case Finish::InvalidSession: ble.reply(r.commandId, "invalid_session"); break;
+                case Finish::TooEarly: ble.reply(r.commandId, "too_early"); break;
+                case Finish::InvalidScore: ble.reply(r.commandId, "invalid_value"); break;
+            }
+            break;
+        }
+        case Type::Cancel: {
+            const bool ending = webGame.active() && webGame.id() == r.session;
+            if (!webGame.cancel(r.session)) { ble.reply(r.commandId, "invalid_session"); break; }
+            if (ending) ui.endWebPlay(pet.level(), now);
+            ble.reply(r.commandId, "ok");
+            break;
+        }
+        case Type::None: break;
+    }
+}
+
+void Application::serviceWebGame(uint32_t now) {
+    if (webGame.active()) {
+        const uint32_t session = webGame.id();
+        if (!ble.isConnected()) endWebGame(Games::WebGameEnd::Disconnected, now);
+        else if (webGame.expired(now)) {
+            ble.sendSessionEnd(session, Games::WebGameSession::endReason(Games::WebGameEnd::HeartbeatTimeout));
+            ui.endWebPlay(pet.level(), now);
+        } else if (!webGameEligible() || ui.screen() != Ui::ScreenId::WebPlay) {
+            // Illness, growth, death or farewell took the screen: the session cannot finish.
+            endWebGame(Games::WebGameEnd::PetState, now);
+        }
+    }
+    Ble::GameRequest request;
+    if (ble.takeGameRequest(request)) handleGameRequest(request, now);
+    ble.setActivity(webGame.active() ? "web_game" : ui.deviceGameActive() ? "device_game" :
+                    ui.webGameStartAllowed() ? "idle" : "busy");
+}
+
 void Application::loop() {
     if (!appReady) return;
 
@@ -555,6 +652,9 @@ void Application::loop() {
         case Ui::UiAction::SaveVolume:
             ui.onVolumeSaveResult(settings.saveVolume(sound.volume()));
             break;
+        case Ui::UiAction::EndWebGame:
+            endWebGame(Games::WebGameEnd::DeviceCancel, now);
+            break;
     }
     if (action == Ui::UiAction::Feed || action == Ui::UiAction::Clean ||
         action == Ui::UiAction::Treat) ui.onCareRewardApplied(levelBeforeAction, now);
@@ -576,6 +676,7 @@ void Application::loop() {
     } else if (pet.displayRevision() != revisionBeforeAction) {
         save.markDirty(now);
     }
+    serviceWebGame(now);
     save.update(pet, now);
     if (now - lastCapacityCheckAt >= 30000) {
         lastCapacityCheckAt = now;

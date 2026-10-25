@@ -48,6 +48,7 @@ enum class ScreenId {
     FarewellDone,
     FarewellBlocked,
     Volume,
+    WebPlay,
 };
 
 enum class UiAction : uint8_t {
@@ -64,6 +65,7 @@ enum class UiAction : uint8_t {
     SendOff,
     RetryFarewell,
     SaveVolume,
+    EndWebGame,
 };
 
 // Home currently has one selectable shortcut. Keep this separate from screen
@@ -110,6 +112,13 @@ public:
     void onMemorialDeleteResult(bool success);
     void onVolumeSaveResult(bool success);
     bool touchContextAllowed() const;
+    // Web play over BLE: the browser may start only from an idle Home; while it runs the
+    // device shows a waiting screen whose long press ends the session (EndWebGame).
+    bool webGameStartAllowed() const;
+    bool deviceGameActive() const;
+    void beginWebPlay(uint32_t now);
+    // Back to Home after the session ended; a level gained by its reward then celebrates.
+    void endWebPlay(uint8_t previousLevel, uint32_t now);
     uint32_t touchContextRevision() const { return touchContextRevision_; }
     bool onTouchEvent(Hardware::TouchEvent event, uint32_t now);
     void cancelTouchReaction();
@@ -174,6 +183,10 @@ private:
     uint32_t farewellElapsedMs_ = 0;
     void renderDeleteMemorialConfirm();
     void renderAdoptionBlocked();
+    void renderWebPlay();
+    uint32_t webPlayStartedAt_ = 0;
+    uint8_t webPlayFrame_ = 0;
+    bool webPlayHint_ = false;
     uint8_t eggCrackStage(uint32_t now) const;
 
     Hardware::Display& display_;

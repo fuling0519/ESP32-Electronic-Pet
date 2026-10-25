@@ -10,7 +10,7 @@ function presentation(p){if(!p)return null;return {...p,health:p.healthState,con
 class DataManager {
  constructor(adapters){this.adapters=adapters;this.mode='mock';}
  select(mode){if(!['mock','ble'].includes(mode))throw new Error('未知資料來源');if(this.mode!==mode)this.cancelGame();this.mode=mode;}
- read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||''}});}
+ read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null}});}
  view(mode=this.mode){const s=this.read(mode);return {...s.metadata,pet:presentation(s.pet)};}
  command(kind){if(this.mode!=='mock')throw new Error('BLE 僅提供唯讀查詢');return this.adapters.mock.command(kind);}
  preview(stage,condition){if(this.mode!=='mock')throw new Error('裝置狀態由 ESP32 決定');this.adapters.mock.preview(stage,condition);}
@@ -22,6 +22,10 @@ class DataManager {
  answerGame(choice,now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.answerGame(choice,now);}
  nextRound(now){if(this.mode!=='mock')throw new Error('裝置遊戲不可遠端操作');return this.adapters.mock.nextRound(now);}
  cancelGame(){this.adapters.mock.cancelGame();}
+ // Web play with the real pet: the device decides and settles; the page only relays the game commands.
+ deviceGame(cmd,fields){if(this.mode!=='ble')throw new Error('只有裝置模式能和電子雞陪玩');return this.adapters.ble.game(cmd,fields);}
+ // Best effort, also after leaving device mode, so the ESP32 is not left waiting for a heartbeat timeout.
+ cancelDeviceGame(session){try{return this.adapters.ble.game('game_cancel',{session}).catch(()=>{});}catch{return Promise.resolve();}}
  farewell(){if(this.mode!=='mock')throw new Error('請在裝置送別');this.adapters.mock.farewell();}
  tick(seconds){if(this.mode==='mock')this.adapters.mock.tick(seconds);}
  subscribe(fn){return this.adapters.ble.subscribe(()=>fn(this.read('ble')));}

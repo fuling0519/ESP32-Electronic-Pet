@@ -140,7 +140,8 @@ test('home keeps demo-only controls inside the demo-mode panel',()=>{
  const scene=html.slice(html.indexOf('<section class="scene"'),html.indexOf('</section>',html.indexOf('<section class="scene"')));
  assert.match(scene,/id="open-status"[^>]*popovertarget="pet-status-card"/,'status orb lives in the garden');assert.doesNotMatch(scene,/id="status"/,'narration is not drawn over the garden');assert.match(html,/<section class="scene"[\s\S]*?<\/section><p id="status" class="message-bar"/,'message bar sits right under the garden');assert.doesNotMatch(html,/illness-notice/,'sick state is shown by the emote, not a notice box');
  const card=html.slice(html.indexOf('<div id="pet-status-card" popover'),html.indexOf('</div>',html.indexOf('id="open-cemetery"')));assert.ok(card.includes('id="open-cemetery"')&&card.includes('id="last-received"'),'memorial link and device receipt sit in the status card');assert.ok(!html.includes('<footer>'),'the row under the garden is gone');
- assert.match(css,/#aviary\.device-mode \.care,#aviary\.device-mode #adopt-egg,#aviary\.device-mode #demo-panel\{display:none/);
+ // Device mode hides care unless BLE play is available, and then only the play button shows.
+ assert.match(css,/#aviary\.device-mode:not\(\.device-play\) \.care,#aviary\.device-mode \.care \[data-action\]:not\(\[data-action="play"\]\),#aviary\.device-mode #adopt-egg,#aviary\.device-mode #demo-panel\{display:none/);
 });
 test('main page loads the reviewed cleaning player before the application',()=>{
  const html=fs.readFileSync(__dirname+'/index.html','utf8'),app=fs.readFileSync(__dirname+'/app.js','utf8');
@@ -240,3 +241,50 @@ test('demo need tools drop and refill one value, update sad flags and save',()=>
  m.demoNeed('satiety',10);let p=m.read().pet;assert.equal(p.satiety,10);assert.equal(p.sadReasons.satiety,true);assert.match(storage.get('aviary.demo'),/"satiety":10/);
  m.demoNeed('satiety',100);p=m.read().pet;assert.equal(p.satiety,100);assert.equal(p.sadReasons.satiety,false);
  assert.throws(()=>m.demoNeed('exp',0));m.select('ble');assert.throws(()=>m.demoNeed('mood',10));});
+test('web play game commands over BLE: feature gate, session events, refusal codes and device-side end',async()=>{
+ const {c,m}=boot(),ble=c.PetSources.ble,sent=[];let fragments=[],finishTries=0;
+ // A fake ESP32: answers each reassembled command the way PROTOCOL.md describes.
+ const reply=command=>{const ok={v:1,type:'command_result',id:command.id,ok:true,code:'ok'},no=code=>({...ok,ok:false,code});
+  if(command.cmd==='get_device_info')return [{v:1,type:'device_info',id:command.id,protocol_version:1,device_id:'esp32-AABBCCDDEEFF',firmware_version:'test',max_message_bytes:1024,features:['web_game']}];
+  if(command.cmd==='get_status')return [{...status(),activity:'idle'}];
+  if(command.cmd==='game_start')return command.pet_id==='18446744073709551615'?[ok,{v:1,type:'game_session',id:command.id,session:'7',game:'toy',min_ms:15000,heartbeat_ms:5000,timeout_ms:15000}]:[no('pet_changed')];
+  if(command.cmd==='game_heartbeat'||command.cmd==='game_cancel')return [command.session==='7'?ok:no('invalid_session')];
+  if(command.cmd==='game_finish')return ++finishTries===1?[no('too_early')]:[ok,{v:1,type:'game_result',id:command.id,session:'7',mood_gain:6,exp_gain:10,levels_gained:0}];
+  return [no('unknown_command')];};
+ ble.writer={async writeValueWithResponse(data){fragments.push(...data.slice(4));if(data[2]===data[3]-1){const command=JSON.parse(new TextDecoder().decode(new Uint8Array(fragments)));fragments=[];sent.push(command);for(const msg of reply(command))ble.messageReceived(msg);}}};
+ ble.connection='waiting';
+ await assert.rejects(ble.game('game_start',{game:'toy',pet_id:'1'}),/不能網頁陪玩/,'no feature before device info');
+ await ble.query('get_device_info');await ble.query('get_status');
+ assert.equal(ble.read().webGame,true);assert.equal(ble.read().activity,'idle');
+ m.select('ble');assert.equal(m.view('ble').activity,'idle');assert.equal(m.view('ble').webGame,true);
+ await assert.rejects(m.deviceGame('game_start',{game:'toy',pet_id:'1'}),e=>e.code==='pet_changed');
+ const session=await m.deviceGame('game_start',{game:'toy',pet_id:'18446744073709551615'});assert.equal(session.session,'7');assert.equal(session.min_ms,15000);
+ assert.deepEqual({...sent.at(-1)},{game:'toy',pet_id:'18446744073709551615',v:1,id:sent.at(-1).id,cmd:'game_start'});
+ assert.equal((await m.deviceGame('game_heartbeat',{session:'7'})).ok,true);
+ await assert.rejects(m.deviceGame('game_heartbeat',{session:'8'}),e=>e.code==='invalid_session');
+ await assert.rejects(m.deviceGame('game_finish',{session:'7',score:{throws:5,catches:2}}),e=>e.code==='too_early');
+ const result=await m.deviceGame('game_finish',{session:'7',score:{throws:5,catches:2}});assert.equal(result.mood_gain,6);assert.equal(result.exp_gain,10);
+ assert.deepEqual({...sent.at(-1).score},{throws:5,catches:2},'the page reports the score, never mood or EXP');
+ assert.ok(sent.every(cmd=>!('mood' in cmd)&&!('exp' in cmd)));
+ await assert.rejects(ble.game('feed'),/不支援/);
+ ble.messageReceived({v:1,type:'game_session_end',session:'7',reason:'device_cancel'});assert.deepEqual({...m.view('ble').gameEnd},{session:'7',reason:'device_cancel'});
+ await m.deviceGame('game_start',{game:'toy',pet_id:'18446744073709551615'});assert.equal(m.view('ble').gameEnd,null,'a new session drops the old end notice');
+ await m.cancelDeviceGame('7');assert.equal(sent.at(-1).cmd,'game_cancel');
+ m.select('mock');assert.throws(()=>m.deviceGame('game_start',{}),/裝置模式/);
+ ble.disconnect();assert.equal(ble.read().webGame,false);assert.equal(ble.read().activity,null,'a stale snapshot never claims the device is idle');
+});
+test('BLE writes whole messages one at a time, so a heartbeat never overlaps a finish being written',async()=>{
+ const {c}=boot(),ble=c.PetSources.ble;let busy=false,fragments=[],order=[];
+ // Like Chrome: starting a GATT write while one is still in flight fails.
+ ble.writer={async writeValueWithResponse(data){if(busy)throw new Error('GATT operation already in progress.');busy=true;await new Promise(r=>setTimeout(r,2));busy=false;
+  fragments.push(...data.slice(4));if(data[2]===data[3]-1){const command=JSON.parse(new TextDecoder().decode(new Uint8Array(fragments)));fragments=[];order.push(command.cmd);
+   const ok={v:1,type:'command_result',id:command.id,ok:true,code:'ok'};
+   if(command.cmd==='get_device_info')ble.messageReceived({v:1,type:'device_info',id:command.id,protocol_version:1,device_id:'esp32-AABBCCDDEEFF',firmware_version:'test',max_message_bytes:1024,features:['web_game']});
+   else if(command.cmd==='get_status')ble.messageReceived({...status(),activity:'web_game'});
+   else if(command.cmd==='game_finish'){ble.messageReceived(ok);ble.messageReceived({v:1,type:'game_result',id:command.id,session:'7',mood_gain:6,exp_gain:10,levels_gained:0});}
+   else ble.messageReceived(ok);}}};
+ ble.connection='waiting';await ble.query('get_device_info');await ble.query('get_status');
+ const finish=ble.game('game_finish',{session:'7',score:{throws:5,catches:3}}),beat=ble.game('game_heartbeat',{session:'7'});
+ const [result,heartbeat]=await Promise.all([finish,beat]);
+ assert.equal(result.mood_gain,6);assert.equal(heartbeat.ok,true);assert.deepEqual(order.slice(-2),['game_finish','game_heartbeat']);
+});

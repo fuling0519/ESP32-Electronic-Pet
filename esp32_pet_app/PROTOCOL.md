@@ -83,7 +83,7 @@ ESP32 對可辨識命令回覆相同 ID；結果可選含供使用者閱讀的 `
 
 `malformed_message`（封包／UTF-8／JSON 無效）、`missing_field`（欄位缺少或型別錯誤）、`unsupported_version`、`unknown_command`、`invalid_value`、`busy`、`not_supported`、`internal_error`。不支援版本的回覆可附 `supported_versions`。
 
-v1 只接受 `get_device_info`、`get_status`。A／B／C、照顧、睡眠與 reset 指令均未啟用，收到時回錯誤；新增命令前需同步更新本規格與兩端實作。
+v1 基本命令為 `get_device_info`、`get_status`；宣告 `features` 含 `web_game` 的韌體另接受下方「Web 陪玩」節的四個遊戲命令。A／B／C、照顧、睡眠與 reset 指令均未啟用，收到時回錯誤；新增命令前需同步更新本規格與兩端實作。
 
 ## 固定裝置 ID 與韌體組交接
 
@@ -112,3 +112,29 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 舊 App 忽略新欄位；新 App 收到整組缺少時允許舊韌體快照，等級／經驗顯示 --。只缺部分、欄位為 null、型別或範圍錯誤、EXP 達到或超過正門檻、門檻為 0 卻有 EXP 時，拒絕整份快照。新韌體每次完整狀態都提供三欄，遊戲結算後沿用狀態通知；真正 Deep Sleep 仍斷線，醒後重新讀取。
 
 送別不提供遠端操作命令。客戶端需更新才能辨識 `is_departed`；舊客戶端忽略新增欄位時，可能把最後健康快照顯示為仍在養。紀念冊仍只在裝置端瀏覽。
+
+## Web 陪玩（2026-10-25 定案）
+
+設計理由、雙端畫面與分工見 [Web 陪玩 BLE 規則](../docs/features/web-game-ble-plan.md)；本節是介面規格。實作與驗證進度只看主台帳。
+
+**能力與狀態。** `device_info` 新增可選字串陣列 `features`，含 `"web_game"` 才支援本節命令。`status` 頂層新增可選字串 `activity`：`idle`（主畫面閒置，可開局）、`device_game`（電子雞上的猜拳／記憶音符中）、`web_game`（本連線的 Web 陪玩中）、`busy`（其他頁面或流程）。缺少時視為舊韌體，不開放裝置模式陪玩；未知值不可當成 `idle`。`activity` 改變時推送完整快照。
+
+**命令**（皆先回 `command_result`）：
+
+```json
+{"v":1,"id":7,"cmd":"game_start","game":"toy","pet_id":"42"}
+{"v":1,"id":8,"cmd":"game_heartbeat","session":"3051"}
+{"v":1,"id":12,"cmd":"game_finish","session":"3051","score":{"throws":5,"catches":3}}
+{"v":1,"id":13,"cmd":"game_cancel","session":"3051"}
+```
+
+- `game_start`：`game` 目前只有 `toy`，未知值回 `invalid_value`；`pet_id` 與目前個體不同回 `pet_changed`；寵物不是健康清醒的幼年／成年回 `not_allowed`；`activity` 不是 `idle` 回 `busy`。成功另送 `{"v":1,"type":"game_session","id":7,"session":"3051","game":"toy","min_ms":15000,"heartbeat_ms":5000,"timeout_ms":15000}`，電子雞切到「網頁陪玩中」。`session` 為十進位字串、非 0，每次開機重新起算。
+- `game_heartbeat`：每 `heartbeat_ms` 一次；超過 `timeout_ms` 沒收到，韌體取消該局。局號不符回 `invalid_session`。
+- `game_finish`：`score` 依遊戲驗證（`toy`：`throws` 必須為 5、`catches` 為 0～5 整數，否則 `invalid_value`）；開局未滿 `min_ms` 回 `too_early`；兩者都不結束該局。成功時由韌體套用獎勵（`toy` 固定心情 +6、EXP +10，心情上限 100）、解除鎖定並另送 `{"v":1,"type":"game_result","id":12,"session":"3051","mood_gain":6,"exp_gain":10,"levels_gained":0}`，增量為實際值。以同一局號重送時原樣回覆，不重複加值。
+- `game_cancel`：不發獎勵並解除鎖定；對已結束的局重送也回 `ok`。
+
+**韌體主動結束** 時送 `{"v":1,"type":"game_session_end","session":"3051","reason":"device_cancel"}`，`reason` 為 `device_cancel`（電子雞長按）、`heartbeat_timeout`、`pet_state`（生病、睡眠、成長、死亡、送別或換個體）。藍牙斷線時韌體立即取消該局（無法通知），重連後由 `activity` 得知。
+
+**錯誤碼新增：** `not_allowed`、`pet_changed`、`invalid_session`、`too_early`。
+
+**限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
