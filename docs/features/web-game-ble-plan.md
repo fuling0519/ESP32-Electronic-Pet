@@ -117,7 +117,7 @@ Web 每 `heartbeat_ms`（5 秒）送一次。韌體超過 `timeout_ms`（15 秒�
 | `game` | `score` 欄位 | 驗證 | 獎勵 | `min_ms` |
 |---|---|---|---|---|
 | `toy` 丟玩具 | `throws` 整數、`catches` 整數 | `throws == 5`、`0 ≤ catches ≤ 5` | 固定心情 +6、EXP +10 | 15000 |
-| `chorus` 花園合唱（未定） | `correct`、`total` | 待遊戲設計 | 依答對比例，上限 +10／+15 | 待定 |
+| `chorus` 花園合唱（Web 展示模式已有，韌體尚未登記） | `correct`、`total` | 待定案；Web 版為 `total == 3`、`0 ≤ correct ≤ 3` | Web 版：3 首 +10／15、2 首 +6／10、0～1 首 +3／5 | 待定 |
 
 新增遊戲 = 在此表登記 + 韌體加一列規則 + 更新 `features` 或韌體版本；Web 不能自訂獎勵。
 

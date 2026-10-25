@@ -42,3 +42,11 @@ test('a toy session counts five throws, completes once and gives a fixed reward'
  g.answer(1,0);assert.equal(g.throws,5,'no throws after completion');
  assert.deepEqual({...g.rewards()},{mood:6,exp:10});
 });
+test('a chorus session counts three rounds, completes once and pays by rounds sung right',()=>{
+ const {PetChorusGame}=load('pet-games.js'),make=()=>new PetChorusGame({petId:'p',stage:'baby'},0);
+ const g=make();assert.equal(g.kind,'chorus');g.answer(5,0);assert.equal(g.played,0,'only 1 or 0 counts');
+ g.answer(1,0);g.answer(0,0);assert.equal(g.phase,'play');assert.equal(g.round,3);g.answer(1,0);assert.equal(g.phase,'complete');
+ g.answer(1,0);assert.equal(g.played,3,'nothing after completion');assert.deepEqual({...g.rewards()},{mood:6,exp:10});
+ const all=make();for(let i=0;i<3;i++)all.answer(1,0);assert.deepEqual({...all.rewards()},{mood:10,exp:15});
+ const one=make();one.answer(1,0);one.answer(0,0);one.answer(0,0);assert.deepEqual({...one.rewards()},{mood:3,exp:5});
+});

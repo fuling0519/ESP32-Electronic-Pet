@@ -34,7 +34,7 @@ function begin(p,device){
  hud.hidden=false;showCount();say('按住球，往花園甩出去！（鍵盤：Enter 丟球、Esc 結束）');
 }
 function start(){
- if(play||starting)return false;
+ if(play||starting||window.PetChorus?.active())return false;
  if(petDataManager.mode==='ble'){startDevice();return true;}
  try{petDataManager.startGame('toy',performance.now());}catch(e){say(e.message);return false;}
  begin(petDataManager.read().pet,null);return true;
