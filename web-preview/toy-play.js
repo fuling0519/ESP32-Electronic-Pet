@@ -36,13 +36,23 @@ async function startDevice(){
 function end(text){if(play?.device)window.PetDeviceSession.close(play.device);play=null;hud.hidden=true;if(text)say(text);document.dispatchEvent(new CustomEvent('pet-toy-end'));}
 function setState(state,now){play.state=state;play.since=now;}
 function launch(from,to,now){play.flight=P.flight(from,to);play.thrownAt=now;play.caught=false;setState('chase',now);say('去吧！');}
-// Where the ball sits when the pet holds it, from the pet's feet (pet.x,pet.y), facing and size.
-function mouth(pose){
+// The bird's walking hop, shared by its drawing and the ball it carries.
+function hop(now,pose,s){return pose==='walk'?Math.abs(Math.sin(now/90))*2*s:0;}
+// Where the ball sits (its bottom) when the pet holds it, from the pet's feet (pet.x,pet.y), facing, size and the pose
+// actually drawn ('walk', 'stand', 'happy' or 'peck').
+function mouth(pose,now=0){
  const {pet,species,stage}=play,s=P.depthScale(pet.y,play.home.y),f=pet.facing;
- // The bird looks three-quarter front, so a held ball sits just under its beak.
- if(species===1){const h=(stage==='adult'?132:106)*s;return pose==='peck'?{x:pet.x+f*.3*h,y:pet.y-.02*h}:{x:pet.x+f*.1*h,y:pet.y-(stage==='adult'?.42:.38)*h};}
- if(stage==='baby')return {x:pet.x+f*8*s,y:pet.y-22*s};
- return pet.lift>.05?{x:pet.x+f*42*s,y:pet.y-(35+22*pet.lift)*s-10*s}:{x:pet.x,y:pet.y-56*s};
+ // The bird's beak, measured on each sheet as fractions of its height: the walking sheet faces the way it goes, while
+ // the mirrored standing/happy art ends up with its beak slightly on the other side. The ball (18 px, unscaled) hangs
+ // with its top just under the beak's centre, so the beak still shows above it.
+ if(species===1){
+  const h=(stage==='adult'?132:106)*s;if(pose==='peck')return {x:pet.x+f*.3*h,y:pet.y-.02*h};
+  const walk=pose==='walk',top=(walk?.585:.6)*h-1;
+  return {x:pet.x+f*(walk?.23:-.05)*h,y:pet.y-hop(now,pose,s)-(top-18)};
+ }
+ // The baby wyvern's walking art turns its face the way it goes; its idle and happy art look straight ahead.
+ if(stage==='baby')return {x:pet.x+(pose==='walk'?f*8*s:0),y:pet.y-30*s};
+ return pet.lift>.05?{x:pet.x+f*42*s,y:pet.y-(35+22*pet.lift)*s-2*s}:{x:pet.x,y:pet.y-46*s};
 }
 function face(target){const dx=target.x-play.pet.x;if(Math.abs(dx)>.5)play.pet.facing=dx>0?1:-1;}
 // Device mode: the ESP32 settles the session (device-session.js waits out its minimum time and retries lost writes).
@@ -88,7 +98,7 @@ function update(now){
  }else if((play.state==='cheer'&&ms>=CHEER_MS)||(play.state==='pickup'&&ms>=PICKUP_MS)){play.atHome=false;setState('carry',now);}
  else if(play.state==='carry'){
   const next=P.step(pet,play.home,move.speed*.8,dt);face(play.home);pet.x=next.x;pet.y=next.y;play.moving=!next.arrived;play.atHome=next.arrived;
-  if(next.arrived&&pet.lift<=.05){play.from=mouth('hold');face(P.HAND);setState('return',now);}
+  if(next.arrived&&pet.lift<=.05){play.from=mouth(play.caught?'happy':'stand');face(P.HAND);setState('return',now);}
  }else if(play.state==='return'&&ms>=RETURN_MS){report(now);if(!play)return false;}
  else if(play.state==='finale'&&ms>=FINALE_MS){end('');return false;}
  if(play.state!=='chase'&&play.state!=='carry')play.moving=false;
@@ -123,7 +133,7 @@ function drawPet(ctx,now,p,pose){
  const {pet,species,stage}=play,s=P.depthScale(pet.y,play.home.y),f=pet.facing;
  const model={...p,stage,healthState:'healthy',sleepMode:'awake',mood:100,satiety:100,cleanliness:100,sadReasons:{mood:false,satiety:false,cleanliness:false}};
  if(species===1){
-  const h=(stage==='adult'?132:106)*s,feet=pet.y-(pose==='walk'?Math.abs(Math.sin(now/90))*2*s:0);
+  const h=(stage==='adult'?132:106)*s,feet=pet.y-hop(now,pose,s);
   drawShadow(ctx,pet.x,pet.y,(stage==='adult'?30:24)*s,4*s);
   // The bird art faces left; turning right mirrors it around its body.
   if(pose==='walk'||pose==='peck')return window.WhiteBirdActivity?.pose(ctx,stage,pose==='peck'?3:Math.floor(now/150)%2,pet.x,feet,3*s,f>0);
@@ -139,16 +149,17 @@ function draw(ctx,now,p){
  if(!play)return false;
  if(!update(now))return false;
  const st=play.state,pose=play.moving?'walk':st==='pickup'&&play.species===1&&now-play.since<PICKUP_MS*.7?'peck':['cheer','return','finale','settling'].includes(st)&&(st!=='return'||play.caught)?'happy':'stand';
- const held=['cheer','carry'].includes(st)||st==='pickup'&&now-play.since>=PICKUP_MS*.5;
+ const held=['cheer','carry'].includes(st)||st==='pickup'&&now-play.since>=PICKUP_MS*.5
  // Return: the pet nudges the ball back to the player's hand in a small arc.
  let ball=play.ball;
  if(st==='return'){const u=Math.min(1,(now-play.since)/RETURN_MS);ball={x:play.from.x+(P.HAND.x-play.from.x)*u,y:play.from.y+(P.HAND.y-play.from.y)*u,z:Math.sin(u*Math.PI)*18};}
- const behind=!held&&ball.y<play.pet.y;
+ // The returning ball leaves from the mouth, so it stays in front of the pet instead of vanishing behind its body.
+ const behind=!held&&st!=='return'&&ball.y<play.pet.y;
  if(behind&&st!=='finale')drawBall(ctx,ball);
  drawPet(ctx,now,p,pose);
- if(held){const m=mouth(pose==='peck'?'peck':'hold');drawBall(ctx,{x:m.x,y:m.y,z:0},false);}
+ if(held){const m=mouth(pose,now);drawBall(ctx,{x:m.x,y:m.y,z:0},false);}
  else if(!behind&&st!=='finale')drawBall(ctx,ball);
- if(st==='cheer'||st==='finale'){const m=mouth('hold');window.PetEffects?.hearts(ctx,now-play.since,{x:m.x,y:m.y-26,spread:44,until:st==='finale'?FINALE_MS-600:500,reduced:reduced.matches});}
+ if(st==='cheer'||st==='finale'){const m=mouth(pose,now);window.PetEffects?.hearts(ctx,now-play.since,{x:m.x,y:m.y-26,spread:44,until:st==='finale'?FINALE_MS-600:500,reduced:reduced.matches});}
  return true;
 }
 function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*384/r.width,y:(e.clientY-r.top)*256/r.height};}
