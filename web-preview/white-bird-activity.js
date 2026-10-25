@@ -15,10 +15,14 @@ function sample(now,cx=190,cy=126){
  if(t<11500){const q=smooth((t-8500)/3000);return {x:bank.x+(cx-bank.x)*q,y:bank.y+(cy-bank.y)*q,phase:'walk',frame:Math.floor((t-8500)/240)%2,wet:false};}
  return {x:cx,y:cy,phase:'idle',frame:0};
 }
+// Where the last walking/drinking pose was drawn on each canvas, so effects can follow the bird as it moves.
+const placed=new WeakMap();
 function draw(ctx,p,now,cx,cy,scale=3,reduced=false){
+ placed.delete(ctx);
  if(reduced)return false;
  if(!image.complete||!image.naturalWidth||!window.WhiteBirdActivityData)return false;
  const q=sample(now,cx,cy);if(q.phase==='idle')return false;
+ placed.set(ctx,{cx:q.x,cy:q.y});
  const d=WhiteBirdActivityData,fit=(p.stage==='adult'?132:106)*scale/3*.94/d.standingHeight;
  const feet=q.y+(p.stage==='adult'?132:106)*scale/3*.47;
  ctx.save();ctx.imageSmoothingEnabled=false;
@@ -44,5 +48,5 @@ function draw(ctx,p,now,cx,cy,scale=3,reduced=false){
  }
  ctx.restore();return true;
 }
-window.WhiteBirdActivity={sample,draw};
+window.WhiteBirdActivity={sample,draw,placed:ctx=>placed.get(ctx)||null,forget:ctx=>placed.delete(ctx)};
 })();

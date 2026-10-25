@@ -218,3 +218,5 @@ header .icon-button{padding:0}
 .message-bar.alert{background:#fde3d6;border-color:#d99b8a;color:#7a4436}
 @media(max-width:650px){.message-bar{font-size:12px;padding:5px 10px}}
 @media(prefers-reduced-motion:reduce){.message-bar{transition:none}}
+/* Screen grime over the garden when the pet is dirty (dirt-view.js): above the pet, below the bubble and docks. */
+#aviary .scene .screen-dirt{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;image-rendering:pixelated}
