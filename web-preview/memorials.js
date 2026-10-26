@@ -4,12 +4,16 @@ const uuid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'
 function valid(r){return Array.isArray(r)&&r.every(x=>x&&typeof x.key==='string'&&typeof x.deviceId==='string'&&['mock','ble'].includes(x.source)&&typeof x.name==='string'&&typeof x.ageSeconds==='string'&&/^\d+$/.test(x.ageSeconds)&&['egg','baby','adult'].includes(x.stage)&&typeof x.dead==='boolean'&&(x.speciesId===undefined||Number.isInteger(x.speciesId)&&x.speciesId>=1&&x.speciesId<=255)&&(x.departed===undefined||typeof x.departed==='boolean')&&!(x.dead&&x.departed));}
 const records=PetLocalStore.read('memorials',valid)||[];
 const validPhoto=url=>typeof url==='string'&&url.length<=400000&&/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(url);
-// Scene photos (garden plus pet, 2026-10-24) replace the older framed pet-only snapshots once.
+// Scene photos (garden plus pet, 2026-10-24) replace the older framed pet-only snapshots once. Device pets
+// (source 'ble') are matched by device id + pet id; every departed record of that pet (one per connection session
+// until the memorial sync merges them) gets the photo. It is Web-only extra data the ESP32 never sees.
 function savePhoto(p,url){
  if(!validPhoto(url))return false;
- const at=records.findIndex(r=>r.source==='mock'&&r.petId===p.petId&&(r.dead||r.departed));
- if(at<0)return false;if(validPhoto(records[at].photo)&&records[at].photoKind==='scene')return true;
- const next=records.slice();next[at]={...next[at],photo:url,photoKind:'scene'};
+ const ble=!!p?.deviceId&&records.some(r=>r.source==='ble'&&r.deviceId===p.deviceId&&r.petId===p.petId&&r.departed);
+ const match=r=>ble?r.source==='ble'&&r.deviceId===p.deviceId&&r.petId===p.petId&&r.departed:r.source==='mock'&&r.petId===p.petId&&(r.dead||r.departed);
+ const todo=records.map((r,i)=>match(r)?i:-1).filter(i=>i>=0);if(!todo.length)return false;
+ const missing=todo.filter(i=>!(validPhoto(records[i].photo)&&records[i].photoKind==='scene'));if(!missing.length)return true;
+ const next=records.slice();for(const i of missing)next[i]={...next[i],photo:url,photoKind:'scene'};
  if(!PetLocalStore.write('memorials',next))return false;records.splice(0,records.length,...next);return true;
 }
 function remember(p,source,session){
@@ -130,7 +134,7 @@ function renderCards(){
  for(const r of shown)list.append(card(r,order.get(r.key)));
  actions(shown);
 }
-window.PetMemorials={uuid,remember,duration,savePhoto,farewellDate,hasDemoName:name=>records.some(r=>r.source==='mock'&&(r.dead||r.departed)&&r.name===name),open(preferred){render(preferred);$('#cemetery-dialog').showModal();}};
+window.PetMemorials={uuid,remember,duration,savePhoto,farewellDate,records:()=>JSON.parse(JSON.stringify(records)),hasDemoName:name=>records.some(r=>r.source==='mock'&&(r.dead||r.departed)&&r.name===name),open(preferred){render(preferred);$('#cemetery-dialog').showModal();}};
 $('#cemetery-device').onchange=()=>{garden=$('#cemetery-device').value;renderCards();};
 $('#album-delete-confirm').onclick=()=>{const list=pendingDelete;pendingDelete=null;$('#album-delete').close?.();if(list&&setHidden(list.map(r=>r.key))){selecting=false;selected.clear();renderCards();toast(list);}};
 $('#cemetery-dialog').addEventListener('close',()=>{selecting=false;selected.clear();});

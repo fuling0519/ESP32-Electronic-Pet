@@ -127,4 +127,18 @@ if ($LASTEXITCODE) { throw 'Pet sync tests failed.' }
 if ($LASTEXITCODE) { throw 'Care sync test build failed.' }
 & "$outputPath/care-sync.exe"
 if ($LASTEXITCODE) { throw 'Care sync tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/lifecycle_sync_native.cpp `
+    src/ble/LifecycleCommand.cpp src/ble/CareCommand.cpp src/ble/OpCache.cpp src/ble/GameCommand.cpp src/games/WebGameSession.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp -o "$outputPath/lifecycle-sync.exe"
+if ($LASTEXITCODE) { throw 'Lifecycle sync test build failed.' }
+& "$outputPath/lifecycle-sync.exe"
+if ($LASTEXITCODE) { throw 'Lifecycle sync tests failed.' }
+$lifecycleUiSources = @('test/lifecycle_ui_native.cpp','src/ble/LifecycleCommand.cpp','src/ble/CareCommand.cpp',
+    'src/ble/OpCache.cpp','src/ble/PetEvents.cpp','src/ble/Messages.cpp','src/ble/GameCommand.cpp',
+    'src/games/WebGameSession.cpp') + $webPlaySources[1..($webPlaySources.Length - 1)]
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" -I.pio/libdeps/esp32dev/ArduinoJson/src @lifecycleUiSources @objects -o "$outputPath/lifecycle-ui.exe"
+if ($LASTEXITCODE) { throw 'Lifecycle UI test build failed.' }
+& "$outputPath/lifecycle-ui.exe"
+if ($LASTEXITCODE) { throw 'Lifecycle UI tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"

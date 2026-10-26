@@ -121,7 +121,8 @@ public:
     bool deviceGameActive() const;
     Activity activity() const;
     // A remote command accepted on a menu page: back to Home like a long press, without the
-    // cancel sound. Other activities are left unchanged.
+    // cancel sound; for an ended pet, memorial pages go back to the end menu (DeathOptions).
+    // Other activities are left unchanged.
     void leaveMenuForRemote();
     // Web care treatment: the same pour as the menu item; false when it could not start.
     bool beginRemoteTreatment(uint32_t now);

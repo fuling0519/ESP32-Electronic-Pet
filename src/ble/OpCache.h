@@ -1,11 +1,12 @@
 #pragma once
 #include <stdint.h>
 #include "ble/CareCommand.h"
+#include "ble/LifecycleCommand.h"
 
 namespace Ble {
 
-// Write commands that carry an op (only care so far; depart/adopt/delete_memorial later).
-enum class OpKind : uint8_t { Care };
+// Write commands that carry an op (delete_memorial later). action: CareAction or LifecycleAction.
+enum class OpKind : uint8_t { Care, Lifecycle };
 
 // The last 8 accepted ops, in RAM only. Rejected commands are never recorded, so a retry
 // with the same op is checked again from scratch.
@@ -20,7 +21,8 @@ public:
         OpKind kind = OpKind::Care;
         uint8_t action = 0;
         bool used = false, done = false;
-        CareOutcome outcome{};
+        CareOutcome outcome{};          // Care
+        LifecycleOutcome lifecycle{};   // Lifecycle
     };
     // A pending or done match takes commandId; another command, action or target is a conflict.
     Match check(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t commandId);
@@ -28,6 +30,7 @@ public:
     void begin(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t commandId);
     // Marks it done; null when the op was evicted meanwhile.
     const Entry* complete(uint64_t op, const CareOutcome& outcome);
+    const Entry* complete(uint64_t op, const LifecycleOutcome& outcome);
     const Entry* find(uint64_t op) const;
 private:
     Entry entries_[kCapacity]{};

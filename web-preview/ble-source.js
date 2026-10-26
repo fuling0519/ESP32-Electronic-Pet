@@ -1,7 +1,7 @@
 /* BLE v1 transport -> domain snapshot. Sends the two read-only queries, plus the Web play game commands when the
  * firmware declares the web_game feature (see PROTOCOL.md, Web 陪玩). Accepts 養成同步 phase 1 (status additions,
- * device_info.rules, pet_event) and phase 2 (the care command with its op / action_result); lifecycle and memorial
- * commands are still not sent. */
+ * device_info.rules, pet_event), phase 2 (the care command with its op / action_result) and phase 3 (depart / adopt,
+ * same op rules, only with the lifecycle feature); memorial commands are still not sent. */
 (()=>{'use strict';
 const UUID={service:'7d2a0001-8b7c-4f3a-9c2d-1e5f6a7b8c90',command:'7d2a0002-8b7c-4f3a-9c2d-1e5f6a7b8c90',event:'7d2a0003-8b7c-4f3a-9c2d-1e5f6a7b8c90'};
 const decimal=x=>typeof x==='string'&&/^\d+$/.test(x);
@@ -15,7 +15,11 @@ const RULES=['sick_after_seconds','death_after_sick_seconds','memorial_limit'];
 const CARE_ACTIONS=['feed','clean','treat','sleep','wake'],CARE_WAIT_MS=10000,CARE_GIVE_UP_MS=30000;
 function newOp(){const b=new Uint8Array(8);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');}
 const CHANGE_KEYS=['satiety','cleanliness','exp','levels_gained'];
-function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];if(typeof c.grew==='boolean')o.grew=c.grew;return o;}
+// Write commands sharing the op rules, with the feature each one needs (PROTOCOL.md 寫入命令共通規則).
+const WRITE_FEATURE={care:'care',depart:'lifecycle',adopt:'lifecycle'},WRITE_NAME={care:'照顧',depart:'送別',adopt:'領養'};
+// Known deltas only: care numbers and grew, depart memorial_saved, adopt the new egg's id, name and species.
+function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];for(const k of ['grew','memorial_saved'])if(typeof c[k]==='boolean')o[k]=c[k];
+ if(decimal(c.new_pet_id))o.new_pet_id=c.new_pet_id;if(typeof c.name==='string'&&c.name.trim())o.name=c.name;if(Number.isInteger(c.species_id)&&c.species_id>=1&&c.species_id<=255)o.species_id=c.species_id;return o;}
 function mapRules(r){
   if(r===undefined)return null;
   if(!r||typeof r!=='object'||Array.isArray(r)||RULES.some(k=>r[k]!==undefined&&(!uint32(r[k])||r[k]<1)))throw new Error('裝置規則欄位不相容');
@@ -45,7 +49,7 @@ class BleSource {
   read(){return {source:'ble',connection:this.connection,pet:this.cache?.pet??null,receivedAt:this.cache?.receivedAt??null,message:this.message,stale:this.connection!=='ready',
    activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd,
    games:this.connection==='ready'&&Array.isArray(this.info?.games)?this.info.games.filter(g=>typeof g==='string'):null,
-   petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),care:this.connection==='ready'&&!!this.info?.features?.includes?.('care'),careSending:this.ops.size>0,rules:this.connection==='ready'?this.rules:null,
+   petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),care:this.connection==='ready'&&!!this.info?.features?.includes?.('care'),lifecycle:this.connection==='ready'&&!!this.info?.features?.includes?.('lifecycle'),careSending:this.ops.size>0,rules:this.connection==='ready'?this.rules:null,
    // Device album summary, kept for the later memorial sync; nothing is fetched yet. A cached one is the last known.
    memorials:this.cache?.wire?.memorial_count!==undefined?{count:this.cache.wire.memorial_count,hash:this.cache.wire.memorial_hash}:null};}
   subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
@@ -70,15 +74,25 @@ class BleSource {
   care(action){
     if(!CARE_ACTIONS.includes(action))throw new Error('不支援的照顧動作');
     if(this.connection!=='ready'||!this.info?.features?.includes?.('care'))throw new Error('這台電子雞目前不能從網頁照顧');
-    if(this.ops.size)throw new Error('上一個照顧動作還在等電子雞回覆');
-    const fields={action,pet_id:this.cache.pet.petId,op:newOp()},first=Date.now();
+    return this.write('care',{action});
+  }
+  // depart / adopt (lifecycle): the same op, resend and give-up path as care, for the pet the snapshot shows (adopt
+  // names the ended one). Resolves with {action:'depart'|'adopt',changes}. The page must confirm before calling.
+  lifecycle(cmd){
+    if(!['depart','adopt'].includes(cmd))throw new Error('不支援的生命週期命令');
+    if(this.connection!=='ready'||!this.info?.features?.includes?.(WRITE_FEATURE[cmd]))throw new Error('這台電子雞目前不能從網頁'+WRITE_NAME[cmd]);
+    return this.write(cmd,{});
+  }
+  write(cmd,extra){
+    if(this.ops.size)throw new Error('上一個操作還在等電子雞回覆');
+    const fields={...extra,pet_id:this.cache.pet.petId,op:newOp()},first=Date.now(),action=extra.action||cmd;
     return new Promise((resolve,reject)=>{
-      const entry={action,resolve:r=>{done();resolve(r);},reject:e=>{done();reject(e);}},done=()=>{clearTimeout(entry.timer);this.ops.delete(fields.op);this.emit();};
+      const entry={action,cmd,resolve:r=>{done();resolve(r);},reject:e=>{done();reject(e);}},done=()=>{clearTimeout(entry.timer);this.ops.delete(fields.op);this.emit();};
       const send=()=>{entry.timer=setTimeout(wait,CARE_WAIT_MS);
         // A transport loss (no code) just waits for the next resend; a refusal ends the action.
-        if(this.connection==='ready')this.request('care',fields).catch(e=>{if(e.code&&this.ops.get(fields.op)===entry)entry.reject(e);});};
+        if(this.connection==='ready')this.request(cmd,fields).catch(e=>{if(e.code&&this.ops.get(fields.op)===entry)entry.reject(e);});};
       const wait=()=>{if(this.ops.get(fields.op)!==entry)return;if(Date.now()-first<CARE_GIVE_UP_MS){send();return;}
-        const e=new Error('沒有收到電子雞的照顧結果，結果不明，請看最新狀態。');e.code='timeout';entry.reject(e);
+        const e=new Error('沒有收到電子雞的'+WRITE_NAME[cmd]+'結果，結果不明，請看最新狀態。');e.code='timeout';entry.reject(e);
         if(this.connection==='ready')this.query('get_status').catch(()=>{});};
       this.ops.set(fields.op,entry);this.emit();send();
     });
@@ -141,17 +155,17 @@ class BleSource {
   messageReceived(msg){
     if(msg.v!==1){this.disconnect();throw new Error('不支援的 BLE 協定版本，已停止查詢');}
     if(msg.type==='command_result'){const p=this.pending.get(msg.id);if(!p)return;
-     if(msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);const e=new Error('裝置拒絕'+(GAME_COMMANDS.includes(p.cmd)?'遊戲命令':p.cmd==='care'?'照顧命令':'查詢')+'：'+String(msg.code));e.code=String(msg.code);p.reject(e);}
-     else if(p.cmd==='game_heartbeat'||p.cmd==='game_cancel'||p.cmd==='care'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
+     if(msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);const e=new Error('裝置拒絕'+(GAME_COMMANDS.includes(p.cmd)?'遊戲命令':WRITE_NAME[p.cmd]?WRITE_NAME[p.cmd]+'命令':'查詢')+'：'+String(msg.code));e.code=String(msg.code);p.reject(e);}
+     else if(p.cmd==='game_heartbeat'||p.cmd==='game_cancel'||WRITE_NAME[p.cmd]){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
      return;}
     // Game events answer the start/finish command with the same id; a device-side end is kept for the play view.
     if(msg.type==='game_session'||msg.type==='game_result'){const p=this.pending.get(msg.id);
      if(p&&p.cmd===(msg.type==='game_session'?'game_start':'game_finish')&&decimal(msg.session)){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}return;}
     if(msg.type==='pet_event'){this.petEvent(msg);return;}
-    if(msg.type==='action_result'){const p=this.pending.get(msg.id);if(p?.cmd==='care'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
+    if(msg.type==='action_result'){const p=this.pending.get(msg.id);if(WRITE_NAME[p?.cmd]){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
      const entry=typeof msg.op==='string'&&this.ops.get(msg.op);if(!entry)return;
      if(msg.outcome==='done')entry.resolve({action:entry.action,changes:mapChanges(msg.changes)});
-     else{const code=msg.outcome==='failed'&&typeof msg.code==='string'?msg.code:'failed',e=new Error('電子雞沒有完成照顧：'+code);e.code=code;entry.reject(e);}
+     else{const code=msg.outcome==='failed'&&typeof msg.code==='string'?msg.code:'failed',e=new Error('電子雞沒有完成'+WRITE_NAME[entry.cmd]+'：'+code);e.code=code;entry.reject(e);}
      return;}
     if(msg.type==='game_session_end'){if(decimal(msg.session)){this.gameEnd={session:msg.session,reason:String(msg.reason)};this.emit();}return;}
     if(msg.type==='device_info'){if(msg.protocol_version!==1){this.disconnect();throw new Error('裝置協定版本不相容，已停止查詢');}if(msg.device_id!=null&&!/^esp32-[A-F0-9]{12}$/.test(msg.device_id)||typeof msg.firmware_version!=='string'||msg.max_message_bytes!==1024)throw new Error('裝置資訊不相容');const rules=mapRules(msg.rules);this.info=msg;this.rules=rules;}
@@ -161,5 +175,5 @@ class BleSource {
     this.emit();
   }
 }
-window.PetBle={mapStatus,mapRules,mapChanges,PET_EVENTS,CARE_ACTIONS,BleSource};window.PetSources.ble=new BleSource();
+window.PetBle={mapStatus,mapRules,mapChanges,PET_EVENTS,CARE_ACTIONS,WRITE_FEATURE,BleSource};window.PetSources.ble=new BleSource();
 })();

@@ -288,7 +288,13 @@ Activity UiController::activity() const {
 }
 
 void UiController::leaveMenuForRemote() {
-    if (activity() != Activity::Menu || pet_.isEnded()) return;
+    if (pet_.isEnded()) {
+        // Memorial pages entered from an end screen go back to the end menu, like long presses.
+        if (activity() == Activity::Ended && (screen_ == ScreenId::MemorialCategories ||
+            screen_ == ScreenId::MemorialHelp || screen_ == ScreenId::Graveyard)) setScreen(ScreenId::DeathOptions);
+        return;
+    }
+    if (activity() != Activity::Menu) return;
     setScreen(ScreenId::Home);
     homeFocus_ = HomeFocus::None;  // setScreen keeps a focused Home unchanged.
     dirty_ = true;

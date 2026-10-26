@@ -182,6 +182,8 @@ void Link::processCommand() {
         return;
     }
     if (strcmp(cmd,"care")==0) { processCare(d.as<JsonVariantConst>(),id); return; }
+    LifecycleAction lifecycle;
+    if (isLifecycleCommand(cmd,lifecycle)) { processLifecycle(d.as<JsonVariantConst>(),id,lifecycle); return; }
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
@@ -193,18 +195,30 @@ void Link::processCare(JsonVariantConst message, uint32_t id) {
     CareRequest care;
     const char* code=parseCareCommand(message,id,care);
     if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
-    const uint8_t action=static_cast<uint8_t>(care.action);
-    switch (ops_.check(care.op,OpKind::Care,action,care.petId,id)) {
-        case OpCache::Match::Conflict: result(id,true,"op_conflict"); return;
-        case OpCache::Match::Pending: result(id,true,"ok"); return;
-        case OpCache::Match::Done:
-            result(id,true,"ok");
-            sendActionResult(id,*ops_.find(care.op));
-            return;
-        case OpCache::Match::New: break;
-    }
+    if (answeredFromCache(care.op,OpKind::Care,static_cast<uint8_t>(care.action),care.petId,id)) return;
     if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
     request_=Request{}; request_.kind=Request::Kind::Care; request_.care=care;
+}
+// Same as care. The adopt target is the old pet, so a replay after adoption still finds its op.
+void Link::processLifecycle(JsonVariantConst message, uint32_t id, LifecycleAction action) {
+    LifecycleRequest r;
+    const char* code=parseLifecycleCommand(message,id,action,r);
+    if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
+    if (answeredFromCache(r.op,OpKind::Lifecycle,static_cast<uint8_t>(r.action),r.petId,id)) return;
+    if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
+    request_=Request{}; request_.kind=Request::Kind::Lifecycle; request_.lifecycle=r;
+}
+bool Link::answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id) {
+    switch (ops_.check(op,kind,action,target,id)) {
+        case OpCache::Match::Conflict: result(id,true,"op_conflict"); return true;
+        case OpCache::Match::Pending: result(id,true,"ok"); return true;
+        case OpCache::Match::Done:
+            result(id,true,"ok");
+            sendActionResult(id,*ops_.find(op));
+            return true;
+        case OpCache::Match::New: break;
+    }
+    return false;
 }
 bool Link::takeRequest(Request& request) {
     if (request_.kind==Request::Kind::None) return false;
@@ -221,10 +235,23 @@ void Link::finishCare(const CareRequest& r, const CareOutcome& outcome) {
     OpCache::Entry lost; lost.op=r.op; lost.action=static_cast<uint8_t>(r.action); lost.outcome=outcome;
     sendActionResult(r.commandId,lost);
 }
+void Link::acceptLifecycle(const LifecycleRequest& r) {
+    ops_.begin(r.op,OpKind::Lifecycle,static_cast<uint8_t>(r.action),r.petId,r.commandId);
+    result(r.commandId,true,"ok");
+}
+void Link::finishLifecycle(const LifecycleRequest& r, const LifecycleOutcome& outcome) {
+    const OpCache::Entry* entry=ops_.complete(r.op,outcome);
+    if (entry) { sendActionResult(entry->commandId,*entry); return; }
+    OpCache::Entry lost; lost.op=r.op; lost.kind=OpKind::Lifecycle;
+    lost.action=static_cast<uint8_t>(r.action); lost.lifecycle=outcome;
+    sendActionResult(r.commandId,lost);
+}
 void Link::sendActionResult(uint32_t id, const OpCache::Entry& e) {
     char json[kMaxJson+1]; uint16_t len=0;
-    if (makeActionResultJson(id,e.op,static_cast<CareAction>(e.action),e.outcome,json,sizeof(json),len))
-        queue(json,TxKind::Reply);
+    const bool made=e.kind==OpKind::Lifecycle ?
+        makeLifecycleResultJson(id,e.op,static_cast<LifecycleAction>(e.action),e.lifecycle,json,sizeof(json),len) :
+        makeActionResultJson(id,e.op,static_cast<CareAction>(e.action),e.outcome,json,sizeof(json),len);
+    if (made) queue(json,TxKind::Reply);
 }
 void Link::reply(uint32_t commandId, const char* code) { result(commandId,true,code); }
 namespace {

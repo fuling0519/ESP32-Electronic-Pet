@@ -62,6 +62,7 @@ uint8_t PetEventDetector::detect(const Pet::PetData& pet, const Storage::Memoria
         if (n>=cap) return;
         PetEvent& e=out[n++]; e=PetEvent{}; e.type=type; e.petId=pet.petId();
         e.level=pet.level(); e.memorialPetId=memorialId;
+        e.fromWeb=(webMask_>>static_cast<uint8_t>(type))&1u;
     };
     if (pet.petId()!=petId_) emit(PetEventType::Adopted,0);  // A new pet: no carried-over diffs.
     else {
@@ -81,6 +82,7 @@ uint8_t PetEventDetector::detect(const Pet::PetData& pet, const Storage::Memoria
     for (uint8_t i=0;i<count;++i)
         if (!contains(memorialIds_,memorialCount_,now[i])) emit(PetEventType::MemorialAdded,now[i]);
     reset(pet,memorials);
+    webMask_=0;
     return n;
 }
 

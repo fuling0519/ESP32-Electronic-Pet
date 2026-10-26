@@ -40,4 +40,11 @@ const OpCache::Entry* OpCache::complete(uint64_t op, const CareOutcome& outcome)
     return e;
 }
 
+const OpCache::Entry* OpCache::complete(uint64_t op, const LifecycleOutcome& outcome) {
+    Entry* e = const_cast<Entry*>(find(op));
+    if (!e) return nullptr;
+    e->done = true; e->lifecycle = outcome;
+    return e;
+}
+
 }  // namespace Ble

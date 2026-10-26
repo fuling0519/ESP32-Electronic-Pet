@@ -63,6 +63,7 @@ private:
     void endWebGame(Games::WebGameEnd reason, uint32_t now);
     void handleGameRequest(const Ble::GameRequest& request, uint32_t now);
     void handleCareRequest(const Ble::CareRequest& request, uint32_t now);
+    void handleLifecycleRequest(const Ble::LifecycleRequest& request, uint32_t now);
     void serviceWebGame(uint32_t now);
     void sendPetEvent(Ble::PetEventType type, bool fromWeb = false);
     void sendStateEvents();
@@ -543,6 +544,37 @@ void Application::handleCareRequest(const Ble::CareRequest& r, uint32_t now) {
     ble.finishCare(r, outcome);
 }
 
+// Web farewell and adoption (D3: the web confirmed). Eligibility first; then leave a menu page
+// (or a memorial page back to the end menu) silently and run the device path directly.
+void Application::handleLifecycleRequest(const Ble::LifecycleRequest& r, uint32_t now) {
+    const char* activity = webGame.active() ? "web_game" : Ui::activityName(ui.activity());
+    const bool depart = r.action == Ble::LifecycleAction::Depart;
+    const char* code = depart ? Ble::departEligibility(r.petId, pet, activity, memorials.count()) :
+        Ble::adoptEligibility(r.petId, pet, activity, memorials.count(), memorialReady);
+    if (strcmp(code, "ok") != 0) { ble.reply(r.commandId, code); return; }
+    ble.acceptLifecycle(r);
+    ui.leaveMenuForRemote();
+    Ble::LifecycleOutcome outcome = Ble::lifecycleFailed("save_failed");
+    if (depart) {
+        // The SendOff path after the device's own confirmation: save, viewfinder, postcard.
+        memorialReady = Storage::beginFarewell(pet, memorials, save);
+        farewellRetryAt = now;
+        ui.setMemorialReady(memorialReady);
+        if (pet.isDeparted()) {
+            ui.onFarewellResult(memorialReady, now);  // Unsaved memorial: blocked page, 10 s retry.
+            if (memorialReady) sound.playConfirm(); else sound.playFailure();
+            petEvents.markFromWeb(Ble::PetEventType::Departed);
+            petEvents.markFromWeb(Ble::PetEventType::MemorialAdded);
+            outcome = Ble::departDone(memorialReady);
+        } else sound.playFailure();  // Nothing committed: stay here, no device retry page.
+    } else if (adoptNewEgg(now)) {
+        sound.playSuccess();
+        petEvents.markFromWeb(Ble::PetEventType::Adopted);
+        outcome = Ble::adoptDone(pet);
+    } else sound.playFailure();  // The prepared egg is kept for the next attempt.
+    ble.finishLifecycle(r, outcome);
+}
+
 void Application::serviceWebGame(uint32_t now) {
     if (webGame.active()) {
         const uint32_t session = webGame.id();
@@ -559,6 +591,7 @@ void Application::serviceWebGame(uint32_t now) {
     if (ble.takeRequest(request)) {
         if (request.kind == Ble::Request::Kind::Game) handleGameRequest(request.game, now);
         else if (request.kind == Ble::Request::Kind::Care) handleCareRequest(request.care, now);
+        else if (request.kind == Ble::Request::Kind::Lifecycle) handleLifecycleRequest(request.lifecycle, now);
     }
     ble.setActivity(webGame.active() ? "web_game" : Ui::activityName(ui.activity()));
 }

@@ -32,7 +32,7 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 
 ## 10/26 養成同步階段 1
 
-依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care` 見下方階段 2，`depart`、`adopt`、紀念冊命令仍屬後續階段。
+依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care` 見下方階段 2，`depart`、`adopt` 見階段 3，紀念冊命令仍屬後續階段。
 
 - 狀態快照新增欄位有出現才代表支援，缺少時維持舊行為；出現但格式錯誤（傷心原因不在四種或重複、蛋與終止個體非空陣列、秒數不是 0～4294967295 整數、健康卻有生病秒數、存活卻有死亡原因、紀念冊筆數與 hash 只出現一個或格式錯）就拒絕整份快照。
 - pet 新增：`sadReasons`（韌體 `sad_reasons` 轉成 `{device:true,mood,satiety,cleanliness,sick}`，PetRules 看到 `device` 就直接採用、不再自行推算；舊韌體仍由本機門檻計算）、`dangerSeconds`、`sickSeconds`、`deathCause`（未知值記為 `unknown`，畫面顯示原因未知）。
@@ -51,3 +51,12 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 - 畫面：送出時鎖住所有照顧與陪玩按鈕；收到 `done` 後才播花園版餵食／清潔／治療動畫，狀態列顯示實際增量（例如「餵好了：飽食度 +20、EXP +3。」），有升級顯示 LEVEL UP。睡覺／起床沒有花園動畫，只顯示結果。數值、睡眠與健康一律等下一份狀態快照，不在本機加總。韌體為這次網頁命令送出的 `pet_event`（`source:"web"`）在 BLE 層略過，不會重播動畫。未宣告 `care` 的韌體維持唯讀，照顧按鈕隱藏。
 
 離線測試見 `care-sync-tests.cjs`（假 BLE 寫入與假計時器）。未接實機 ESP32 驗證，電子雞端動畫、音效與實際增量都尚未驗收。
+
+## 10/26 養成同步階段 3（送別與領養）
+
+- `BleSource.lifecycle(cmd)`：`cmd` 為 `depart`／`adopt`，只在連線就緒且 `features` 含 `lifecycle` 時可用，`pet_id` 為快照中的目前個體（領養時即已結束的那一隻）。與 `care` 共用同一條寫入路徑（`write()`）：每次操作一個新 `op`、以 `op` 比對 `action_result`、10 秒同 `op` 重送、30 秒放棄並重讀狀態、全部寫入命令一次只能有一個（`careSending` 代表任何寫入命令進行中）。`changes` 另保留 `memorial_saved` 布林與領養的 `new_pet_id`、`name`、`species_id`。
+- `petDataManager.farewell()`／`adopt()`：裝置模式且支援 `lifecycle` 時回傳上述 Promise；展示模式不變。metadata 新增 `lifecycle`。
+- `device-lifecycle.js`（`PetDeviceLifecycle`）：`shown()` 決定入口（送別：幼年／成年且未終止；領養：已死亡或遠行），`blocker()` 給不可用原因（送別需清醒且 `activity` 為 `idle`／`menu`；領養需 `ended`）。錯誤碼各有繁中說明；`memorial_full` 請玩家先在 ESP32 上刪除一筆紀念紀錄（Web 刪除裝置紀錄屬階段 4）。滿額不在 Web 預先判斷，由韌體回覆。
+- 畫面：裝置模式在花園下方顯示「送別」，沿用 `#farewell-dialog`（名字、快照 `age_seconds` 的陪伴時間、「送別後無法召回」，預設焦點「留下」）；確認後才送 `depart`。`done` 只顯示結果（`memorial_saved:false` 時說明電子雞還在保存紀念紀錄），遠行由下一份 `is_departed:true` 快照驅動既有送別動畫，同一個體只播一次；明信片場景照片存進該裝置寵物的 Web 紀念紀錄（以 `device_id` + `pet_id` 比對）。結束畫面的「領養新蛋」在支援時於裝置模式顯示，沿用 `#adopt-dialog` 並改為裝置文案（種類與名字由電子雞決定）；`done` 顯示新名字與種類，之後的蛋快照照常顯示蛋與孵化。結果文字在之後 8 秒內不被快照的連線訊息蓋掉。本頁命令的 `departed`／`adopted` 事件（`source:"web"`）在 BLE 層略過；電子雞端的事件維持階段 1 行為，由快照驅動。
+
+離線測試見 `lifecycle-sync-tests.cjs`。未接實機 ESP32 驗證，電子雞端的送別／領養流程、`memorial_saved:false` 重試與滿額回覆都尚未驗收。

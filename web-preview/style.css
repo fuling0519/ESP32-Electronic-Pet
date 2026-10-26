@@ -99,7 +99,7 @@ dialog button,dialog select{max-width:100%;white-space:normal}
 .pet-status-grid{display:grid;grid-template-columns:1fr auto;gap:7px 20px;padding:14px 8px;font-size:15px}.pet-status-grid strong{color:#66518a;text-align:right}.status-meter-value,.status-exp-value{display:grid;grid-template-columns:auto;gap:4px;justify-items:end}.status-meter-value progress,.status-exp-value progress{width:150px;height:10px;accent-color:#b47ea9}.status-meter-value strong,.status-exp-value strong{line-height:1.2}
 .details{display:none}
 /* Device companion home: demo-only controls live in the collapsed panel and hide in device mode. */
-#aviary.device-mode:not(.device-play):not(.device-care) .care,#aviary.device-mode:not(.device-care) .care [data-action]:not([data-action="play"]),#aviary.device-mode:not(.device-play) .care [data-action="play"],#aviary:not(.device-mode) .care [data-action="rest"],#aviary.device-mode #adopt-egg,#aviary.device-mode #demo-panel{display:none!important}
+#aviary.device-mode:not(.device-play):not(.device-care) .care,#aviary.device-mode:not(.device-care) .care [data-action]:not([data-action="play"]),#aviary.device-mode:not(.device-play) .care [data-action="play"],#aviary:not(.device-mode) .care [data-action="rest"],#aviary.device-mode:not(.device-lifecycle) #adopt-egg,#aviary.device-mode #demo-panel{display:none!important}
 #connection.primary{background:var(--ink);color:#fffaf0;border-color:var(--ink);font-weight:bold}
 
 #device-empty button{margin-top:6px}
@@ -234,3 +234,5 @@ header .icon-button{padding:0}
 @media(prefers-reduced-motion:reduce){.message-bar{transition:none}}
 /* Screen grime over the garden when the pet is dirty (dirt-view.js): above the pet, below the bubble and docks. */
 #aviary .scene .screen-dirt{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;image-rendering:pixelated}
+/* Device farewell (device-lifecycle.js): one quiet button under the garden, dimmed with the reason while blocked. */
+#device-lifecycle{display:flex;justify-content:center;margin:10px 0}#device-lifecycle[hidden]{display:none}#device-lifecycle button.is-blocked,#afterlife-menu button.is-blocked{opacity:.6;cursor:not-allowed}

@@ -35,9 +35,13 @@ public:
     void reset(const Pet::PetData& pet, const Storage::Memorials& memorials);
     // Writes up to cap events (extras are dropped) and records the new observation.
     uint8_t detect(const Pet::PetData& pet, const Storage::Memorials& memorials, PetEvent* out, uint8_t cap);
+    // A web command caused this change: the next detect() reports events of this type with
+    // source web, then forgets the mark.
+    void markFromWeb(PetEventType type) { webMask_ |= static_cast<uint16_t>(1u << static_cast<uint8_t>(type)); }
 
 private:
     bool ready_ = false;
+    uint16_t webMask_ = 0;
     uint64_t petId_ = 0;
     Pet::LifeStage stage_ = Pet::LifeStage::Egg;
     uint8_t level_ = 0;

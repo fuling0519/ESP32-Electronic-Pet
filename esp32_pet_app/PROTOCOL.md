@@ -140,9 +140,9 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 **限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
 
-## 養成同步（2026-10-26 定案；階段 1～2 已實作）
+## 養成同步（2026-10-26 定案；階段 1～3 已實作）
 
-設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體宣告 `pet_events`（快照擴充、`activity` 新值與事件）與 `care`；`lifecycle`、`memorials` 尚未實作；實作與驗證進度只看主台帳。
+設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體宣告 `pet_events`（快照擴充、`activity` 新值與事件）、`care` 與 `lifecycle`；`memorials` 尚未實作；實作與驗證進度只看主台帳。
 
 **能力。** `device_info.features` 新增 `pet_events`、`care`、`lifecycle`、`memorials`，各自開放下方對應的事件或命令；缺少即不支援。`device_info` 另加可選物件 `rules`：`sick_after_seconds`、`death_after_sick_seconds`、`memorial_limit`（皆為正整數），Web 以此顯示倒數與滿額，不自行寫死門檻。
 
@@ -202,6 +202,7 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 - `depart`：`activity` 為 `idle` 或 `menu`，幼年／成年、清醒、未終止（生病可送別）；`memorial_count` 達 `rules.memorial_limit` 回 `memorial_full`。韌體不再要求裝置端確認，客戶端必須先自行確認。`done` 代表遠行旗標已保存；`changes.memorial_saved` 為 false 時，韌體依既有規則重試寫入紀念紀錄，成功後以 `memorial_hash` 反映。
 - `adopt`：`pet_id` 為已結束的目前個體，`activity` 為 `ended`，其紀念紀錄已保存且 `memorial_count` 不超過 `rules.memorial_limit`（否則 `memorial_full`）。名字與種類由韌體亂數決定；`changes` 為 `new_pet_id`（十進位字串）、`name`、`species_id`。
+- 兩者的資格順序：`op` 格式 → `op` 快取 → `pet_changed` → `not_allowed` → `memorial_full` → `busy`。`adopt` 時紀念紀錄尚在重試寫入視為 `busy`（`activity` 不會是 `ended`）；電子雞停在由結束畫面進入的紀念冊頁時，先退回結束選單再領養。`adopt` 的 `op` 目標是舊個體，領養後以同一 `op` 重送仍回放原結果，不回 `pet_changed`。
 
 **紀念冊**（`memorials`）：
 

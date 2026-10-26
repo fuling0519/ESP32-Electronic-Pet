@@ -6,6 +6,7 @@
 #include "pet/PetData.h"
 #include "ble/CareCommand.h"
 #include "ble/GameCommand.h"
+#include "ble/LifecycleCommand.h"
 #include "ble/Messages.h"
 #include "ble/OpCache.h"
 #include "ble/PetEvents.h"
@@ -13,12 +14,13 @@
 class NimBLECharacteristic;
 class NimBLEServer;
 namespace Ble {
-// One parsed command for the application: a Web play command or a new care op.
+// One parsed command for the application: a Web play command or a new care/lifecycle op.
 struct Request {
-    enum class Kind : uint8_t { None, Game, Care };
+    enum class Kind : uint8_t { None, Game, Care, Lifecycle };
     Kind kind = Kind::None;
     GameRequest game{};
     CareRequest care{};
+    LifecycleRequest lifecycle{};
 };
 class Link {
 public:
@@ -28,8 +30,8 @@ public:
     bool isConnected() const { return connected_; }
 
     // One parsed command waits here until the application takes it. Game commands are
-    // answered with reply() plus, on success, the matching event; a care op with reply()
-    // when rejected, or acceptCare() and later finishCare() exactly once.
+    // answered with reply() plus, on success, the matching event; a care or lifecycle op with
+    // reply() when rejected, or accept...() and later finish...() exactly once.
     bool takeRequest(Request& request);
     void reply(uint32_t commandId, const char* code);
     void sendGameSession(uint32_t commandId, uint32_t session, const char* game, uint32_t minMs);
@@ -39,6 +41,8 @@ public:
     void acceptCare(const CareRequest& request);
     // Records the outcome for replays and sends action_result with the latest command id.
     void finishCare(const CareRequest& request, const CareOutcome& outcome);
+    void acceptLifecycle(const LifecycleRequest& request);
+    void finishLifecycle(const LifecycleRequest& request, const LifecycleOutcome& outcome);
     // idle, menu, sleeping, ended, device_game, web_game or busy; in every status snapshot.
     void setActivity(const char* activity);
     // Pet sync status fields (sad reasons, memorial count/hash); both must outlive the link.
@@ -63,6 +67,9 @@ private:
     void processCommand();
     void result(uint32_t id, bool hasId, const char* code);
     void processCare(JsonVariantConst message, uint32_t id);
+    void processLifecycle(JsonVariantConst message, uint32_t id, LifecycleAction action);
+    // Op cache lookup shared by the write commands: true when this command was answered here.
+    bool answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id);
     void sendActionResult(uint32_t id, const OpCache::Entry& entry);
     bool queue(const char* json, TxKind kind);
     bool makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const;
