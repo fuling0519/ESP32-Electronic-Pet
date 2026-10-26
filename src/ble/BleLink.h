@@ -7,6 +7,7 @@
 #include "ble/CareCommand.h"
 #include "ble/GameCommand.h"
 #include "ble/LifecycleCommand.h"
+#include "ble/MemorialCommand.h"
 #include "ble/Messages.h"
 #include "ble/OpCache.h"
 #include "ble/PetEvents.h"
@@ -14,13 +15,14 @@
 class NimBLECharacteristic;
 class NimBLEServer;
 namespace Ble {
-// One parsed command for the application: a Web play command or a new care/lifecycle op.
+// One parsed command for the application: a Web play command or a new care/lifecycle/memorial op.
 struct Request {
-    enum class Kind : uint8_t { None, Game, Care, Lifecycle };
+    enum class Kind : uint8_t { None, Game, Care, Lifecycle, Memorial };
     Kind kind = Kind::None;
     GameRequest game{};
     CareRequest care{};
     LifecycleRequest lifecycle{};
+    MemorialRequest memorial{};
 };
 class Link {
 public:
@@ -43,6 +45,8 @@ public:
     void finishCare(const CareRequest& request, const CareOutcome& outcome);
     void acceptLifecycle(const LifecycleRequest& request);
     void finishLifecycle(const LifecycleRequest& request, const LifecycleOutcome& outcome);
+    void acceptMemorial(const MemorialRequest& request);
+    void finishMemorial(const MemorialRequest& request, const MemorialOutcome& outcome);
     // idle, menu, sleeping, ended, device_game, web_game or busy; in every status snapshot.
     void setActivity(const char* activity);
     // Pet sync status fields (sad reasons, memorial count/hash); both must outlive the link.
@@ -63,11 +67,13 @@ private:
     void connected();
     void disconnected();
     void onWrite(NimBLECharacteristic* characteristic);
-    void receive(const RxFrame& frame, uint32_t nowMs);
-    void processCommand();
+    void receive(const Pet::PetData& pet, const RxFrame& frame, uint32_t nowMs);
+    void processCommand(const Pet::PetData& pet);
     void result(uint32_t id, bool hasId, const char* code);
     void processCare(JsonVariantConst message, uint32_t id);
     void processLifecycle(JsonVariantConst message, uint32_t id, LifecycleAction action);
+    void processGetMemorials(const Pet::PetData& pet, JsonVariantConst message, uint32_t id);
+    void processDeleteMemorial(JsonVariantConst message, uint32_t id);
     // Op cache lookup shared by the write commands: true when this command was answered here.
     bool answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id);
     void sendActionResult(uint32_t id, const OpCache::Entry& entry);

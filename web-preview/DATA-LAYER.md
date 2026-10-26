@@ -32,11 +32,11 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 
 ## 10/26 養成同步階段 1
 
-依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care` 見下方階段 2，`depart`、`adopt` 見階段 3，紀念冊命令仍屬後續階段。
+依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care` 見下方階段 2，`depart`、`adopt` 見階段 3，紀念冊讀取與刪除見階段 4。
 
 - 狀態快照新增欄位有出現才代表支援，缺少時維持舊行為；出現但格式錯誤（傷心原因不在四種或重複、蛋與終止個體非空陣列、秒數不是 0～4294967295 整數、健康卻有生病秒數、存活卻有死亡原因、紀念冊筆數與 hash 只出現一個或格式錯）就拒絕整份快照。
 - pet 新增：`sadReasons`（韌體 `sad_reasons` 轉成 `{device:true,mood,satiety,cleanliness,sick}`，PetRules 看到 `device` 就直接採用、不再自行推算；舊韌體仍由本機門檻計算）、`dangerSeconds`、`sickSeconds`、`deathCause`（未知值記為 `unknown`，畫面顯示原因未知）。
-- metadata 新增：`petEvents`（`features` 含 `pet_events` 且連線就緒）、`rules`（`device_info.rules` 的正整數，斷線即清除；格式錯誤拒收該份 device_info）、`memorials`（頂層 `memorial_count`／`memorial_hash`，只保存供後續階段對帳，尚不讀取紀念冊）。
+- metadata 新增：`petEvents`（`features` 含 `pet_events` 且連線就緒）、`rules`（`device_info.rules` 的正整數，斷線即清除；格式錯誤拒收該份 device_info）、`memorials`（頂層 `memorial_count`／`memorial_hash`；階段 4 以 hash 判斷是否要重新對帳，見下方）。
 - 有快照秒數與 `rules` 時，傷心原因下方顯示生病／離世倒數；連線中以收到快照後經過的時間估算，為「約」值。缺任一項不顯示。
 - `activity` 的 `menu`、`sleeping`、`ended` 都不是 `idle`，Web 陪玩維持不可開局並顯示原因。
 - `pet_event` 只在連線就緒、宣告 `pet_events`、`pet_id` 為目前個體（`adopted` 除外）且 `source` 不是 `web` 時交給 `petDataManager.onPetEvent`；不改快取、不觸發狀態訂閱。畫面只據此播動畫：`fed`／`cleaned`／`treated` 播餵食／清潔／治療動畫，`level_up` 顯示 LEVEL UP；孵化與長大仍由快照的階段變化播轉場，死亡、遠行、領養與紀念冊由下一份快照處理。已有動畫、成長轉場或陪玩進行中時略過事件。
@@ -60,3 +60,18 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 - 畫面：裝置模式在花園下方顯示「送別」，沿用 `#farewell-dialog`（名字、快照 `age_seconds` 的陪伴時間、「送別後無法召回」，預設焦點「留下」）；確認後才送 `depart`。`done` 只顯示結果（`memorial_saved:false` 時說明電子雞還在保存紀念紀錄），遠行由下一份 `is_departed:true` 快照驅動既有送別動畫，同一個體只播一次；明信片場景照片存進該裝置寵物的 Web 紀念紀錄（以 `device_id` + `pet_id` 比對）。結束畫面的「領養新蛋」在支援時於裝置模式顯示，沿用 `#adopt-dialog` 並改為裝置文案（種類與名字由電子雞決定）；`done` 顯示新名字與種類，之後的蛋快照照常顯示蛋與孵化。結果文字在之後 8 秒內不被快照的連線訊息蓋掉。本頁命令的 `departed`／`adopted` 事件（`source:"web"`）在 BLE 層略過；電子雞端的事件維持階段 1 行為，由快照驅動。
 
 離線測試見 `lifecycle-sync-tests.cjs`。未接實機 ESP32 驗證，電子雞端的送別／領養流程、`memorial_saved:false` 重試與滿額回覆都尚未驗收。
+
+## 10/26 養成同步階段 4（紀念冊同步）
+
+依 PROTOCOL.md「養成同步」節的「紀念冊」段與企劃 §8.3、D3、D4；只在 `device_info.features` 含 `memorials` 時啟用，展示模式的紀錄一律不參與。
+
+- `BleSource.getMemorials()`：從 `offset` 0 逐頁送 `get_memorials`（唯讀、不帶 `op`），檢查每頁 `hash`（8 位小寫 hex）、`total`、`offset` 與最多 5 筆的 `items`（`pet_id`、`name`、`species_id`（缺少視為 1）、`age_seconds`、`kind`、`stage`（含 `unknown`）、`protected`），任何一頁格式錯誤就拒絕整次讀取。途中 `hash` 改變就從 0 重讀，最多 3 次。回傳 `{hash,items}`。metadata 新增 `memorialSync`（連線就緒且宣告 `memorials`）。
+- `BleSource.deleteMemorial(petId)`：與 `care`／`depart`／`adopt` 共用 `write()`（同一 `op` 每 10 秒重送、30 秒放棄、一次只能一個寫入命令），送 `{cmd:"delete_memorial",memorial_pet_id,op}`，不帶 `pet_id`。`not_found`／`not_allowed` 以帶 `code` 的 Error 拒絕。`petDataManager.deviceMemorials()`／`deleteDeviceMemorial(id)` 回傳複本 Promise。
+- `memorial-sync.js`（`PetMemorialSync`）：連線就緒（info 與 status 都到）後、以及 `memorial_hash` 和該裝置上次同步的不同時對帳。順序：送出該 `device_id` 的待刪佇列 → 讀完整清單 → 裝置有、Web 沒有就新增（只有裝置欄位，照片、日期、等級留空）→ 兩邊都有就以裝置欄位覆蓋並保留 Web 額外資訊，同一隻的多筆每次連線紀錄合併成一筆 → Web 有、裝置沒有的已結束紀錄移除（雙向連動）。比對鍵是 `device_id` + `pet_id`，再核對名字與種類，ID 相同但名字或種類不同視為另一筆。例外：快照中目前已結束、但電子雞清單還沒有的那一隻（紀念紀錄可能還在保存）保留不刪；仍存活個體的首次看見紀錄照舊保留。上次同步的 hash 與佇列存在 LocalStorage `aviary.memorial-sync`（依 `device_id` 分開）。
+- 首次對帳若會移除紀錄，先跳出 `#memorial-sync-dialog`「同步後會移除 N 筆」並列出名字，要玩家選「同步並移除」或「先保留」。理由：這些多半是雙向同步前留下、可能帶有只存在網頁的照片，移除後無法復原；先保留對電子雞沒有任何影響，下次連線會再問。回答一次後，之後在電子雞上刪除的紀錄就直接同步移除，紀念冊說明列顯示移除了哪些。
+- 若電子雞清單在上次同步後變了，送出佇列前先讀清單，佇列中 ID 已不在、或同 ID 換成別的名字／種類的項目直接視為已刪除、不送出，避免 NVS 重建後刪錯（比 §8.3 多一次讀取的安全延伸）。
+- 佇列結果：`done` 或 `not_found` 移除紀錄與佇列項目；`not_allowed`（受保護的那筆）取消刪除、恢復顯示並說明；`busy`、逾時、斷線、`save_failed`、`op_conflict` 留在佇列，10 秒後或下次連線再送。`activity` 不是 `idle`／`menu`／`sleeping`／`ended` 時不送，等電子雞回到主畫面。
+- 紀念冊畫面（`memorials.js`）：已同步的裝置紀錄沿用原刪除確認框，說明會一起刪除電子雞上的紀錄；確認後進入佇列並等 6 秒的復原時間，期間按「復原」取消；連線中時間到就送出，電子雞確認後顯示「已從電子雞刪除……無法復原」且不再提供復原。斷線時刪除標成「待同步」（淡色卡片、提示文字、「取消刪除」按鈕），不算進分頁筆數，重新整理後仍保留，連上該台電子雞後自動補刪；別台電子雞的佇列不會送出。電子雞標記 `protected` 的那筆、正在送出的那筆、以及電子雞還沒存進紀念冊的目前個體不能刪除，卡片上寫原因，選取模式也不能選。卡片依電子雞保存順序排列；裝置來的紀錄沒有日期時顯示「從電子雞同步，告別日期不明」，`stage:"unknown"` 畫成成年並寫「電子雞沒有記下成長階段」。尚未對帳過的裝置與舊韌體維持原本只刪本機的行為。舊版在本機刪除（隱藏）但電子雞仍有的紀錄，對帳後會依電子雞重新顯示。
+- `pet_event` 的 `memorial_added`／`memorial_deleted`（`source` 不是 `web`）只觸發重新讀取清單；本頁刪除對應的 `source:"web"` 事件在 BLE 層略過，不會重複動作。
+
+離線測試見 `memorial-sync-tests.cjs`（假紀念冊、假 GATT 寫入、假計時器與記憶體 LocalStorage）。未接實機 ESP32 驗證：真實分頁傳輸時間、電子雞端刪除畫面與 `memorial_hash` 更新時機都尚未驗收。

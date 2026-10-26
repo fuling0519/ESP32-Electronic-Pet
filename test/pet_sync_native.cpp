@@ -167,8 +167,8 @@ static void deviceInfo() {
     StaticJsonDocument<1024> d; assert(!deserializeJson(d, json));
     assert(strcmp(d["type"], "device_info") == 0 && d["id"] == 7 && d["max_message_bytes"] == 1024);
     JsonArray features = d["features"];
-    assert(features.size() == 4 && strcmp(features[0], "web_game") == 0 && strcmp(features[1], "pet_events") == 0 &&
-           strcmp(features[2], "care") == 0 && strcmp(features[3], "lifecycle") == 0);
+    assert(features.size() == 5 && strcmp(features[0], "web_game") == 0 && strcmp(features[1], "pet_events") == 0 &&
+           strcmp(features[2], "care") == 0 && strcmp(features[3], "lifecycle") == 0 && strcmp(features[4], "memorials") == 0);
     assert(d["games"].as<JsonArray>().size() == 2);
     assert(d["rules"]["sick_after_seconds"] == static_cast<uint32_t>(Pet::PetData::kSicknessExposureSeconds));
     assert(d["rules"]["death_after_sick_seconds"] == static_cast<uint32_t>(Pet::PetData::kDeathAfterSickAwakeSeconds));

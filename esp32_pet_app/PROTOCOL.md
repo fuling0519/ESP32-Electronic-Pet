@@ -140,9 +140,9 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 **限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
 
-## 養成同步（2026-10-26 定案；階段 1～3 已實作）
+## 養成同步（2026-10-26 定案；階段 1～4 已實作）
 
-設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體宣告 `pet_events`（快照擴充、`activity` 新值與事件）、`care` 與 `lifecycle`；`memorials` 尚未實作；實作與驗證進度只看主台帳。
+設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體宣告 `pet_events`（快照擴充、`activity` 新值與事件）、`care`、`lifecycle` 與 `memorials`；實作與驗證進度只看主台帳。
 
 **能力。** `device_info.features` 新增 `pet_events`、`care`、`lifecycle`、`memorials`，各自開放下方對應的事件或命令；缺少即不支援。`device_info` 另加可選物件 `rules`：`sick_after_seconds`、`death_after_sick_seconds`、`memorial_limit`（皆為正整數），Web 以此顯示倒數與滿額，不自行寫死門檻。
 
@@ -220,6 +220,8 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 `kind` 為 `resting` 或 `departed`；`stage` 為 `egg`、`baby`、`adult` 或 `unknown`；`protected` 為目前已告別、尚未領養的那一筆。分頁途中 `hash` 改變時，客戶端從 `offset` 0 重讀。
 
 `delete_memorial` 以紀錄的 `pet_id` 指定；`activity` 須為 `idle`、`menu`、`sleeping` 或 `ended`。找不到回 `not_found`（客戶端視為已刪除），`protected` 回 `not_allowed`。韌體不要求裝置端確認，客戶端必須先自行確認。
+
+**紀念冊實作細節（階段 4）：**`offset` 缺少或非整數回 `missing_field`，負數回 `invalid_value`，超過範圍回空 `items`；`total` 等於狀態的 `memorial_count`，每頁 `hash` 等於狀態的 `memorial_hash`；`get_memorials` 任何 `activity` 都可讀。`delete_memorial` 的資格順序為 `op` 格式 → `op` 快取 → `not_found` → `not_allowed`（受保護）→ `busy`（刪除確認頁、聲音設定、遊戲等）；`op` 目標是紀念紀錄的 `pet_id`，刪除後以同一 `op` 重送回放原結果而非 `not_found`。`action_result` 的 `action` 為 `delete_memorial`，`done` 的 `changes` 為空物件。電子雞停在紀念冊頁時先靜音退回（活著回主畫面、已結束回結束選單）。客戶端把 `not_found`（含 `failed` 搭配 `not_found`）視為已刪除。
 
 **錯誤碼新增：** `op_conflict`、`memorial_full`、`not_found`、`save_failed`（僅出現在 `action_result.code`）。
 

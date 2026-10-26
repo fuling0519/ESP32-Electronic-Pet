@@ -129,7 +129,7 @@ void Link::publishStatus(const Pet::PetData& pet, uint32_t nowMs) {
     if (queue(json,TxKind::Status)) { memcpy(lastStatus_,json,len+1); forceStatus_=false; }
 }
 
-void Link::receive(const RxFrame& f, uint32_t nowMs) {
+void Link::receive(const Pet::PetData& pet, const RxFrame& f, uint32_t nowMs) {
     if (f.length<kHeader) { resetRx(); return; }
     uint16_t id=f.bytes[0] | (static_cast<uint16_t>(f.bytes[1])<<8);
     uint8_t index=f.bytes[2], count=f.bytes[3];
@@ -147,15 +147,15 @@ void Link::receive(const RxFrame& f, uint32_t nowMs) {
     rxLength_+=dataLen; ++rxNext_;
     if (rxNext_==rxCount_) {
         rxJson_[rxLength_]='\0';
-        processCommand();
+        processCommand(pet);
         resetRx();
     }
 }
-void Link::processCommand() {
-    StaticJsonDocument<256> filter;
+void Link::processCommand(const Pet::PetData& pet) {
+    StaticJsonDocument<320> filter;
     filter["v"]=true; filter["id"]=true; filter["cmd"]=true;
     filter["game"]=true; filter["pet_id"]=true; filter["session"]=true;
-    filter["action"]=true; filter["op"]=true;
+    filter["action"]=true; filter["op"]=true; filter["offset"]=true; filter["memorial_pet_id"]=true;
     filter["score"]["throws"]=true; filter["score"]["catches"]=true;
     filter["score"]["correct"]=true; filter["score"]["total"]=true;
     StaticJsonDocument<384> d;
@@ -184,6 +184,8 @@ void Link::processCommand() {
     if (strcmp(cmd,"care")==0) { processCare(d.as<JsonVariantConst>(),id); return; }
     LifecycleAction lifecycle;
     if (isLifecycleCommand(cmd,lifecycle)) { processLifecycle(d.as<JsonVariantConst>(),id,lifecycle); return; }
+    if (strcmp(cmd,"get_memorials")==0) { processGetMemorials(pet,d.as<JsonVariantConst>(),id); return; }
+    if (strcmp(cmd,"delete_memorial")==0) { processDeleteMemorial(d.as<JsonVariantConst>(),id); return; }
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
@@ -207,6 +209,27 @@ void Link::processLifecycle(JsonVariantConst message, uint32_t id, LifecycleActi
     if (answeredFromCache(r.op,OpKind::Lifecycle,static_cast<uint8_t>(r.action),r.petId,id)) return;
     if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
     request_=Request{}; request_.kind=Request::Kind::Lifecycle; request_.lifecycle=r;
+}
+// Read-only, any activity: answered here without the application, from the attached archive.
+void Link::processGetMemorials(const Pet::PetData& pet, JsonVariantConst message, uint32_t id) {
+    uint32_t offset=0;
+    const char* code=parseGetMemorials(message,offset);
+    if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
+    char json[kMaxJson+1]; uint16_t len=0;
+    if (!statusSources_.memorials || !makeMemorialsPageJson(id,*statusSources_.memorials,pet,offset,json,sizeof(json),len)) {
+        result(id,true,"busy"); return;  // No archive attached yet (setup); the size test bounds the page.
+    }
+    result(id,true,"ok");
+    queue(json,TxKind::Reply);
+}
+// Same as care; the target is the memorial's pet id, so a replay after the deletion finds its op.
+void Link::processDeleteMemorial(JsonVariantConst message, uint32_t id) {
+    MemorialRequest r;
+    const char* code=parseDeleteMemorial(message,id,r);
+    if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
+    if (answeredFromCache(r.op,OpKind::Memorial,0,r.memorialPetId,id)) return;
+    if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
+    request_=Request{}; request_.kind=Request::Kind::Memorial; request_.memorial=r;
 }
 bool Link::answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id) {
     switch (ops_.check(op,kind,action,target,id)) {
@@ -246,9 +269,20 @@ void Link::finishLifecycle(const LifecycleRequest& r, const LifecycleOutcome& ou
     lost.action=static_cast<uint8_t>(r.action); lost.lifecycle=outcome;
     sendActionResult(r.commandId,lost);
 }
+void Link::acceptMemorial(const MemorialRequest& r) {
+    ops_.begin(r.op,OpKind::Memorial,0,r.memorialPetId,r.commandId);
+    result(r.commandId,true,"ok");
+}
+void Link::finishMemorial(const MemorialRequest& r, const MemorialOutcome& outcome) {
+    const OpCache::Entry* entry=ops_.complete(r.op,outcome);
+    if (entry) { sendActionResult(entry->commandId,*entry); return; }
+    OpCache::Entry lost; lost.op=r.op; lost.kind=OpKind::Memorial; lost.memorial=outcome;
+    sendActionResult(r.commandId,lost);
+}
 void Link::sendActionResult(uint32_t id, const OpCache::Entry& e) {
     char json[kMaxJson+1]; uint16_t len=0;
-    const bool made=e.kind==OpKind::Lifecycle ?
+    const bool made=e.kind==OpKind::Memorial ? makeMemorialResultJson(id,e.op,e.memorial,json,sizeof(json),len) :
+        e.kind==OpKind::Lifecycle ?
         makeLifecycleResultJson(id,e.op,static_cast<LifecycleAction>(e.action),e.lifecycle,json,sizeof(json),len) :
         makeActionResultJson(id,e.op,static_cast<CareAction>(e.action),e.outcome,json,sizeof(json),len);
     if (made) queue(json,TxKind::Reply);
@@ -329,7 +363,7 @@ void Link::update(const Pet::PetData& pet, uint32_t nowMs) {
     }
     if (!subscribed_) return;
     RxFrame frame{};
-    if (rxQueue_ && xQueueReceive(rxQueue_,&frame,0)==pdTRUE) receive(frame,nowMs);
+    if (rxQueue_ && xQueueReceive(rxQueue_,&frame,0)==pdTRUE) receive(pet,frame,nowMs);
     publishStatus(pet,nowMs);
     sendFrame(nowMs);
 }

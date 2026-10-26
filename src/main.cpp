@@ -64,6 +64,7 @@ private:
     void handleGameRequest(const Ble::GameRequest& request, uint32_t now);
     void handleCareRequest(const Ble::CareRequest& request, uint32_t now);
     void handleLifecycleRequest(const Ble::LifecycleRequest& request, uint32_t now);
+    void handleMemorialRequest(const Ble::MemorialRequest& request);
     void serviceWebGame(uint32_t now);
     void sendPetEvent(Ble::PetEventType type, bool fromWeb = false);
     void sendStateEvents();
@@ -195,8 +196,7 @@ bool Application::adoptNewEgg(uint32_t now) {
 bool Application::deleteSelectedMemorial() {
     const uint8_t index = ui.selectedMemorialIndex();
     const Storage::MemorialRecord* selected = memorials.at(index);
-    if (selected == nullptr ||
-        (pet.isEnded() && selected->petId == pet.petId())) return false;
+    if (selected == nullptr || Ble::memorialProtected(*selected, pet)) return false;
     return save.removeMemorial(index, memorials);
 }
 
@@ -575,6 +575,22 @@ void Application::handleLifecycleRequest(const Ble::LifecycleRequest& r, uint32_
     ble.finishLifecycle(r, outcome);
 }
 
+// Web memorial deletion (D3: the web confirmed). Eligibility first; then leave a memorial or menu
+// page silently (Home, or the end menu for an ended pet) so no cursor points at the removed
+// record, and delete through the joystick's save path.
+void Application::handleMemorialRequest(const Ble::MemorialRequest& r) {
+    const char* activity = webGame.active() ? "web_game" : Ui::activityName(ui.activity());
+    const char* code = Ble::deleteMemorialEligibility(r.memorialPetId, pet, memorials, activity);
+    if (strcmp(code, "ok") != 0) { ble.reply(r.commandId, code); return; }
+    ble.acceptMemorial(r);
+    ui.leaveMenuForRemote();
+    const int index = Ble::findMemorial(memorials, r.memorialPetId);
+    const bool removed = index >= 0 && save.removeMemorial(static_cast<uint8_t>(index), memorials);
+    if (removed) { sound.playSuccess(); petEvents.markFromWeb(Ble::PetEventType::MemorialDeleted); }
+    else sound.playFailure();
+    ble.finishMemorial(r, removed ? Ble::memorialDone() : Ble::memorialFailed("save_failed"));
+}
+
 void Application::serviceWebGame(uint32_t now) {
     if (webGame.active()) {
         const uint32_t session = webGame.id();
@@ -592,6 +608,7 @@ void Application::serviceWebGame(uint32_t now) {
         if (request.kind == Ble::Request::Kind::Game) handleGameRequest(request.game, now);
         else if (request.kind == Ble::Request::Kind::Care) handleCareRequest(request.care, now);
         else if (request.kind == Ble::Request::Kind::Lifecycle) handleLifecycleRequest(request.lifecycle, now);
+        else if (request.kind == Ble::Request::Kind::Memorial) handleMemorialRequest(request.memorial);
     }
     ble.setActivity(webGame.active() ? "web_game" : Ui::activityName(ui.activity()));
 }

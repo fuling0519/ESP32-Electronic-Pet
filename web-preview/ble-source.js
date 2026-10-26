@@ -1,7 +1,8 @@
 /* BLE v1 transport -> domain snapshot. Sends the two read-only queries, plus the Web play game commands when the
  * firmware declares the web_game feature (see PROTOCOL.md, Web 陪玩). Accepts 養成同步 phase 1 (status additions,
  * device_info.rules, pet_event), phase 2 (the care command with its op / action_result) and phase 3 (depart / adopt,
- * same op rules, only with the lifecycle feature); memorial commands are still not sent. */
+ * same op rules, only with the lifecycle feature) and phase 4 (get_memorials pages and delete_memorial with the same op
+ * rules, only with the memorials feature; the reconciliation itself lives in memorial-sync.js). */
 (()=>{'use strict';
 const UUID={service:'7d2a0001-8b7c-4f3a-9c2d-1e5f6a7b8c90',command:'7d2a0002-8b7c-4f3a-9c2d-1e5f6a7b8c90',event:'7d2a0003-8b7c-4f3a-9c2d-1e5f6a7b8c90'};
 const decimal=x=>typeof x==='string'&&/^\d+$/.test(x);
@@ -16,7 +17,16 @@ const CARE_ACTIONS=['feed','clean','treat','sleep','wake'],CARE_WAIT_MS=10000,CA
 function newOp(){const b=new Uint8Array(8);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');}
 const CHANGE_KEYS=['satiety','cleanliness','exp','levels_gained'];
 // Write commands sharing the op rules, with the feature each one needs (PROTOCOL.md 寫入命令共通規則).
-const WRITE_FEATURE={care:'care',depart:'lifecycle',adopt:'lifecycle'},WRITE_NAME={care:'照顧',depart:'送別',adopt:'領養'};
+const WRITE_FEATURE={care:'care',depart:'lifecycle',adopt:'lifecycle',delete_memorial:'memorials'},WRITE_NAME={care:'照顧',depart:'送別',adopt:'領養',delete_memorial:'刪除紀念'};
+// get_memorials pages (PROTOCOL.md 養成同步, 紀念冊): at most 5 items, all fields checked; a bad page rejects the read.
+const MEMORIAL_KINDS=['resting','departed'],MEMORIAL_STAGES=['egg','baby','adult','unknown'],MEMORIAL_RESTARTS=3;
+function mapMemorialPage(msg,offset){
+  const bad=()=>new Error('電子雞的紀念冊資料格式不相容，沒有套用。');
+  if(!msg||msg.type!=='memorials'||typeof msg.hash!=='string'||!/^[0-9a-f]{8}$/.test(msg.hash)||!Number.isInteger(msg.total)||msg.total<0||msg.total>255||msg.offset!==offset||!Array.isArray(msg.items)||msg.items.length>5)throw bad();
+  return {hash:msg.hash,total:msg.total,items:msg.items.map(i=>{
+    if(!i||!decimal(i.pet_id)||typeof i.name!=='string'||!i.name.trim()||!decimal(i.age_seconds)||!MEMORIAL_KINDS.includes(i.kind)||!MEMORIAL_STAGES.includes(i.stage)||typeof i.protected!=='boolean'||i.species_id!==undefined&&(!Number.isInteger(i.species_id)||i.species_id<1||i.species_id>255))throw bad();
+    return {petId:i.pet_id,name:i.name,speciesId:i.species_id??1,ageSeconds:i.age_seconds,kind:i.kind,stage:i.stage,protected:i.protected};})};
+}
 // Known deltas only: care numbers and grew, depart memorial_saved, adopt the new egg's id, name and species.
 function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];for(const k of ['grew','memorial_saved'])if(typeof c[k]==='boolean')o[k]=c[k];
  if(decimal(c.new_pet_id))o.new_pet_id=c.new_pet_id;if(typeof c.name==='string'&&c.name.trim())o.name=c.name;if(Number.isInteger(c.species_id)&&c.species_id>=1&&c.species_id<=255)o.species_id=c.species_id;return o;}
@@ -50,7 +60,8 @@ class BleSource {
    activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd,
    games:this.connection==='ready'&&Array.isArray(this.info?.games)?this.info.games.filter(g=>typeof g==='string'):null,
    petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),care:this.connection==='ready'&&!!this.info?.features?.includes?.('care'),lifecycle:this.connection==='ready'&&!!this.info?.features?.includes?.('lifecycle'),careSending:this.ops.size>0,rules:this.connection==='ready'?this.rules:null,
-   // Device album summary, kept for the later memorial sync; nothing is fetched yet. A cached one is the last known.
+   memorialSync:this.connection==='ready'&&!!this.info?.features?.includes?.('memorials'),
+   // Device album summary (memorial-sync.js compares the hash with the last synced one). A cached one is the last known.
    memorials:this.cache?.wire?.memorial_count!==undefined?{count:this.cache.wire.memorial_count,hash:this.cache.wire.memorial_hash}:null};}
   subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
   emit(){for(const fn of this.listeners)fn(this.read());}
@@ -83,9 +94,33 @@ class BleSource {
     if(this.connection!=='ready'||!this.info?.features?.includes?.(WRITE_FEATURE[cmd]))throw new Error('這台電子雞目前不能從網頁'+WRITE_NAME[cmd]);
     return this.write(cmd,{});
   }
+  // get_memorials (memorials): reads every page from offset 0 and resolves with {hash,items}; a hash change between
+  // pages restarts from 0 (at most 3 times). Read-only, no op.
+  async getMemorials(){
+    if(this.connection!=='ready'||!this.info?.features?.includes?.('memorials'))throw new Error('這台電子雞目前不能同步紀念冊');
+    for(let attempt=0;attempt<MEMORIAL_RESTARTS;attempt++){
+      let first=null;const items=[];
+      for(let offset=0;;){
+        const page=mapMemorialPage(await this.request('get_memorials',{offset}),offset);
+        if(!first)first=page;else if(page.hash!==first.hash){first=null;break;}else if(page.total!==first.total)throw new Error('電子雞的紀念冊資料格式不相容，沒有套用。');
+        items.push(...page.items);offset+=page.items.length;
+        if(offset>=page.total){if(offset!==page.total)throw new Error('電子雞的紀念冊資料格式不相容，沒有套用。');break;}
+        if(!page.items.length)throw new Error('電子雞的紀念冊分頁不完整，沒有套用。');
+      }
+      if(first)return {hash:first.hash,items};
+    }
+    throw new Error('電子雞的紀念冊一直在變動，請稍後再同步。');
+  }
+  // delete_memorial (memorials): the care / lifecycle op path with memorial_pet_id as the target and no pet_id.
+  // Resolves with {action:'delete_memorial',changes}; not_found / not_allowed reject with that code. The page confirms first.
+  deleteMemorial(memorialPetId){
+    if(!decimal(memorialPetId))throw new Error('紀念紀錄編號格式錯誤');
+    if(this.connection!=='ready'||!this.info?.features?.includes?.('memorials'))throw new Error('這台電子雞目前不能從網頁刪除紀念');
+    return this.write('delete_memorial',{memorial_pet_id:memorialPetId});
+  }
   write(cmd,extra){
     if(this.ops.size)throw new Error('上一個操作還在等電子雞回覆');
-    const fields={...extra,pet_id:this.cache.pet.petId,op:newOp()},first=Date.now(),action=extra.action||cmd;
+    const fields={...extra,...cmd==='delete_memorial'?{}:{pet_id:this.cache.pet.petId},op:newOp()},first=Date.now(),action=extra.action||cmd;
     return new Promise((resolve,reject)=>{
       const entry={action,cmd,resolve:r=>{done();resolve(r);},reject:e=>{done();reject(e);}},done=()=>{clearTimeout(entry.timer);this.ops.delete(fields.op);this.emit();};
       const send=()=>{entry.timer=setTimeout(wait,CARE_WAIT_MS);
@@ -162,6 +197,8 @@ class BleSource {
     if(msg.type==='game_session'||msg.type==='game_result'){const p=this.pending.get(msg.id);
      if(p&&p.cmd===(msg.type==='game_session'?'game_start':'game_finish')&&decimal(msg.session)){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}return;}
     if(msg.type==='pet_event'){this.petEvent(msg);return;}
+    // A memorials page answers get_memorials with the same id; getMemorials() checks its fields.
+    if(msg.type==='memorials'){const p=this.pending.get(msg.id);if(p?.cmd==='get_memorials'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}return;}
     if(msg.type==='action_result'){const p=this.pending.get(msg.id);if(WRITE_NAME[p?.cmd]){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
      const entry=typeof msg.op==='string'&&this.ops.get(msg.op);if(!entry)return;
      if(msg.outcome==='done')entry.resolve({action:entry.action,changes:mapChanges(msg.changes)});
@@ -175,5 +212,5 @@ class BleSource {
     this.emit();
   }
 }
-window.PetBle={mapStatus,mapRules,mapChanges,PET_EVENTS,CARE_ACTIONS,WRITE_FEATURE,BleSource};window.PetSources.ble=new BleSource();
+window.PetBle={mapStatus,mapRules,mapChanges,mapMemorialPage,PET_EVENTS,CARE_ACTIONS,WRITE_FEATURE,BleSource};window.PetSources.ble=new BleSource();
 })();

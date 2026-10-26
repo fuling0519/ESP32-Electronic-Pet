@@ -2,11 +2,13 @@
 #include <stdint.h>
 #include "ble/CareCommand.h"
 #include "ble/LifecycleCommand.h"
+#include "ble/MemorialCommand.h"
 
 namespace Ble {
 
-// Write commands that carry an op (delete_memorial later). action: CareAction or LifecycleAction.
-enum class OpKind : uint8_t { Care, Lifecycle };
+// Write commands that carry an op. action: CareAction, LifecycleAction, or 0 for delete_memorial
+// (target: the memorial's pet id).
+enum class OpKind : uint8_t { Care, Lifecycle, Memorial };
 
 // The last 8 accepted ops, in RAM only. Rejected commands are never recorded, so a retry
 // with the same op is checked again from scratch.
@@ -23,6 +25,7 @@ public:
         bool used = false, done = false;
         CareOutcome outcome{};          // Care
         LifecycleOutcome lifecycle{};   // Lifecycle
+        MemorialOutcome memorial{};     // Memorial
     };
     // A pending or done match takes commandId; another command, action or target is a conflict.
     Match check(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t commandId);
@@ -31,6 +34,7 @@ public:
     // Marks it done; null when the op was evicted meanwhile.
     const Entry* complete(uint64_t op, const CareOutcome& outcome);
     const Entry* complete(uint64_t op, const LifecycleOutcome& outcome);
+    const Entry* complete(uint64_t op, const MemorialOutcome& outcome);
     const Entry* find(uint64_t op) const;
 private:
     Entry entries_[kCapacity]{};

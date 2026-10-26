@@ -50,7 +50,7 @@ function page(features){
  const [feed,clean,play,rest,treat]=buttons;return {...b,get,feed,clean,play,rest,treat,step:ms=>{T+=ms;frame(T);}};
 }
 const L=b=>b.c.PetDeviceLifecycle;
-const FULL='電子雞的紀念冊已滿，請先在 ESP32 上刪除一筆紀念紀錄再試。';
+const FULL='電子雞的紀念冊已滿，請先刪除一筆紀念紀錄（在網頁紀念冊或 ESP32 上都可以）再試。';
 const departed={is_departed:true},dead={health:'dead',is_dead:true};
 
 test('depart / adopt need the lifecycle feature; buttons follow the pet and activity from the snapshot',()=>{

@@ -2,8 +2,8 @@
  * does not ask again (D3), so the page confirms first; it only sends after that and shows the result line. Departure,
  * the egg and the album still come from the next status snapshot, never from the action_result itself. */
 (()=>{'use strict';
-// memorial_full: web-side deletion of device records comes with the memorial sync (phase 4), so point to the ESP32.
-const FULL='電子雞的紀念冊已滿，請先在 ESP32 上刪除一筆紀念紀錄再試。';
+// memorial_full: a record can be deleted in either album (the web one syncs to the ESP32 since phase 4).
+const FULL='電子雞的紀念冊已滿，請先刪除一筆紀念紀錄（在網頁紀念冊或 ESP32 上都可以）再試。';
 const ERRORS={
  depart:{busy:'電子雞正在忙，請先讓它回到主畫面再送別。',not_allowed:'寵物現在的狀態不能送別（要是醒著的幼年或成年）。',timeout:'沒有收到電子雞的送別結果，結果不明，請看最新狀態。',save_failed:'電子雞沒能保存送別，請看最新狀態後再試。'},
  adopt:{busy:'電子雞正在忙，請等它回到結束畫面再領養。',not_allowed:'電子雞還在保存上一隻的紀念紀錄，或牠還沒結束，暫時不能領養。',timeout:'沒有收到電子雞的領養結果，結果不明，請看最新狀態。',save_failed:'電子雞沒能保存領養，請看最新狀態後再試。'},

@@ -141,4 +141,19 @@ $lifecycleUiSources = @('test/lifecycle_ui_native.cpp','src/ble/LifecycleCommand
 if ($LASTEXITCODE) { throw 'Lifecycle UI test build failed.' }
 & "$outputPath/lifecycle-ui.exe"
 if ($LASTEXITCODE) { throw 'Lifecycle UI tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/memorial_sync_native.cpp `
+    src/ble/MemorialCommand.cpp src/ble/CareCommand.cpp src/ble/OpCache.cpp src/ble/Messages.cpp src/ble/PetEvents.cpp `
+    src/ble/GameCommand.cpp src/games/WebGameSession.cpp src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp `
+    -o "$outputPath/memorial-sync.exe"
+if ($LASTEXITCODE) { throw 'Memorial sync test build failed.' }
+& "$outputPath/memorial-sync.exe"
+if ($LASTEXITCODE) { throw 'Memorial sync tests failed.' }
+$memorialUiSources = @('test/memorial_ui_native.cpp','src/ble/MemorialCommand.cpp','src/ble/CareCommand.cpp',
+    'src/ble/OpCache.cpp','src/ble/PetEvents.cpp','src/ble/Messages.cpp','src/ble/GameCommand.cpp',
+    'src/games/WebGameSession.cpp') + $webPlaySources[1..($webPlaySources.Length - 1)]
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" -I.pio/libdeps/esp32dev/ArduinoJson/src @memorialUiSources @objects -o "$outputPath/memorial-ui.exe"
+if ($LASTEXITCODE) { throw 'Memorial UI test build failed.' }
+& "$outputPath/memorial-ui.exe"
+if ($LASTEXITCODE) { throw 'Memorial UI tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"
