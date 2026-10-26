@@ -29,3 +29,16 @@ node web-preview/offline-tests.cjs
 Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡眠餘數清零。照顧與遊戲依新版發 EXP，Lv20 MAX；遊戲獎勵依完成場次一次結算。Web 遊戲為丟玩具（5 球）與花園合唱（3 首），未完成退出不給（2026-10-25 起，原猜拳／記憶音符已移除）。遊戲視覺節奏與音訊能力仍需實際瀏覽器回歸，Node 不驗證揚聲器聽感。
 
 送別保存獨立終止旗標，長眠／遠行分開；紀念冊保存失敗會阻止領養。LocalStorage 與 ESP32 NVS 是不同系統；前端無權清測試 namespace、燒錄或控制 Deep Sleep。
+
+## 10/26 養成同步階段 1
+
+依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care`、`depart`、`adopt`、紀念冊命令與 `action_result` 屬後續階段，裝置模式照顧按鈕仍停用。
+
+- 狀態快照新增欄位有出現才代表支援，缺少時維持舊行為；出現但格式錯誤（傷心原因不在四種或重複、蛋與終止個體非空陣列、秒數不是 0～4294967295 整數、健康卻有生病秒數、存活卻有死亡原因、紀念冊筆數與 hash 只出現一個或格式錯）就拒絕整份快照。
+- pet 新增：`sadReasons`（韌體 `sad_reasons` 轉成 `{device:true,mood,satiety,cleanliness,sick}`，PetRules 看到 `device` 就直接採用、不再自行推算；舊韌體仍由本機門檻計算）、`dangerSeconds`、`sickSeconds`、`deathCause`（未知值記為 `unknown`，畫面顯示原因未知）。
+- metadata 新增：`petEvents`（`features` 含 `pet_events` 且連線就緒）、`rules`（`device_info.rules` 的正整數，斷線即清除；格式錯誤拒收該份 device_info）、`memorials`（頂層 `memorial_count`／`memorial_hash`，只保存供後續階段對帳，尚不讀取紀念冊）。
+- 有快照秒數與 `rules` 時，傷心原因下方顯示生病／離世倒數；連線中以收到快照後經過的時間估算，為「約」值。缺任一項不顯示。
+- `activity` 的 `menu`、`sleeping`、`ended` 都不是 `idle`，Web 陪玩維持不可開局並顯示原因。
+- `pet_event` 只在連線就緒、宣告 `pet_events`、`pet_id` 為目前個體（`adopted` 除外）且 `source` 不是 `web` 時交給 `petDataManager.onPetEvent`；不改快取、不觸發狀態訂閱。畫面只據此播動畫：`fed`／`cleaned`／`treated` 播餵食／清潔／治療動畫，`level_up` 顯示 LEVEL UP；孵化與長大仍由快照的階段變化播轉場，死亡、遠行、領養與紀念冊由下一份快照處理。已有動畫、成長轉場或陪玩進行中時略過事件。
+
+離線測試：`node --test --test-isolation=none web-preview/*tests.cjs`（本階段見 `pet-sync-tests.cjs`）。以上皆未接實機 ESP32 驗證。

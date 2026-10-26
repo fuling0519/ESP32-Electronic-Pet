@@ -102,4 +102,16 @@ $webPlaySources = @('test/web_play_ui_native.cpp','src/ui/UiController.cpp','src
 if ($LASTEXITCODE) { throw 'Web play UI test build failed.' }
 & "$outputPath/web-play-ui.exe"
 if ($LASTEXITCODE) { throw 'Web play UI tests failed.' }
+$activitySources = @('test/activity_ui_native.cpp') + $webPlaySources[1..($webPlaySources.Length - 1)]
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" @activitySources @objects -o "$outputPath/activity-ui.exe"
+if ($LASTEXITCODE) { throw 'Activity UI test build failed.' }
+& "$outputPath/activity-ui.exe"
+if ($LASTEXITCODE) { throw 'Activity UI tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/pet_sync_native.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp src/ble/Messages.cpp src/ble/PetEvents.cpp `
+    -o "$outputPath/pet-sync.exe"
+if ($LASTEXITCODE) { throw 'Pet sync test build failed.' }
+& "$outputPath/pet-sync.exe"
+if ($LASTEXITCODE) { throw 'Pet sync tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"

@@ -21,18 +21,6 @@ void logHeap(const char* phase) {
 #ifndef PET_FIRMWARE_VERSION
 #define PET_FIRMWARE_VERSION "development"
 #endif
-const char* stage(Pet::LifeStage v) {
-    switch (v) { case Pet::LifeStage::Egg:return "egg"; case Pet::LifeStage::Baby:return "baby"; case Pet::LifeStage::Adult:return "adult"; }
-    return "unknown";
-}
-const char* health(Pet::HealthState v) {
-    switch (v) { case Pet::HealthState::Healthy:return "healthy"; case Pet::HealthState::Sick:return "sick"; case Pet::HealthState::Dead:return "dead"; }
-    return "unknown";
-}
-const char* sleep(Pet::SleepMode v) {
-    switch (v) { case Pet::SleepMode::Awake:return "awake"; case Pet::SleepMode::Normal:return "normal"; case Pet::SleepMode::Deep:return "unknown"; }
-    return "unknown";
-}
 }
 
 class Link::ServerCallbacks final : public NimBLEServerCallbacks {
@@ -133,24 +121,7 @@ void Link::result(uint32_t id, bool hasId, const char* code) {
     if (len && len<=kMaxJson) queue(json,false);
 }
 bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const {
-    StaticJsonDocument<768> d;
-    d["v"]=1; d["type"]="status"; d["device_id"]=deviceId_;
-    JsonObject p=d.createNestedObject("pet");
-    char id[21], age[21];
-    snprintf(id,sizeof(id),"%llu",static_cast<unsigned long long>(pet.petId()));
-    snprintf(age,sizeof(age),"%llu",static_cast<unsigned long long>(pet.ageSeconds()));
-    p["id"]=id; p["name"]=pet.name(); p["life_stage"]=stage(pet.lifeStage());
-    p["species_id"]=static_cast<uint8_t>(pet.speciesId());
-    p["satiety"]=pet.satiety(); p["mood"]=pet.mood(); p["cleanliness"]=pet.cleanliness();
-    p["age_seconds"]=age; p["health"]=health(pet.healthState());
-    p["is_departed"]=pet.isDeparted(); p["is_dead"]=pet.isDead(); p["sleep"]=sleep(pet.sleepMode());
-    p["level"]=pet.level(); p["exp"]=pet.exp();
-    p["exp_to_next_level"]=pet.expToNextLevel();
-    d["activity"]=activity_;
-    if (d.overflowed()) return false;
-    size_t written=serializeJson(d,out,cap);
-    if (!written || written>=cap || written>kMaxJson) return false;
-    len=static_cast<uint16_t>(written); return true;
+    return makeStatusJson(pet,deviceId_,activity_,statusSources_,out,cap,len);
 }
 void Link::publishStatus(const Pet::PetData& pet, uint32_t nowMs) {
     if (!forceStatus_ && nowMs-lastStatusAt_<500) return;
@@ -215,14 +186,8 @@ void Link::processCommand() {
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
-    StaticJsonDocument<448> info;
-    info["v"]=1; info["type"]="device_info"; info["id"]=id; info["name"]=kName;
-    info["protocol_version"]=1; info["firmware_version"]=PET_FIRMWARE_VERSION;
-    info["max_message_bytes"]=kMaxJson; info["device_id"]=deviceId_;
-    info.createNestedArray("features").add("web_game");
-    JsonArray games=info.createNestedArray("games"); games.add("toy"); games.add("chorus");
-    char json[kMaxJson+1]; size_t len=serializeJson(info,json,sizeof(json));
-    if (len && len<=kMaxJson) queue(json,false);
+    char json[kMaxJson+1]; uint16_t len=0;
+    if (makeDeviceInfoJson(id,kName,deviceId_,json,sizeof(json),len)) queue(json,false);
 }
 bool Link::takeGameRequest(GameRequest& request) {
     if (gameRequest_.type==GameRequest::Type::None) return false;
@@ -255,6 +220,15 @@ void Link::sendSessionEnd(uint32_t session, const char* reason) {
     if (len && len<=kMaxJson) queue(json,false);
 }
 void Link::setActivity(const char* activity) { if (activity) activity_=activity; }
+void Link::attachStatusSources(const Pet::SadState& sad, const Storage::Memorials& memorials) {
+    statusSources_.sad=&sad; statusSources_.memorials=&memorials;
+}
+void Link::sendPetEvent(const PetEvent& event) {
+    // observedConnected_: update() has seen this connection and cleared the old queue.
+    if (!observedConnected_ || !petEventAdmitted(connected_,subscribed_,txCount_,kQueueSize)) return;
+    char json[kMaxJson+1]; uint16_t len=0;
+    if (makePetEventJson(event,json,sizeof(json),len)) queue(json,false);
+}
 void Link::sendFrame(uint32_t nowMs) {
     if (!connected_ || !subscribed_ || !event_ || nowMs-lastFrameAt_<20) return;
     if (!txActive_) {

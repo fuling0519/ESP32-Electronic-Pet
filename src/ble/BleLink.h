@@ -5,6 +5,8 @@
 #include <freertos/queue.h>
 #include "pet/PetData.h"
 #include "ble/GameCommand.h"
+#include "ble/Messages.h"
+#include "ble/PetEvents.h"
 class NimBLECharacteristic;
 class NimBLEServer;
 namespace Ble {
@@ -22,8 +24,12 @@ public:
     void sendGameSession(uint32_t commandId, uint32_t session, const char* game, uint32_t minMs);
     void sendGameResult(uint32_t commandId, uint32_t session, const Games::WebGameResult& result);
     void sendSessionEnd(uint32_t session, const char* reason);
-    // idle, device_game, web_game or busy; included in every status snapshot.
+    // idle, menu, sleeping, ended, device_game, web_game or busy; in every status snapshot.
     void setActivity(const char* activity);
+    // Pet sync status fields (sad reasons, memorial count/hash); both must outlive the link.
+    void attachStatusSources(const Pet::SadState& sad, const Storage::Memorials& memorials);
+    // Sent only while connected and subscribed, and dropped when the queue is nearly full.
+    void sendPetEvent(const PetEvent& event);
 private:
     static constexpr uint16_t kMaxJson = 1024;
     static constexpr uint16_t kMaxFrame = 20;
@@ -70,5 +76,6 @@ private:
     char lastStatus_[kMaxJson + 1]{};
     GameRequest gameRequest_{};
     const char* activity_ = "busy";
+    StatusSources statusSources_{};
 };
 }  // namespace Ble

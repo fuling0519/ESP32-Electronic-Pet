@@ -62,7 +62,10 @@ private:
     void endWebGame(Games::WebGameEnd reason, uint32_t now);
     void handleGameRequest(const Ble::GameRequest& request, uint32_t now);
     void serviceWebGame(uint32_t now);
+    void sendPetEvent(Ble::PetEventType type);
+    void sendStateEvents();
     Games::WebGameSession webGame;
+    Ble::PetEventDetector petEvents;
 
     Hardware::Display display;
     Hardware::Input input;
@@ -341,6 +344,8 @@ void Application::setup() {
     lastEggCheckpointMinute = pet.lifeStage() == Pet::LifeStage::Egg ?
         pet.ageSeconds() / 60 : 0;
     appReady = true;
+    ble.attachStatusSources(ui.sadState(), memorials);
+    petEvents.reset(pet, memorials);
     if (!ble.init()) Serial.println("BLE init failed; pet remains available offline.");
     printUiState(Hardware::InputEvent::None);
     ui.render();
@@ -496,8 +501,20 @@ void Application::serviceWebGame(uint32_t now) {
     }
     Ble::GameRequest request;
     if (ble.takeGameRequest(request)) handleGameRequest(request, now);
-    ble.setActivity(webGame.active() ? "web_game" : ui.deviceGameActive() ? "device_game" :
-                    ui.webGameStartAllowed() ? "idle" : "busy");
+    ble.setActivity(webGame.active() ? "web_game" : Ui::activityName(ui.activity()));
+}
+
+// Player actions on the device; Link drops them unless a subscribed client is connected.
+void Application::sendPetEvent(Ble::PetEventType type) {
+    Ble::PetEvent event; event.type = type; event.petId = pet.petId();
+    ble.sendPetEvent(event);
+}
+
+// Growth, level, illness, death, farewell, adoption and memorial changes since the last loop.
+void Application::sendStateEvents() {
+    Ble::PetEvent events[8];
+    const uint8_t count = petEvents.detect(pet, memorials, events, 8);
+    for (uint8_t i = 0; i < count; ++i) ble.sendPetEvent(events[i]);
 }
 
 void Application::loop() {
@@ -578,12 +595,14 @@ void Application::loop() {
             if (pet.feed()) {
                 sound.playSuccess();
                 ui.onFeedSucceeded(now);
+                sendPetEvent(Ble::PetEventType::Fed);
             } else sound.playFailure();
             break;
         case Ui::UiAction::Clean:
             if (pet.clean()) {
                 sound.playSuccess();
                 ui.onCleanSucceeded(now);
+                sendPetEvent(Ble::PetEventType::Cleaned);
             } else sound.playFailure();
             break;
         case Ui::UiAction::FinishGame: {
@@ -603,7 +622,7 @@ void Application::loop() {
         case Ui::UiAction::Treat: {
             const bool success = pet.treat();
             ui.onTreatResult(success, now);
-            if (success) sound.playSuccess();
+            if (success) { sound.playSuccess(); sendPetEvent(Ble::PetEventType::Treated); }
             else sound.playFailure();
             break;
         }
@@ -611,6 +630,7 @@ void Application::loop() {
             if (startNormalSleep(now)) {
                 sound.playConfirm();
                 actionSavedImmediately = true;
+                sendPetEvent(Ble::PetEventType::Slept);
             } else {
                 ui.onNormalSleepFailed();
                 sound.playFailure();
@@ -623,6 +643,7 @@ void Application::loop() {
             if (wakeFromNormalSleep(now)) {
                 sound.playSuccess();
                 actionSavedImmediately = true;
+                sendPetEvent(Ble::PetEventType::Woke);
             } else {
                 sound.playFailure();
             }
@@ -686,6 +707,7 @@ void Application::loop() {
     if (changed) printUiState(event);
     sound.update();
     ui.render();
+    sendStateEvents();
     ble.update(pet, now);
     serviceDeepSleep(event, now);
 }

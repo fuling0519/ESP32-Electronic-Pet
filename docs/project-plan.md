@@ -2,7 +2,7 @@
 
 > 從一顆蛋開始，陪伴小鳥或小飛龍長大。
 
-- 更新日期：2026-10-26（BLE-S3 養成同步介面定案；正式韌體驗收仍以各日期紀錄為準）。
+- 更新日期：2026-10-26（BLE-S3 養成同步介面定案與階段 1 實作；正式韌體驗收仍以各日期紀錄為準）。
 - 文件角色：產品需求與唯一進度台帳。直接查看 [第 10 節進度](#progress)、[文件導覽](README.md) 或 [歷史證據](history/development-history.md)。
 - Web 角色美術任務：agent 在生成或修改寵物精靈圖、動畫圖集及其 Web 整合前，先讀 [Web 寵物精靈圖製作規則](web-sprite-workflow.md)。第 1～8 節為各角色通用流程，第 9 節僅適用小龍；再核對目標角色的素材說明與已確認參考，避免重新討論既有決策。
 - 版本依據：目前工作目錄的實際程式；美術素材須接入對應的 Web 或韌體呈現才算該端已整合，生成成功不代表功能完成，Web 整合亦不代表韌體已更新。
@@ -127,7 +127,7 @@
 
 - 幼寵／成寵主畫面在心情 ≤40、飽食度 ≤25、清潔度 ≤25 或生病時顯示各自種類的傷心圖，加上共用三條線；倒藥與空瓶期間隱藏三條線，固定傷心第 1 格。心情恢復到 ≥45、飽食度／清潔度各恢復到 ≥30 才解除對應原因；所有原因解除才恢復正常。睡眠、照顧／成長／升級動畫、死亡與送別沿用自己的呈現，治療成功的恢復動畫優先，結束後再依實際狀態顯示。
 - 正常轉傷心、新生病（即使原本已傷心）或醒來仍傷心時，排入一次照顧提示；持續傷心不週期重播。開機讀取傷心狀態保持安靜，Deep Sleep 恢復視為醒來。只有回到閒置主畫面且其他音效、照顧動畫、觸摸反應（2026-10-25 起傷心時可觸摸）及待處理動作完成後才播放，播放前重新確認狀態，原因全解除就取消。同一次執行期間兩次實際播放至少相隔 5 分鐘，睡眠靜音；快速測試版為 10 秒，重新啟動（含 Deep Sleep 恢復）後重建冷卻。
-- 音效為 659／523／392 Hz 的三個下降短音，中間各休止 40ms，全長 500ms；採非阻塞播放，實際音量／聽感的使用者驗收回報見第 10 節傷心提醒增量。緩衝原因、提醒待播與冷卻為本次執行狀態，不改 NVS／BLE 格式；正常重啟重新判斷原因並抑制開機提示，新領養個體重設提醒狀態。
+- 音效為 659／523／392 Hz 的三個下降短音，中間各休止 40ms，全長 500ms；採非阻塞播放，實際音量／聽感的使用者驗收回報見第 10 節傷心提醒增量。緩衝原因、提醒待播與冷卻為本次執行狀態，不改 NVS 格式；2026-10-26 起緩衝後的傷心原因另以 BLE 快照 `sad_reasons` 提供給 Web（BLE-S3 階段 1，判斷移至 `SadState` 由 UI 與 BLE 共用，規則不變）；正常重啟重新判斷原因並抑制開機提示，新領養個體重設提醒狀態。
 
 #### 4.2.3 電容觸摸互動（已實作，使用者回報實機驗收通過）
 
@@ -355,10 +355,10 @@ erDiagram
 - `src/main.cpp`：Application 擁有唯一 PetData，協調輸入、UI、音效與保存物件。
 - `src/hardware/`：硬體介面；UI 不直接讀 GPIO 或操作 U8g2。
 - `src/ui/`、`include/ui/`：畫面狀態、圖示與中文字圖。
-- `src/pet/`：寵物資料、界限與衍生狀態。
+- `src/pet/`：寵物資料、界限與衍生狀態；`SadState.h` 為 UI 與 BLE 共用的傷心緩衝判斷。
 - `src/storage/`：保存邊界；當前寵物與墓碑群均使用版本化、CRC32 保護的 NVS A／B 槽。獨立 `DeviceSettings` 以 `pet-prefs`／`pet-prefs-test` namespace 保存聲音偏好，使用四位元組 V2 模式／反碼記錄及寫後讀回核對，不變更寵物、墓碑或 BLE 格式。
 - `include/HardwareConfig.h`：GPIO 與硬體參數的集中來源。
-- `src/ble/`：NimBLE 服務、固定裝置 ID、分片收送；狀態查詢唯讀，另有 Web 陪玩的遊戲命令（`GameCommand` 解析，由 Application 以 `src/games/WebGameSession` 決定開局與結算）；格式見共用協定。
+- `src/ble/`：NimBLE 服務、固定裝置 ID、分片收送；狀態查詢唯讀，另有 Web 陪玩的遊戲命令（`GameCommand` 解析，由 Application 以 `src/games/WebGameSession` 決定開局與結算）；`Messages` 組 status／device_info，`PetEvents` 比對狀態送出 `pet_event`（BLE-S3 階段 1）；格式見共用協定。
 - `web-preview/wyvern-adult-view.js`：成年與幼年小龍 Web 圖源、切格、錨點、節奏及純外觀預覽；`wyvern-view.js` 銜接彩色圖與載入備援（原遮罩）。`app.js`、`growth-view.js` 與 `memorials.js` 共用該繪製入口，不修改 DataManager 的領域資料、保存格式或 BLE 命令邊界。
 
 後續建議新增寵物行為／時間更新、遊戲、電源／睡眠管理及時間服務模組，名稱於實作時決定。資料變更由應用／領域邏輯負責，UI 只送出意圖與顯示結果；保存負責序列化，睡眠管理負責協調入睡與恢復。正常互動維持非阻塞更新，不以長時間 `delay()` 實作睡覺。
@@ -443,7 +443,7 @@ erDiagram
 - **FW-CAP｜NimBLE／device_id** — 實作：已實作。驗證：2026-10-01 六環境建置通過，容量改善達初期目標；ID 穩定性、heap 與硬體回歸待測。最新量測見 [當日容量紀錄](history/firmware-capacity-handoff.md#容量結果)，本處不複製數字。下一步：實機驗收，目前無須更改分割區。
 - **APP-NATIVE｜原生 App** — 實作：沿用 Flutter 原始碼，原生交付未完成。驗證：Windows／Android／iOS 未建置或實機驗收。下一步：確認實際需求及 FlutterBluePlus 支援後配置各平台；不可說已有可安裝替代 App。
 - **WEB-GAME-BLE｜Web 陪玩經 BLE 結算與雙端互鎖** — 實作：2026-10-25 已實作（韌體與 Web），規則見 [Web 陪玩 BLE 規則](features/web-game-ble-plan.md)、介面見 PROTOCOL.md「Web 陪玩」節。韌體新增 `game_start`／`game_heartbeat`／`game_finish`／`game_cancel`、`game_session`／`game_result`／`game_session_end` 事件、`device_info.features` 與 `status.activity`，局號／心跳逾時／單次結算與重送回放由 `WebGameSession` 管理，電子雞「網頁陪玩中」畫面長按可結束。驗證：原生測試與 Web 測試通過、正式版建置通過；Web 裝置模式以頁面內模擬 ESP32 檢查完整流程。**實機：**2026-10-25 第一次上板發現 GATT 寫入重疊與停用按鈕無提示，修正後使用者回報上板驗收全數通過（驗收步驟 1～8：陪玩按鈕、網頁陪玩中畫面、5 球結算、長按結束、關分頁逾時、斷線、電子雞陪玩時網頁停用、非主畫面不能開局並顯示原因）；未提供逐項紀錄或其他瀏覽器／裝置組合，不延伸推定。限制：無配對驗證（見規則文件第 9 節）。不屬於 BLE-S3 的照顧／睡眠遠端命令。
-- **BLE-S3｜養成同步（遠端照顧、生命週期與紀念冊）** — 2026-10-26 介面定案、**兩端未實作**。使用者要求把 ESP32 全部養成流程接到 Web 並雙向同步，決定 D1：Web 照顧時電子雞照搖桿播動畫與音效；D2：選單／狀態頁也接受，韌體先自動退回主畫面再執行（新 `activity:"menu"`）；D3：送別與刪除紀念紀錄不在電子雞確認，只由 Web 確認；D4：Web 斷線時刪除裝置紀錄存入待刪佇列、標「待同步」、重連後自動補刪。規則、可退回頁面表與 Web 對帳見 [裝置與 Web 養成同步](features/device-sync-ble-plan.md)，介面見 PROTOCOL.md「養成同步」節：`features` 的 `pet_events`／`care`／`lifecycle`／`memorials`、快照新增 `sad_reasons`／`danger_seconds`／`sick_seconds`／`death_cause`／`memorial_count`／`memorial_hash`、`pet_event` 事件、帶 `op` 去重的兩段式 `care`／`depart`／`adopt`／`delete_memorial` 與分頁 `get_memorials`。**驗證：**只有文件；未建置、未測試、未實機驗收。訊息大小以最長欄位估算：狀態 372→562 bytes、紀念冊每頁 5 筆最多 883 bytes，皆在 1024 以內，未實測傳輸時間。**已知取捨：**沒有配對驗證，且依 D3 送別與刪除不需裝置確認，能連上的 Central 都能執行。**下一步：**依文件第 13 節分五階段實作，每階段韌體與 Web 分頭進行、合併後自動驗證，再由使用者實機驗收：1 快照擴充與事件 → 2 照顧 → 3 送別／領養 → 4 紀念冊同步 → 5 選配與整體回歸。
+- **BLE-S3｜養成同步（遠端照顧、生命週期與紀念冊）** — 2026-10-26 介面定案；**階段 1 已實作（未上板），階段 2～5 未實作**。使用者要求把 ESP32 全部養成流程接到 Web 並雙向同步，決定 D1：Web 照顧時電子雞照搖桿播動畫與音效；D2：選單／狀態頁也接受，韌體先自動退回主畫面再執行（新 `activity:"menu"`）；D3：送別與刪除紀念紀錄不在電子雞確認，只由 Web 確認；D4：Web 斷線時刪除裝置紀錄存入待刪佇列、標「待同步」、重連後自動補刪。規則、可退回頁面表與 Web 對帳見 [裝置與 Web 養成同步](features/device-sync-ble-plan.md)，介面見 PROTOCOL.md「養成同步」節：`features` 的 `pet_events`／`care`／`lifecycle`／`memorials`、快照新增 `sad_reasons`／`danger_seconds`／`sick_seconds`／`death_cause`／`memorial_count`／`memorial_hash`、`pet_event` 事件、帶 `op` 去重的兩段式 `care`／`depart`／`adopt`／`delete_memorial` 與分頁 `get_memorials`。**階段 1（快照擴充與 `pet_event`）2026-10-26 已實作，未上板：**韌體新增 `SadState`（UI 與 BLE 共用傷心緩衝）、`Messages`（status／device_info 組裝）、`PetEvents`（狀態比對與事件准入，佇列保留 2 格）、`Storage::memorialHash()`、`UiController::activity()`；`device_info.features` 為 `web_game`、`pet_events`，加 `rules`；韌體版本維持 1.8.1。Web `ble-source.js` 嚴格驗證新欄位、裝置模式改用韌體 `sad_reasons`、依秒數與 `rules` 顯示生病／離世倒數與死因、`pet_event` 播餵食／清潔／治療／升級動畫（不改狀態；孵化與成長仍由快照階段變化觸發，避免播兩次）、`menu`／`sleeping`／`ended` 擋陪玩並顯示提示。細部解讀：主畫面選中狀態捷徑算 `menu`；`ended` 需紀念紀錄已保存，保存重試中為 `busy`；同一輪多次升級只送一則帶最終等級；Web 對「健康卻有 `sick_seconds`」「活著卻有 `death_cause`」「蛋／終止個體有傷心原因」整份快照拒收；倒數以快照秒數加收到後經過時間估算。**自動驗證（階段 1，主工作目錄）：**`node --test --test-isolation=none web-preview/*tests.cjs` 148 項通過、0 失敗（新增 `pet-sync-tests.cjs` 9 項）；`tools/test_rps.ps1` 全部 PASS（新增 `pet_sync_native`、`activity_ui_native`，既有傷心／觸摸 UI 測試不變，`.pio/pet-sync-phase1-tests.log`）；`tools/test_wasi.py` 新增目標未執行（無 zig）；esp32dev 建置 RAM 55,548 B（+328）、Flash 773,313 B（59.0%，+4,568）；最長欄位 status 實測 507 bytes；`tools/build_all.ps1 -Auto` 18 個環境全部 SUCCESS（`.pio/pet-sync-phase1-build.log`）。Web 子代理另以本機伺服器與內建瀏覽器確認兩種模式載入無 console 錯誤、注入模擬訊息後倒數與狀態列正確，未目視動畫。**實機驗收：**未進行；真實 BLE 收發、事件時序、activity 對應與 Web 動畫都待使用者上板確認。**已知取捨：**沒有配對驗證，且依 D3 送別與刪除不需裝置確認，能連上的 Central 都能執行。**下一步：**使用者上板驗收階段 1，通過後進行階段 2（`care` 與 `op`／`action_result`），之後依序 3 送別／領養 → 4 紀念冊同步 → 5 選配與整體回歸。
 
 ### Web 階段（負責：Web 組；裝置擴充由韌體組負責）
 
@@ -1346,7 +1346,7 @@ erDiagram
 - 正式版支援小鳥與小飛龍，新領養蛋各以 50% 機率抽選並保存種類；孵化、重開機、睡醒及同次保存失敗重試不重抽。不同個體各自保有 ID、名字與紀念冊紀錄，更多種類列為後續擴充；正式韌體寵物美術由使用者繪製，Web 可依確認參考另外生成，製作分工見第 4.2 節。
 - 清潔不做大便生成玩法。清潔度四階段直接對應 0～3 個髒污圖，清潔頁短按使清潔度 `+30`，髒污依新階段減少或消失；不另存髒污數量。2026-10-03 使用者確認新增 2.4 秒首頁清潔動畫：前三格各 400ms、全白停留 1.2 秒，不退水，保留兩側狀態及 EXP 條，播完恢復寵物／即時髒污並留在首頁；有升級才接慶祝。2026-10-22 使用者改為核准 Web 花園主頁採共用洗澡效果：4.2 秒海綿、泡沫、掃動沖洗、水滴與亮點，結束後才執行同一 `+30` 清潔命令；這只覆寫 Web 呈現，韌體既有規則未改。
 - README 是接手與建置入口；實作與驗收只在第 10 節更新。
-- 2026-10-24 使用者確認資料同步方向：實際接上藍牙後，裝置與 Web 的資料全部雙向連動（不只紀念冊，例如任一邊刪除紀念紀錄，另一邊也要跟著刪）。Web 是韌體的延伸、補充與強化：韌體有的資訊 Web 一定都要有；Web 可以多存韌體沒有的資訊（例如陪伴日期、等級、遠行照片），這些不要求韌體繼承。目前 BLE v1 仍是唯讀、只傳目前寵物，要達成雙向連動需另外擴充韌體協定（讀取完整紀念冊、刪除與其他寫入命令及衝突處理），屬後續工作；屆時也要統一「已告別但尚未領養的當前紀錄不可刪」等兩邊規則。2026-10-26 已定案此擴充介面（BLE-S3，兩端未實作）：紀念冊由 `get_memorials`／`delete_memorial` 雙向同步，上述保護規則以 `protected` 欄位統一。
+- 2026-10-24 使用者確認資料同步方向：實際接上藍牙後，裝置與 Web 的資料全部雙向連動（不只紀念冊，例如任一邊刪除紀念紀錄，另一邊也要跟著刪）。Web 是韌體的延伸、補充與強化：韌體有的資訊 Web 一定都要有；Web 可以多存韌體沒有的資訊（例如陪伴日期、等級、遠行照片），這些不要求韌體繼承。目前 BLE v1 仍是唯讀、只傳目前寵物，要達成雙向連動需另外擴充韌體協定（讀取完整紀念冊、刪除與其他寫入命令及衝突處理），屬後續工作；屆時也要統一「已告別但尚未領養的當前紀錄不可刪」等兩邊規則。2026-10-26 已定案此擴充介面（BLE-S3；紀念冊同步屬階段 4，尚未實作）：紀念冊由 `get_memorials`／`delete_memorial` 雙向同步，上述保護規則以 `protected` 欄位統一。
 
 ### 更新方式
 

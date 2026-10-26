@@ -6,15 +6,11 @@
 #include "hardware/TouchGesture.h"
 #include "games/RpsGame.h"
 #include "games/MemoryNotes.h"
+#include "pet/SadState.h"
 
 namespace Hardware {
 class Display;
 class Sound;
-}
-
-namespace Pet {
-class PetData;
-enum class LifeStage : uint8_t;
 }
 
 namespace Storage { class Memorials; }
@@ -68,6 +64,13 @@ enum class UiAction : uint8_t {
     EndWebGame,
 };
 
+// BLE status activity, without the Web play session (owned by the application).
+// Idle: quiet Home. Menu: a menu/status page with nothing running that a later remote
+// command may leave. Sleeping: the normal sleep screen. Ended: death/farewell end screens
+// or memorial pages entered from them, memorial saved. DeviceGame: RPS/memory notes.
+enum class Activity : uint8_t { Idle, Menu, Sleeping, Ended, DeviceGame, Busy };
+const char* activityName(Activity activity);
+
 // Home currently has one selectable shortcut. Keep this separate from screen
 // state so future shortcuts can extend the enum without a navigation framework.
 enum class HomeFocus {
@@ -116,23 +119,27 @@ public:
     // device shows a waiting screen whose long press ends the session (EndWebGame).
     bool webGameStartAllowed() const;
     bool deviceGameActive() const;
+    Activity activity() const;
     void beginWebPlay(uint32_t now);
     // Back to Home after the session ended; a level gained by its reward then celebrates.
     void endWebPlay(uint8_t previousLevel, uint32_t now);
     uint32_t touchContextRevision() const { return touchContextRevision_; }
+    // Buffered sad reasons, refreshed on every update() and render(); BLE status reads them.
+    const Pet::SadState& sadState() const { return sadState_; }
     bool onTouchEvent(Hardware::TouchEvent event, uint32_t now);
     void cancelTouchReaction();
 
 private:
     enum class TouchReaction : uint8_t { None, Poke, Petting, Tail };
     void invalidateTouchContext();
+    bool quiet() const;
     void updateTouchReaction(uint32_t now);
     TouchReaction touchReaction_ = TouchReaction::None;
     uint32_t touchStartedAt_ = 0, touchTailAt_ = 0, touchContextRevision_ = 0;
     uint8_t touchFrame_ = 0;
     bool pokeRecovered_ = false;
     void updateSadState();
-    bool sadMood_ = false, sadSatiety_ = false, sadCleanliness_ = false;
+    Pet::SadState sadState_;
     bool sad_ = false, observedSick_ = false, observedSleeping_ = false;
     bool careReminderPending_ = false, careReminderPlayed_ = false;
     uint32_t lastCareReminderAt_ = 0;

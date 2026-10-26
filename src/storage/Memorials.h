@@ -27,6 +27,13 @@ struct MemorialRecord {
 
 bool isValidMemorial(const MemorialRecord& memorial);
 
+class Memorials;
+// CRC-32 (IEEE, reflected 0xEDB88320, init and final xor 0xFFFFFFFF) of the valid records in
+// storage order, each encoded as 27 bytes independent of struct layout: petId u64 LE,
+// name 8 bytes zero-padded, speciesId u8, ageSeconds u64 LE, kind u8, stage u8.
+// Same archive content gives the same value across reboots; an empty archive is 0.
+uint32_t memorialHash(const Memorials& memorials);
+
 class Memorials {
 public:
     uint8_t count() const;

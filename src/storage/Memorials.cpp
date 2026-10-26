@@ -80,4 +80,34 @@ void Memorials::clear() {
     count_ = 0;
 }
 
+namespace {
+uint32_t crcBytes(uint32_t crc, const uint8_t* bytes, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        crc ^= bytes[i];
+        for (uint8_t bit = 0; bit < 8; ++bit) crc = (crc >> 1) ^ (0xEDB88320UL & (0U - (crc & 1U)));
+    }
+    return crc;
+}
+void putLe64(uint8_t* out, uint64_t value) {
+    for (uint8_t i = 0; i < 8; ++i) out[i] = static_cast<uint8_t>(value >> (8 * i));
+}
+}  // namespace
+
+uint32_t memorialHash(const Memorials& memorials) {
+    uint32_t crc = 0xFFFFFFFFUL;
+    for (uint8_t i = 0; i < memorials.count(); ++i) {
+        const MemorialRecord& r = *memorials.at(i);
+        if (!isValidMemorial(r)) continue;
+        uint8_t bytes[27]{};
+        putLe64(bytes, r.petId);
+        for (uint8_t c = 0; c < Pet::kPetNameMaxLength && r.name[c]; ++c) bytes[8 + c] = static_cast<uint8_t>(r.name[c]);
+        bytes[16] = static_cast<uint8_t>(r.speciesId);
+        putLe64(bytes + 17, r.ageSeconds);
+        bytes[25] = static_cast<uint8_t>(r.kind);
+        bytes[26] = r.stage;
+        crc = crcBytes(crc, bytes, sizeof(bytes));
+    }
+    return crc ^ 0xFFFFFFFFUL;
+}
+
 }  // namespace Storage

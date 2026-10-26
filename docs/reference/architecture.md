@@ -20,7 +20,7 @@
 - `src/storage/Save` 逐欄位編碼、CRC32、序號及 NVS A／B 槽；寵物與墓碑分開保存。Memorials 管理遠行／長眠共 32 筆＋1 個死亡溢位槽，以 petId 去重。Farewell 先保存紀念冊備份與已告別寵物，再完成紀念紀錄；開機／定時重試完成後才能領養。V2 保留 V1 解碼，RTC magic 隨快照升級。
 - `src/storage/Adoption` 保留同次領養的候選蛋。Application 使用 ESP32 亂數在新蛋建立時各 50% 抽選種類；先保存成功再更新現有寵物。保存失敗重試沿用同一 ID、名字及種類，孵化、重啟與喚醒不重新抽選已保存的蛋。
 - 1.8.1：Save 的自動重試以最後失敗時間退避 5／10／30／60 秒；成功才清除待存狀態，不把最後成功時間當作失敗重試頻率。同步檢查點仍可由玩家立即要求。NVS 統計回傳容量預警，Application 將保存故障／容量交給 UI。維護韌體 `NvsMaintenance.cpp` 只在專用環境啟用，沒有主 Application；啟動不擦資料，收到限定命令才清理白名單。
-- `src/ble/BleLink` 封裝 NimBLE，callback 收取分片與連線／訂閱事件，主迴圈組合 JSON、處理唯讀查詢及通知。BLE 不寫 NVS 或改養成規則。固定 device_id 取自 eFuse 工廠 MAC，與寵物存檔 ID 分開。
+- `src/ble/BleLink` 封裝 NimBLE，callback 收取分片與連線／訂閱事件，主迴圈組合 JSON、處理唯讀查詢及通知。BLE 不寫 NVS 或改養成規則。`src/ble/Messages` 以不依賴 NimBLE 的函式組出 status／device_info JSON；`src/ble/PetEvents` 比對每輪前後狀態產生 `pet_event`，佇列保留 2 格給快照與回覆。傷心緩衝判斷在 `src/pet/SadState.h`，UiController 與 BLE 共用同一份；`Storage::memorialHash()` 提供紀念冊 CRC32。固定 device_id 取自 eFuse 工廠 MAC，與寵物存檔 ID 分開。
 - `src/storage/DeviceSettings` 保存裝置聲音開關偏好，正式／測試 namespace 為 `pet-prefs`／`pet-prefs-test`，與寵物及紀念冊格式獨立。Application 在啟動時載入並交給 Sound，UI 透過 SaveVolume 動作要求確認保存、再接收成功／失敗結果；喇叭列左右試聽與按鈕／長按取消不寫入。Sound 集中套用靜音／固定 50% PWM，靜音仍保留音序計時。內部沿用 volume／SaveVolume 名稱，數值只允許 0／1；偏好記錄 V2，讀取舊 V1 時把非零音量映射為開啟，開機不重寫。
 - `esp32_pet_app/` 是獨立 Flutter 建置；前端重組、驗證與顯示裝置快照。正式欄位與相容性要求只看 [PROTOCOL](../../esp32_pet_app/PROTOCOL.md)。
 

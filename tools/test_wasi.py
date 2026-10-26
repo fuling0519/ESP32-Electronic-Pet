@@ -60,10 +60,13 @@ targets = [
  ('storage-retry', ['test/storage_retry_native.cpp']+pet+['src/storage/Memorials.cpp'], []),
  ('rps-ui', ui, []),
  ('sad-ui', ui, ['-DPET_SAD_TEST_MODE=1']),
+ ('activity-ui', ['test/activity_ui_native.cpp']+ui[1:]+['src/pet/PetClock.cpp'], []),
+ ('pet-sync', ['test/pet_sync_native.cpp']+pet+['src/storage/Memorials.cpp','src/ble/Messages.cpp','src/ble/PetEvents.cpp'],
+  ['-I.pio/libdeps/esp32dev/ArduinoJson/src']),
 ]
 for name, sources, flags in targets:
     objects = [compile_unit(source, flags) for source in sources]
-    if name in ('rps-ui','sad-ui'):
+    if name in ('rps-ui','sad-ui','activity-ui'):
         objects += [compile_unit(font/(unit+'.c')) for unit in units]
     module = out / (name+'.wasm')
     run([zig,'cc','-target','wasm32-wasi']+objects+runtime+['-o',module])

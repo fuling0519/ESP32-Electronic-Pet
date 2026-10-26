@@ -198,7 +198,8 @@ void UiController::init(uint32_t now) {
     lastRenderedPetRevision_ = pet_.displayRevision();
     careLevelUpPending_ = false;
     levelUpPreviousLevel_ = levelUpFinalLevel_ = 0;
-    sadMood_ = sadSatiety_ = sadCleanliness_ = sad_ = false;
+    sadState_.reset(pet_.petId());
+    sad_ = false;
     observedSick_ = observedSleeping_ = false;
     careReminderPlayed_ = false;
     observedPetId_ = pet_.petId();
@@ -209,17 +210,14 @@ void UiController::init(uint32_t now) {
 void UiController::updateSadState() {
     if (observedPetId_ != pet_.petId()) {
         observedPetId_ = pet_.petId();
-        sadMood_ = sadSatiety_ = sadCleanliness_ = sad_ = false;
+        sad_ = false;
         observedSick_ = observedSleeping_ = false;
         careReminderPending_ = careReminderPlayed_ = false;
     }
-    const bool eligible = !pet_.isEnded() && pet_.lifeStage() != Pet::LifeStage::Egg;
+    sadState_.update(pet_);  // Resets its own buffers on a new pet id.
     const bool sleeping = pet_.sleepMode() != Pet::SleepMode::Awake;
-    const bool sick = eligible && pet_.isSick();
-    sadMood_ = eligible && (sadMood_ ? pet_.mood() < 45 : pet_.mood() <= 40);
-    sadSatiety_ = eligible && (sadSatiety_ ? pet_.satiety() < 30 : pet_.satiety() <= 25);
-    sadCleanliness_ = eligible && (sadCleanliness_ ? pet_.cleanliness() < 30 : pet_.cleanliness() <= 25);
-    const bool next = sick || sadMood_ || sadSatiety_ || sadCleanliness_;
+    const bool sick = sadState_.sick();
+    const bool next = sadState_.any();
     if ((!sad_ && next) || (!observedSick_ && sick) ||
         (observedSleeping_ && !sleeping && next)) careReminderPending_ = true;
     if (!next) careReminderPending_ = false;
@@ -250,15 +248,55 @@ bool UiController::touchContextAllowed() const {
         pendingAction_ == UiAction::None;
 }
 
-bool UiController::webGameStartAllowed() const {
-    return screen_ == ScreenId::Home && homeFocus_ == HomeFocus::None &&
-        !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
+// No care animation, celebration, notice, deep sleep countdown or queued action.
+bool UiController::quiet() const {
+    return !feeding_ && !cleaning_ && careAfterglow_ == CareAfterglow::None &&
         !treating_ && !levelUpActive_ && !careLevelUpPending_ &&
         !treatmentNotice_ && !deepSleepPending_ && pendingAction_ == UiAction::None;
 }
 
+bool UiController::webGameStartAllowed() const {
+    return screen_ == ScreenId::Home && homeFocus_ == HomeFocus::None && quiet();
+}
+
 bool UiController::deviceGameActive() const {
     return screen_ == ScreenId::GameSelect || screen_ == ScreenId::PlayCare;
+}
+
+Activity UiController::activity() const {
+    if (deviceGameActive()) return Activity::DeviceGame;
+    if (webGameStartAllowed()) return Activity::Idle;
+    if (!quiet()) return Activity::Busy;
+    const bool memorialPage = screen_ == ScreenId::MemorialCategories ||
+        screen_ == ScreenId::MemorialHelp || screen_ == ScreenId::Graveyard;
+    if (pet_.isEnded()) {
+        // Only after the end animation, with the memorial saved (no farewell retry running).
+        const bool endScreen = screen_ == ScreenId::DeathMemorial || screen_ == ScreenId::DeathOptions ||
+            screen_ == ScreenId::FarewellDone || memorialPage;
+        return endScreen && memorialReady_ ? Activity::Ended : Activity::Busy;
+    }
+    switch (screen_) {
+        case ScreenId::Home:  // Status shortcut focused: leaving it loses nothing.
+        case ScreenId::MainMenu: case ScreenId::FeedCare: case ScreenId::CleanCare:
+        case ScreenId::Rest: case ScreenId::DetailedStatus:
+        case ScreenId::MemorialCategories: case ScreenId::MemorialHelp: case ScreenId::Graveyard:
+            return Activity::Menu;
+        case ScreenId::Sleeping:
+            return pet_.sleepMode() == Pet::SleepMode::Normal ? Activity::Sleeping : Activity::Busy;
+        default: return Activity::Busy;
+    }
+}
+
+const char* activityName(Activity activity) {
+    switch (activity) {
+        case Activity::Idle: return "idle";
+        case Activity::Menu: return "menu";
+        case Activity::Sleeping: return "sleeping";
+        case Activity::Ended: return "ended";
+        case Activity::DeviceGame: return "device_game";
+        case Activity::Busy: return "busy";
+    }
+    return "busy";
 }
 
 void UiController::beginWebPlay(uint32_t now) {

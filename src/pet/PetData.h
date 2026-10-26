@@ -102,6 +102,7 @@ public:
     uint32_t displayRevision() const;
     uint32_t dangerSeconds() const;
     uint32_t sickAwakeSeconds() const;
+    DeathCause deathCause() const { return deathCause_; }
     SleepMode sleepMode() const;
     PetSnapshotV1 snapshot() const;
     // Restores only validated snapshots and leaves the current pet untouched

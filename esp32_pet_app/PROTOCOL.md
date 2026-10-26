@@ -140,9 +140,9 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 **限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
 
-## 養成同步（2026-10-26 定案，尚未實作）
+## 養成同步（2026-10-26 定案；階段 1 已實作）
 
-設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體尚未宣告下列任何旗標，實作與驗證進度只看主台帳。
+設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體只宣告 `pet_events`（快照擴充、`activity` 新值與事件），`care`、`lifecycle`、`memorials` 尚未實作；實作與驗證進度只看主台帳。
 
 **能力。** `device_info.features` 新增 `pet_events`、`care`、`lifecycle`、`memorials`，各自開放下方對應的事件或命令；缺少即不支援。`device_info` 另加可選物件 `rules`：`sick_after_seconds`、`death_after_sick_seconds`、`memorial_limit`（皆為正整數），Web 以此顯示倒數與滿額，不自行寫死門檻。
 

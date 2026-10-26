@@ -14,6 +14,9 @@ function blocker(game){
  if(!v.webGame)return v.connection==='ready'?'這台電子雞的韌體還不支援網頁陪玩。':'請先連接電子雞。';
  if(game&&!games().includes(game))return '這台電子雞的韌體還不支援這個遊戲，請更新韌體。';
  if(v.activity==='device_game')return '牠正在電子雞上陪你玩，等那邊玩完吧。';
+ // 養成同步 activity values: asleep on the device, or the pet's story has ended there; menu and unknown ones mean busy.
+ if(v.activity==='sleeping')return '牠正在電子雞上睡覺，等牠醒來再一起玩吧。';
+ if(v.activity==='ended')return '寵物現在不能陪玩。';
  if(v.activity!=='idle')return '請先讓電子雞回到主畫面。';
  if(!p||!['baby','adult'].includes(p.stage)||p.healthState!=='healthy'||p.sleepMode!=='awake'||p.isDeparted)return '寵物現在不能陪玩。';
  return starting?'正在請電子雞準備陪玩。':'';
