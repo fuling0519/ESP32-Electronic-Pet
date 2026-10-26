@@ -91,6 +91,8 @@ public:
     uint16_t exp() const;
     static constexpr uint8_t kMaxLevel = 20;
     uint16_t expToNextLevel() const;
+    // EXP needed to leave the given level (0 at the max level).
+    static uint16_t expToLevelUp(uint8_t level) { return level >= kMaxLevel ? 0 : 50 + 25 * (level - 1); }
     // Returns accepted EXP (limited by the remaining distance to max level).
     uint16_t gainExp(uint16_t amount);
     bool isSick() const;

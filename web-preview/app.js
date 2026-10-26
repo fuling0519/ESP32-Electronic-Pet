@@ -28,10 +28,12 @@ let countdownShown=false;
 function deviceCountdown(snapshot){const live=snapshot.source==='ble'&&!snapshot.stale&&snapshot.receivedAt?Math.max(0,Math.floor((Date.now()-Date.parse(snapshot.receivedAt))/1000)):0;const text=snapshot.source==='ble'?PetRules.countdown(snapshot.pet,snapshot.rules,live):'';countdownShown=!!text;return text;}
 // In device mode only 陪玩 shows, and only when the firmware supports BLE play. It stays clickable while play is not
 // possible right now (dimmed, reason as tooltip), so a click can say why; device-session.js decides.
-function busy(value){const devicePlay=mode!=='mock'&&!!manager.view('ble').webGame,playing=!!window.PetToyPlay?.active()||!!window.PetChorus?.active();root.classList.toggle('device-play',devicePlay);
- document.querySelectorAll('[data-action]').forEach(b=>b.disabled=mode!=='mock'?!(devicePlay&&b.dataset.action==='play'&&!value&&!playing):value||!!window.PetGrowthView?.active||condition==='sleep'||(condition==='dead'||condition==='departed')||stage==='egg'||(condition==='sick'&&b.dataset.action==='play')||(b.dataset.action==='treat'&&condition!=='sick'));
+// With the care feature the device-mode care buttons show too; device-care.js decides which ones work right now.
+function busy(value){const devicePlay=mode!=='mock'&&!!manager.view('ble').webGame,deviceCare=mode!=='mock'&&!!manager.view('ble').care,playing=!!window.PetToyPlay?.active()||!!window.PetChorus?.active();root.classList.toggle('device-play',devicePlay);root.classList.toggle('device-care',deviceCare);
+ document.querySelectorAll('[data-action]').forEach(b=>b.disabled=mode!=='mock'?!(devicePlay&&b.dataset.action==='play'&&!value&&!playing&&!manager.view('ble').careSending):value||!!window.PetGrowthView?.active||condition==='sleep'||(condition==='dead'||condition==='departed')||stage==='egg'||(condition==='sick'&&b.dataset.action==='play')||(b.dataset.action==='treat'&&condition!=='sick'));
  const play=document.querySelector('[data-action="play"]'),why=devicePlay&&!play.disabled?window.PetDeviceSession?.blocker()||'':'';
- if(play?.classList){play.classList.toggle('is-blocked',!!why);play.setAttribute('aria-disabled',String(!!why));play.title=why;}}
+ if(play?.classList){play.classList.toggle('is-blocked',!!why);play.setAttribute('aria-disabled',String(!!why));play.title=why;}
+ if(deviceCare)window.PetDeviceCare?.mark(document.querySelectorAll('[data-action]'),value||!!action||playing);}
 function shownWyvern(){const p=manager.read().pet;return (mode==='mock'&&speciesPreview!=='auto'?Number(speciesPreview):p?.speciesId)===2;}
 // The emote bubble shows what the pet needs right now (sickness first, then hunger, dirt, mood), or a short
 // thank-you after care. Nothing shows while it is busy, reacting to a touch, asleep, in a game or not a hatched living pet.
@@ -61,8 +63,8 @@ function syncEmote(now,p,busyNow){
 // #status is the message bar under the garden; problems are highlighted there for a few seconds.
 let noticeTimer=null;function notice(text){status.textContent=text;status.classList.add('alert');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>status.classList.remove('alert'),5000);}
 // Device mode: 陪玩 opens the picker of games the ESP32 can settle, or says why play cannot start now.
-function begin(kind){if(kind==='play'&&mode!=='mock'){const why=window.PetDeviceSession?.blocker();if(why)status.textContent=why;else window.openPetGames();return;}if(mode!=='mock'||window.PetGrowthView?.active)return;if(kind==='play'){window.openPetGames();return;}if(action||(condition==='dead'||condition==='departed')||stage==='egg'||condition==='sleep'||(condition==='dead'||condition==='departed')||stage==='egg'||(condition==='sick'&&kind==='play'))return;if(kind==='treat'){if(condition!=='sick')return;action=kind;treatmentResult=null;actionStart=performance.now();busy(true);bubble.hidden=true;status.textContent=shownWyvern()?'正在治療生病的小飛龍（展示）…':'正在治療生病的小鳥（展示）…';return;}action=kind;actionStart=performance.now();busy(true);status.textContent=kind==='feed'?(shownWyvern()?'牠正在低頭大口吃飯……':'牠正在啄食種子……'):kind==='clean'?'牠正在整理清潔，髒污逐漸消失……':'牠開心地跳躍、拍拍翅膀……';}
-function finish(){if(!action)return;if(mode!=='mock'){const kind=action;action=null;treatmentResult=null;lastDeviceLine='';renderDevice();thank(kind==='clean'?'note':'heart');return;}const kind=action;if(kind==='treat'){const result=treatmentResult||manager.command(kind);treatmentResult=null;if(result.levelsGained)celebrateMock(result.levelsGained);action=null;document.querySelector('#condition').value='awake';preview();update();thank('heart');status.textContent='展示治療完成，已恢復健康；飽食度與清潔度保持原值。';const token=++resetToken;setTimeout(()=>{if(token===resetToken&&!action)bubble.hidden=true;},1800);return;}const {key,actual,levelsGained}=manager.command(kind);if(levelsGained)celebrateMock(levelsGained);action=null;busy(false);update();if(kind!=='play')thank(kind==='clean'?'note':'heart');status.textContent='展示'+({satiety:'飽食度',cleanliness:'清潔度',mood:'心情'})[key]+' +'+actual+'。';const token=++resetToken;setTimeout(()=>{if(token===resetToken&&!action)bubble.hidden=true;},1800);}
+function begin(kind){if(kind!=='play'&&mode!=='mock'){deviceCare(kind);return;}if(kind==='play'&&mode!=='mock'){const why=window.PetDeviceSession?.blocker();if(why)status.textContent=why;else window.openPetGames();return;}if(mode!=='mock'||window.PetGrowthView?.active)return;if(kind==='play'){window.openPetGames();return;}if(action||(condition==='dead'||condition==='departed')||stage==='egg'||condition==='sleep'||(condition==='dead'||condition==='departed')||stage==='egg'||(condition==='sick'&&kind==='play'))return;if(kind==='treat'){if(condition!=='sick')return;action=kind;treatmentResult=null;actionStart=performance.now();busy(true);bubble.hidden=true;status.textContent=shownWyvern()?'正在治療生病的小飛龍（展示）…':'正在治療生病的小鳥（展示）…';return;}action=kind;actionStart=performance.now();busy(true);status.textContent=kind==='feed'?(shownWyvern()?'牠正在低頭大口吃飯……':'牠正在啄食種子……'):kind==='clean'?'牠正在整理清潔，髒污逐漸消失……':'牠開心地跳躍、拍拍翅膀……';}
+function finish(){if(!action)return;if(mode!=='mock'){const kind=action;action=null;treatmentResult=null;lastDeviceLine='';renderDevice();if(careLine){notice(careLine);careLine='';}thank(kind==='clean'?'note':'heart');return;}const kind=action;if(kind==='treat'){const result=treatmentResult||manager.command(kind);treatmentResult=null;if(result.levelsGained)celebrateMock(result.levelsGained);action=null;document.querySelector('#condition').value='awake';preview();update();thank('heart');status.textContent='展示治療完成，已恢復健康；飽食度與清潔度保持原值。';const token=++resetToken;setTimeout(()=>{if(token===resetToken&&!action)bubble.hidden=true;},1800);return;}const {key,actual,levelsGained}=manager.command(kind);if(levelsGained)celebrateMock(levelsGained);action=null;busy(false);update();if(kind!=='play')thank(kind==='clean'?'note':'heart');status.textContent='展示'+({satiety:'飽食度',cleanliness:'清潔度',mood:'心情'})[key]+' +'+actual+'。';const token=++resetToken;setTimeout(()=>{if(token===resetToken&&!action)bubble.hidden=true;},1800);}
 function cleanDuration(){return window.CleaningAnimationView?.duration||4.2;}
 // The bird is drawn at birdAt (left of centre, tail to the right), so foam and sponge follow its torso.
 let birdAt=null;window.PetBirdPlacement=()=>birdAt;
@@ -144,7 +146,7 @@ if(action==='treat'&&elapsed>=1.4)drawRecovery(elapsed);if(action==='clean'&&!dr
 if(action==='play')for(let i=0;i<3;i++)heart(145+i*24,82-(moving?(elapsed*17+i*10)%30:0));
 if(night)for(let i=0;i<14;i++){ctx.globalAlpha=moving?.4+.6*Math.abs(Math.sin(now/800+i)):1;block(132+(i*29)%221,8+(i*13)%62,2,2,'#fff2bb');}ctx.globalAlpha=1;
 if(action&&elapsed>=(action==='feed'?3:action==='clean'?cleanDuration():3.4))finish();requestAnimationFrame(draw);}
-document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>b.dataset.action==='treat'?healPet():begin(b.dataset.action)));
+document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>b.dataset.action==='treat'&&mode==='mock'?healPet():begin(b.dataset.action)));
 function setNight(value){night=value;root.classList.toggle('night',night);applyBackdrop();const theme=document.querySelector('#theme-toggle'),label=night?'切換到午後':'切換到夜晚';theme.textContent=night?'☀':'☾';theme.setAttribute('aria-label',label);theme.title=label;syncTitle();savePreferences();}
 function applyBackdrop(){root.classList.remove('simple-background','smooth-background');const image=document.querySelector('#background');image.src='assets/garden-detailed-'+(night?'night':'day')+'.png?v=cute-farm-v2-20261016';image.alt=night?'像素農場傍晚夜景，暖黃燈光與靛藍溪流':'像素農場午後，明亮草地與湛藍溪流';}
 
@@ -218,7 +220,7 @@ document.querySelector('#last-received').hidden=demo;if(demo)preview();else rend
 const DEATH_CAUSE={untreated_sickness:'生病未治療'};
 // Snapshots arrive whenever the pet changes; only a new connection message replaces the line, so play messages stay.
 let lastDeviceLine='';
-function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=snap.pet;const labels={disconnected:'未連線',selecting:'選擇裝置中',connecting:'連線中',waiting:'等待資料',ready:'裝置直連（唯讀）',cancelled:'已取消',error:'連線異常'};
+function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=snap.pet;const labels={disconnected:'未連線',selecting:'選擇裝置中',connecting:'連線中',waiting:'等待資料',ready:snap.care?'裝置直連':'裝置直連（唯讀）',cancelled:'已取消',error:'連線異常'};
  document.querySelector('#source-label').textContent=snap.stale&&p?'離線／舊資料':labels[snap.connection];
  document.querySelector('#ble-state').textContent=snap.message;
  document.querySelector('#last-received').textContent=p?'最後接收：'+new Date(snap.receivedAt).toLocaleString()+' · 裝置 ID：'+(p.deviceId||'舊韌體未提供'):'最後接收：—';
@@ -228,7 +230,7 @@ function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=
  const noArt=!p;document.querySelector('#device-empty').hidden=!noArt;
  document.querySelector('#device-empty-message').textContent=!p?snap.message:p.health==='dead'?'裝置回報：寵物已離世': '裝置回報：蛋階段，等待孵化';
  if(p){stage=p.stage;condition=p.health==='dead'?'dead':p.condition;}syncLifecycle();root.classList.toggle('is-sick',!p?.isDeparted&&p?.health==='sick');
- if(p?.isDeparted)document.querySelector('#pet-description').textContent='已遠行'+(snap.stale?' · 舊資料':'');syncHealth(p?.isDeparted?'departed':p?.health??'unknown');{const alert=p?.health==='dead'&&!p.isDeparted?'寵物已離世（'+(DEATH_CAUSE[p.deathCause]||'原因未知')+'）。':deviceCountdown(snap)?deviceCountdown(snap)+'。':'';const old=p&&snap.stale?'目前顯示最後收到的舊資料，不代表即時狀態。':'',line=alert?alert+old:snap.message+(old?'。'+old:'')+' 真實照顧命令尚未開放。';if(!action&&line!==lastDeviceLine){lastDeviceLine=line;status.textContent=line;}}
+ if(p?.isDeparted)document.querySelector('#pet-description').textContent='已遠行'+(snap.stale?' · 舊資料':'');syncHealth(p?.isDeparted?'departed':p?.health??'unknown');{const alert=p?.health==='dead'&&!p.isDeparted?'寵物已離世（'+(DEATH_CAUSE[p.deathCause]||'原因未知')+'）。':deviceCountdown(snap)?deviceCountdown(snap)+'。':'';const old=p&&snap.stale?'目前顯示最後收到的舊資料，不代表即時狀態。':'',line=alert?alert+old:snap.message+(old?'。'+old:'')+(snap.care?'':' 真實照顧命令尚未開放。');if(!action&&line!==lastDeviceLine){lastDeviceLine=line;status.textContent=line;}}
  canvas.setAttribute('aria-label',p?p.name+'，'+document.querySelector('#pet-description').textContent:'尚無硬體資料');update();busy(false);
 }
 // Device pet_event: plays the matching care animation only (the snapshot still decides the state). Hatching and growing
@@ -244,6 +246,19 @@ function deviceEvent(e){
  action=kind;actionStart=performance.now();treatmentResult=null;bubble.hidden=true;busy(true);status.textContent=EVENT_TEXT[kind];
 }
 manager.onPetEvent(deviceEvent);
+// Web care on the device (PROTOCOL.md 養成同步 care): the ESP32 plays its own animation (D1); the garden one plays only
+// after action_result done, with the real deltas as the status line. Meters still change only from the next snapshot,
+// and the device's pet_event for this web command (source web) is skipped by the BLE layer, so nothing plays twice.
+let careLine='';
+function deviceCare(kind){
+ const why=action?'等目前的動畫播完再照顧吧。':window.PetDeviceCare?window.PetDeviceCare.blocker(kind):'這台電子雞的韌體還不支援網頁照顧。';if(why){status.textContent=why;return;}
+ const run=PetDeviceCare.run(kind);status.textContent=PetDeviceCare.sendingText(kind);busy(false);
+ run.then(r=>{if(mode!=='ble')return;const p=manager.view('ble').pet,line=PetDeviceCare.doneText(r),kind=PetDeviceCare.ANIMATION[r.action];
+  if(r.changes.levels_gained>0)celebrate({gained:r.changes.levels_gained});
+  const free=kind&&!action&&!window.PetGrowthView?.active&&!window.PetToyPlay?.active()&&!window.PetChorus?.active()&&p&&['baby','adult'].includes(p.stage)&&p.sleepMode==='awake'&&!p.isDeparted&&p.health!=='dead';
+  if(free){action=kind;actionStart=performance.now();treatmentResult=null;bubble.hidden=true;careLine=line;status.textContent=line;busy(true);}else{notice(line);busy(false);}},
+  e=>{if(mode!=='ble')return;notice(e.message);busy(false);});
+}
 manager.subscribe(()=>{renderDevice();refreshConnectionButtons();const snap=manager.view('ble');if(snap.pet&&snap.connection==='ready')PetMemorials.remember(snap.pet,'ble',bleHistorySession);});
 function refreshConnectionButtons(){const s=manager.view('ble');document.querySelector('#ble-state').textContent=s.message;document.querySelector('#ble-search').disabled=['selecting','connecting','waiting','ready'].includes(s.connection);document.querySelector('#ble-disconnect').disabled=['disconnected','cancelled','error'].includes(s.connection);}
 document.querySelector('#ble-search').onclick=()=>{document.querySelector('#mode').value='ble';switchMode();manager.connect();};

@@ -99,17 +99,14 @@ void Link::resetRx() {
     rxActive_ = false; rxMessageId_ = rxLength_ = 0;
     rxCount_ = rxNext_ = 0; rxStartedAt_ = 0;
 }
-bool Link::queue(const char* json, bool statusMessage) {
-    if (!json || !connected_ || txCount_ >= kQueueSize) return false;
+bool Link::queue(const char* json, TxKind kind) {
+    if (!json || !connected_) return false;
     size_t len = strlen(json);
     if (!len || len > kMaxJson) return false;
-    TxMessage& slot = tx_[txTail_];
-    slot.length = static_cast<uint16_t>(len);
-    slot.status = statusMessage;
-    memcpy(slot.json, json, len + 1);
-    txTail_ = (txTail_ + 1) % kQueueSize;
-    ++txCount_;
-    return true;
+    bool statusDropped = false;
+    const bool queued = tx_.push(json, static_cast<uint16_t>(len), kind, &statusDropped);
+    if (statusDropped) lastStatus_[0] = '\0';  // A reply took its slot: send it again later.
+    return queued;
 }
 void Link::result(uint32_t id, bool hasId, const char* code) {
     StaticJsonDocument<192> d;
@@ -118,7 +115,7 @@ void Link::result(uint32_t id, bool hasId, const char* code) {
     d["ok"] = strcmp(code,"ok")==0; d["code"]=code;
     char json[kMaxJson+1];
     size_t len=serializeJson(d,json,sizeof(json));
-    if (len && len<=kMaxJson) queue(json,false);
+    if (len && len<=kMaxJson) queue(json,TxKind::Reply);
 }
 bool Link::makeStatus(const Pet::PetData& pet, char* out, size_t cap, uint16_t& len) const {
     return makeStatusJson(pet,deviceId_,activity_,statusSources_,out,cap,len);
@@ -129,7 +126,7 @@ void Link::publishStatus(const Pet::PetData& pet, uint32_t nowMs) {
     lastStatusAt_=nowMs;
     char json[kMaxJson+1]; uint16_t len=0;
     if (!makeStatus(pet,json,sizeof(json),len) || (!forced && strcmp(json,lastStatus_)==0)) return;
-    if (queue(json,true)) { memcpy(lastStatus_,json,len+1); forceStatus_=false; }
+    if (queue(json,TxKind::Status)) { memcpy(lastStatus_,json,len+1); forceStatus_=false; }
 }
 
 void Link::receive(const RxFrame& f, uint32_t nowMs) {
@@ -155,9 +152,10 @@ void Link::receive(const RxFrame& f, uint32_t nowMs) {
     }
 }
 void Link::processCommand() {
-    StaticJsonDocument<192> filter;
+    StaticJsonDocument<256> filter;
     filter["v"]=true; filter["id"]=true; filter["cmd"]=true;
     filter["game"]=true; filter["pet_id"]=true; filter["session"]=true;
+    filter["action"]=true; filter["op"]=true;
     filter["score"]["throws"]=true; filter["score"]["catches"]=true;
     filter["score"]["correct"]=true; filter["score"]["total"]=true;
     StaticJsonDocument<384> d;
@@ -176,23 +174,57 @@ void Link::processCommand() {
     bool isInfo=strcmp(cmd,"get_device_info")==0;
     if (isGameCommand(cmd)) {
         // Only one game command is handled at a time; the application answers it.
-        if (gameRequest_.type!=GameRequest::Type::None) { result(id,true,"busy"); return; }
+        if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
         GameRequest request;
         const char* code=parseGameCommand(cmd,d.as<JsonVariantConst>(),id,request);
         if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
-        gameRequest_=request;
+        request_=Request{}; request_.kind=Request::Kind::Game; request_.game=request;
         return;
     }
+    if (strcmp(cmd,"care")==0) { processCare(d.as<JsonVariantConst>(),id); return; }
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
     char json[kMaxJson+1]; uint16_t len=0;
-    if (makeDeviceInfoJson(id,kName,deviceId_,json,sizeof(json),len)) queue(json,false);
+    if (makeDeviceInfoJson(id,kName,deviceId_,json,sizeof(json),len)) queue(json,TxKind::Reply);
 }
-bool Link::takeGameRequest(GameRequest& request) {
-    if (gameRequest_.type==GameRequest::Type::None) return false;
-    request=gameRequest_; gameRequest_=GameRequest{};
+// Format and op cache here; eligibility, menu return and execution in the application.
+void Link::processCare(JsonVariantConst message, uint32_t id) {
+    CareRequest care;
+    const char* code=parseCareCommand(message,id,care);
+    if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
+    const uint8_t action=static_cast<uint8_t>(care.action);
+    switch (ops_.check(care.op,OpKind::Care,action,care.petId,id)) {
+        case OpCache::Match::Conflict: result(id,true,"op_conflict"); return;
+        case OpCache::Match::Pending: result(id,true,"ok"); return;
+        case OpCache::Match::Done:
+            result(id,true,"ok");
+            sendActionResult(id,*ops_.find(care.op));
+            return;
+        case OpCache::Match::New: break;
+    }
+    if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
+    request_=Request{}; request_.kind=Request::Kind::Care; request_.care=care;
+}
+bool Link::takeRequest(Request& request) {
+    if (request_.kind==Request::Kind::None) return false;
+    request=request_; request_=Request{};
     return true;
+}
+void Link::acceptCare(const CareRequest& r) {
+    ops_.begin(r.op,OpKind::Care,static_cast<uint8_t>(r.action),r.petId,r.commandId);
+    result(r.commandId,true,"ok");
+}
+void Link::finishCare(const CareRequest& r, const CareOutcome& outcome) {
+    const OpCache::Entry* entry=ops_.complete(r.op,outcome);
+    if (entry) { sendActionResult(entry->commandId,*entry); return; }
+    OpCache::Entry lost; lost.op=r.op; lost.action=static_cast<uint8_t>(r.action); lost.outcome=outcome;
+    sendActionResult(r.commandId,lost);
+}
+void Link::sendActionResult(uint32_t id, const OpCache::Entry& e) {
+    char json[kMaxJson+1]; uint16_t len=0;
+    if (makeActionResultJson(id,e.op,static_cast<CareAction>(e.action),e.outcome,json,sizeof(json),len))
+        queue(json,TxKind::Reply);
 }
 void Link::reply(uint32_t commandId, const char* code) { result(commandId,true,code); }
 namespace {
@@ -204,20 +236,20 @@ void Link::sendGameSession(uint32_t commandId, uint32_t session, const char* gam
     d["min_ms"]=minMs; d["heartbeat_ms"]=Games::WebGameSession::kHeartbeatMs;
     d["timeout_ms"]=Games::WebGameSession::kTimeoutMs;
     char json[kMaxJson+1]; size_t len=serializeJson(d,json,sizeof(json));
-    if (len && len<=kMaxJson) queue(json,false);
+    if (len && len<=kMaxJson) queue(json,TxKind::Reply);
 }
 void Link::sendGameResult(uint32_t commandId, uint32_t session, const Games::WebGameResult& r) {
     StaticJsonDocument<256> d; char text[11]; sessionText(session,text);
     d["v"]=1; d["type"]="game_result"; d["id"]=commandId; d["session"]=text;
     d["mood_gain"]=r.moodGain; d["exp_gain"]=r.expGain; d["levels_gained"]=r.levelsGained;
     char json[kMaxJson+1]; size_t len=serializeJson(d,json,sizeof(json));
-    if (len && len<=kMaxJson) queue(json,false);
+    if (len && len<=kMaxJson) queue(json,TxKind::Reply);
 }
 void Link::sendSessionEnd(uint32_t session, const char* reason) {
     StaticJsonDocument<192> d; char text[11]; sessionText(session,text);
     d["v"]=1; d["type"]="game_session_end"; d["session"]=text; d["reason"]=reason;
     char json[kMaxJson+1]; size_t len=serializeJson(d,json,sizeof(json));
-    if (len && len<=kMaxJson) queue(json,false);
+    if (len && len<=kMaxJson) queue(json,TxKind::Reply);
 }
 void Link::setActivity(const char* activity) { if (activity) activity_=activity; }
 void Link::attachStatusSources(const Pet::SadState& sad, const Storage::Memorials& memorials) {
@@ -225,15 +257,14 @@ void Link::attachStatusSources(const Pet::SadState& sad, const Storage::Memorial
 }
 void Link::sendPetEvent(const PetEvent& event) {
     // observedConnected_: update() has seen this connection and cleared the old queue.
-    if (!observedConnected_ || !petEventAdmitted(connected_,subscribed_,txCount_,kQueueSize)) return;
+    if (!observedConnected_ || !petEventAdmitted(connected_,subscribed_,tx_.count(),TxQueue::kCapacity)) return;
     char json[kMaxJson+1]; uint16_t len=0;
-    if (makePetEventJson(event,json,sizeof(json),len)) queue(json,false);
+    if (makePetEventJson(event,json,sizeof(json),len)) queue(json,TxKind::Event);
 }
 void Link::sendFrame(uint32_t nowMs) {
     if (!connected_ || !subscribed_ || !event_ || nowMs-lastFrameAt_<20) return;
     if (!txActive_) {
-        if (!txCount_) return;
-        current_=tx_[txHead_]; txHead_=(txHead_+1)%kQueueSize; --txCount_;
+        if (!tx_.pop(current_)) return;
         txActive_=true; txIndex_=0; ++txMessageId_; if (!txMessageId_) ++txMessageId_;
         uint16_t count=(current_.length+kChunk-1)/kChunk;
         if (!count || count>255) { txActive_=false; return; }
@@ -255,8 +286,8 @@ void Link::update(const Pet::PetData& pet, uint32_t nowMs) {
     bool connected=connected_;
     if (connected!=observedConnected_) {
         logHeap(connected ? "connected" : "disconnected");
-        observedConnected_=connected; resetRx(); gameRequest_=GameRequest{};
-        txHead_=txTail_=txCount_=0; txActive_=false; lastStatus_[0]='\0';
+        observedConnected_=connected; resetRx(); request_=Request{};
+        tx_.clear(); txActive_=false; lastStatus_[0]='\0';
         if (connected) forceStatus_=true;
         else NimBLEDevice::startAdvertising();
     }

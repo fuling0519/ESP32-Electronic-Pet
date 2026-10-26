@@ -42,9 +42,7 @@ uint8_t PetData::mood() const { return mood_; }
 uint8_t PetData::cleanliness() const { return cleanliness_; }
 uint8_t PetData::level() const { return level_; }
 uint16_t PetData::exp() const { return exp_; }
-uint16_t PetData::expToNextLevel() const {
-    return level_ >= kMaxLevel ? 0 : 50 + 25 * (level_ - 1);
-}
+uint16_t PetData::expToNextLevel() const { return expToLevelUp(level_); }
 uint16_t PetData::gainExp(uint16_t amount) {
     if (isSick()) return 0;
     return addExp(amount);

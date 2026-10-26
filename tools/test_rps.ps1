@@ -108,10 +108,23 @@ $activitySources = @('test/activity_ui_native.cpp') + $webPlaySources[1..($webPl
 if ($LASTEXITCODE) { throw 'Activity UI test build failed.' }
 & "$outputPath/activity-ui.exe"
 if ($LASTEXITCODE) { throw 'Activity UI tests failed.' }
+$careUiSources = @('test/care_ui_native.cpp','src/ble/CareCommand.cpp','src/ble/GameCommand.cpp',
+    'src/games/WebGameSession.cpp') + $webPlaySources[1..($webPlaySources.Length - 1)]
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" -I.pio/libdeps/esp32dev/ArduinoJson/src @careUiSources @objects -o "$outputPath/care-ui.exe"
+if ($LASTEXITCODE) { throw 'Care UI test build failed.' }
+& "$outputPath/care-ui.exe"
+if ($LASTEXITCODE) { throw 'Care UI tests failed.' }
 & g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/pet_sync_native.cpp `
     src/pet/PetData.cpp src/pet/PetSnapshot.cpp src/storage/Memorials.cpp src/ble/Messages.cpp src/ble/PetEvents.cpp `
     -o "$outputPath/pet-sync.exe"
 if ($LASTEXITCODE) { throw 'Pet sync test build failed.' }
 & "$outputPath/pet-sync.exe"
 if ($LASTEXITCODE) { throw 'Pet sync tests failed.' }
+& g++ -std=c++11 -Wall -Wextra -Itest/support -Isrc -I.pio/libdeps/esp32dev/ArduinoJson/src test/care_sync_native.cpp `
+    src/ble/CareCommand.cpp src/ble/OpCache.cpp src/ble/TxQueue.cpp src/ble/GameCommand.cpp src/games/WebGameSession.cpp `
+    src/pet/PetData.cpp src/pet/PetSnapshot.cpp -o "$outputPath/care-sync.exe"
+if ($LASTEXITCODE) { throw 'Care sync test build failed.' }
+& "$outputPath/care-sync.exe"
+if ($LASTEXITCODE) { throw 'Care sync tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"

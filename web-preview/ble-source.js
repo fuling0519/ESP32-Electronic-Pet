@@ -1,6 +1,7 @@
 /* BLE v1 transport -> domain snapshot. Sends the two read-only queries, plus the Web play game commands when the
  * firmware declares the web_game feature (see PROTOCOL.md, Web 陪玩). Accepts 養成同步 phase 1 (status additions,
- * device_info.rules, pet_event); care, lifecycle and memorial commands are still not sent. */
+ * device_info.rules, pet_event) and phase 2 (the care command with its op / action_result); lifecycle and memorial
+ * commands are still not sent. */
 (()=>{'use strict';
 const UUID={service:'7d2a0001-8b7c-4f3a-9c2d-1e5f6a7b8c90',command:'7d2a0002-8b7c-4f3a-9c2d-1e5f6a7b8c90',event:'7d2a0003-8b7c-4f3a-9c2d-1e5f6a7b8c90'};
 const decimal=x=>typeof x==='string'&&/^\d+$/.test(x);
@@ -10,6 +11,11 @@ const SAD_REASONS=['mood','satiety','cleanliness','sick'],DEATH_CAUSES=['untreat
 const PET_EVENTS=['fed','cleaned','treated','slept','woke','hatched','grew','level_up','got_sick','died','departed','adopted','memorial_added','memorial_deleted'];
 // device_info.rules: optional positive integers the page shows countdowns and limits with, never hard-coded.
 const RULES=['sick_after_seconds','death_after_sick_seconds','memorial_limit'];
+// 養成同步 phase 2 care: one player action is one op (16 lowercase hex), reused by every resend of that action.
+const CARE_ACTIONS=['feed','clean','treat','sleep','wake'],CARE_WAIT_MS=10000,CARE_GIVE_UP_MS=30000;
+function newOp(){const b=new Uint8Array(8);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');}
+const CHANGE_KEYS=['satiety','cleanliness','exp','levels_gained'];
+function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];if(typeof c.grew==='boolean')o.grew=c.grew;return o;}
 function mapRules(r){
   if(r===undefined)return null;
   if(!r||typeof r!=='object'||Array.isArray(r)||RULES.some(k=>r[k]!==undefined&&(!uint32(r[k])||r[k]<1)))throw new Error('裝置規則欄位不相容');
@@ -34,12 +40,12 @@ function mapStatus(msg){
 }
 function validCache(c){try{return c&&typeof c.receivedAt==='string'&&Number.isFinite(Date.parse(c.receivedAt))&&!!mapStatus(c.wire);}catch{return false;}}
 class BleSource {
-  constructor(){this.cache=PetLocalStore.read('device-snapshot',validCache);if(this.cache)this.cache.pet=mapStatus(this.cache.wire);this.connection='disconnected';this.message='尚未連接裝置';this.listeners=new Set();this.session=0;this.nextId=1;this.partial=null;this.pending=new Map();this.gameEnd=null;this.rules=null;this.eventListeners=new Set();}
+  constructor(){this.cache=PetLocalStore.read('device-snapshot',validCache);if(this.cache)this.cache.pet=mapStatus(this.cache.wire);this.connection='disconnected';this.message='尚未連接裝置';this.listeners=new Set();this.session=0;this.nextId=1;this.partial=null;this.pending=new Map();this.gameEnd=null;this.rules=null;this.eventListeners=new Set();this.ops=new Map();}
   // activity is only meaningful from a live connection; an old cached snapshot never says the device is idle.
   read(){return {source:'ble',connection:this.connection,pet:this.cache?.pet??null,receivedAt:this.cache?.receivedAt??null,message:this.message,stale:this.connection!=='ready',
    activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd,
    games:this.connection==='ready'&&Array.isArray(this.info?.games)?this.info.games.filter(g=>typeof g==='string'):null,
-   petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),rules:this.connection==='ready'?this.rules:null,
+   petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),care:this.connection==='ready'&&!!this.info?.features?.includes?.('care'),careSending:this.ops.size>0,rules:this.connection==='ready'?this.rules:null,
    // Device album summary, kept for the later memorial sync; nothing is fetched yet. A cached one is the last known.
    memorials:this.cache?.wire?.memorial_count!==undefined?{count:this.cache.wire.memorial_count,hash:this.cache.wire.memorial_hash}:null};}
   subscribe(fn){this.listeners.add(fn);return ()=>this.listeners.delete(fn);}
@@ -57,6 +63,26 @@ class BleSource {
     for(const fn of this.eventListeners)fn({...e});
   }
   command(){throw new Error('此版本僅提供 BLE 唯讀，照顧命令未開放。');}
+  // care (PROTOCOL.md 養成同步): resolves with {action,changes} on action_result done; rejects with an Error whose code is
+  // the protocol code (command_result refusal or outcome failed), or 'timeout' when the result stays unknown. The ack
+  // alone settles nothing: each 10 s without a result resends the same op, until 30 s after the first send. A replay
+  // may carry a new command id, so the result is matched by op. The page shows state only from later snapshots.
+  care(action){
+    if(!CARE_ACTIONS.includes(action))throw new Error('不支援的照顧動作');
+    if(this.connection!=='ready'||!this.info?.features?.includes?.('care'))throw new Error('這台電子雞目前不能從網頁照顧');
+    if(this.ops.size)throw new Error('上一個照顧動作還在等電子雞回覆');
+    const fields={action,pet_id:this.cache.pet.petId,op:newOp()},first=Date.now();
+    return new Promise((resolve,reject)=>{
+      const entry={action,resolve:r=>{done();resolve(r);},reject:e=>{done();reject(e);}},done=()=>{clearTimeout(entry.timer);this.ops.delete(fields.op);this.emit();};
+      const send=()=>{entry.timer=setTimeout(wait,CARE_WAIT_MS);
+        // A transport loss (no code) just waits for the next resend; a refusal ends the action.
+        if(this.connection==='ready')this.request('care',fields).catch(e=>{if(e.code&&this.ops.get(fields.op)===entry)entry.reject(e);});};
+      const wait=()=>{if(this.ops.get(fields.op)!==entry)return;if(Date.now()-first<CARE_GIVE_UP_MS){send();return;}
+        const e=new Error('沒有收到電子雞的照顧結果，結果不明，請看最新狀態。');e.code='timeout';entry.reject(e);
+        if(this.connection==='ready')this.query('get_status').catch(()=>{});};
+      this.ops.set(fields.op,entry);this.emit();send();
+    });
+  }
   stop(){clearTimeout(this.fragmentTimer);this.partial=null;for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error('連線已中止'));}this.pending.clear();}
   disconnect(){++this.session;this.stop();this.writer=null;this.info=null;this.rules=null;this.writeChain=null;if(this.event){this.event.removeEventListener('characteristicvaluechanged',this.onValue);this.event=null;}if(this.device){this.device.removeEventListener('gattserverdisconnected',this.onDisconnect);this.device.gatt?.disconnect();}this.connection='disconnected';this.message='已斷線，保留最後收到的資料';this.emit();}
   async connect(){
@@ -115,20 +141,25 @@ class BleSource {
   messageReceived(msg){
     if(msg.v!==1){this.disconnect();throw new Error('不支援的 BLE 協定版本，已停止查詢');}
     if(msg.type==='command_result'){const p=this.pending.get(msg.id);if(!p)return;
-     if(msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);const e=new Error('裝置拒絕'+(GAME_COMMANDS.includes(p.cmd)?'遊戲命令':'查詢')+'：'+String(msg.code));e.code=String(msg.code);p.reject(e);}
-     else if(p.cmd==='game_heartbeat'||p.cmd==='game_cancel'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
+     if(msg.ok!==true){clearTimeout(p.timer);this.pending.delete(msg.id);const e=new Error('裝置拒絕'+(GAME_COMMANDS.includes(p.cmd)?'遊戲命令':p.cmd==='care'?'照顧命令':'查詢')+'：'+String(msg.code));e.code=String(msg.code);p.reject(e);}
+     else if(p.cmd==='game_heartbeat'||p.cmd==='game_cancel'||p.cmd==='care'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
      return;}
     // Game events answer the start/finish command with the same id; a device-side end is kept for the play view.
     if(msg.type==='game_session'||msg.type==='game_result'){const p=this.pending.get(msg.id);
      if(p&&p.cmd===(msg.type==='game_session'?'game_start':'game_finish')&&decimal(msg.session)){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}return;}
     if(msg.type==='pet_event'){this.petEvent(msg);return;}
+    if(msg.type==='action_result'){const p=this.pending.get(msg.id);if(p?.cmd==='care'){clearTimeout(p.timer);this.pending.delete(msg.id);p.resolve(msg);}
+     const entry=typeof msg.op==='string'&&this.ops.get(msg.op);if(!entry)return;
+     if(msg.outcome==='done')entry.resolve({action:entry.action,changes:mapChanges(msg.changes)});
+     else{const code=msg.outcome==='failed'&&typeof msg.code==='string'?msg.code:'failed',e=new Error('電子雞沒有完成照顧：'+code);e.code=code;entry.reject(e);}
+     return;}
     if(msg.type==='game_session_end'){if(decimal(msg.session)){this.gameEnd={session:msg.session,reason:String(msg.reason)};this.emit();}return;}
     if(msg.type==='device_info'){if(msg.protocol_version!==1){this.disconnect();throw new Error('裝置協定版本不相容，已停止查詢');}if(msg.device_id!=null&&!/^esp32-[A-F0-9]{12}$/.test(msg.device_id)||typeof msg.firmware_version!=='string'||msg.max_message_bytes!==1024)throw new Error('裝置資訊不相容');const rules=mapRules(msg.rules);this.info=msg;this.rules=rules;}
-    else if(msg.type==='status'){const pet=mapStatus(msg);if(this.info?.device_id&&pet.deviceId&&this.info.device_id!==pet.deviceId)throw new Error('裝置 ID 不一致');this.cache={wire:msg,pet,receivedAt:new Date().toISOString()};PetLocalStore.write('device-snapshot',this.cache);this.connection='ready';this.message='已收到 ESP32 完整狀態（唯讀）';}
+    else if(msg.type==='status'){const pet=mapStatus(msg);if(this.info?.device_id&&pet.deviceId&&this.info.device_id!==pet.deviceId)throw new Error('裝置 ID 不一致');this.cache={wire:msg,pet,receivedAt:new Date().toISOString()};PetLocalStore.write('device-snapshot',this.cache);this.connection='ready';this.message='已收到 ESP32 完整狀態'+(this.info?.features?.includes?.('care')?'':'（唯讀）');}
     else return;
     for(const [id,p] of this.pending){if(p.cmd===(msg.type==='device_info'?'get_device_info':'get_status')){clearTimeout(p.timer);this.pending.delete(id);p.resolve(msg);}}
     this.emit();
   }
 }
-window.PetBle={mapStatus,mapRules,PET_EVENTS,BleSource};window.PetSources.ble=new BleSource();
+window.PetBle={mapStatus,mapRules,mapChanges,PET_EVENTS,CARE_ACTIONS,BleSource};window.PetSources.ble=new BleSource();
 })();

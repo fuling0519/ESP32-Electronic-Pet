@@ -287,6 +287,18 @@ Activity UiController::activity() const {
     }
 }
 
+void UiController::leaveMenuForRemote() {
+    if (activity() != Activity::Menu || pet_.isEnded()) return;
+    setScreen(ScreenId::Home);
+    homeFocus_ = HomeFocus::None;  // setScreen keeps a focused Home unchanged.
+    dirty_ = true;
+}
+
+bool UiController::beginRemoteTreatment(uint32_t now) {
+    beginTreatment(now);
+    return treating_;
+}
+
 const char* activityName(Activity activity) {
     switch (activity) {
         case Activity::Idle: return "idle";

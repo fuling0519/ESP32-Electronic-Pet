@@ -32,7 +32,7 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 
 ## 10/26 養成同步階段 1
 
-依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care`、`depart`、`adopt`、紀念冊命令與 `action_result` 屬後續階段，裝置模式照顧按鈕仍停用。
+依 PROTOCOL.md「養成同步」節，只做讀取與事件；`care` 見下方階段 2，`depart`、`adopt`、紀念冊命令仍屬後續階段。
 
 - 狀態快照新增欄位有出現才代表支援，缺少時維持舊行為；出現但格式錯誤（傷心原因不在四種或重複、蛋與終止個體非空陣列、秒數不是 0～4294967295 整數、健康卻有生病秒數、存活卻有死亡原因、紀念冊筆數與 hash 只出現一個或格式錯）就拒絕整份快照。
 - pet 新增：`sadReasons`（韌體 `sad_reasons` 轉成 `{device:true,mood,satiety,cleanliness,sick}`，PetRules 看到 `device` 就直接採用、不再自行推算；舊韌體仍由本機門檻計算）、`dangerSeconds`、`sickSeconds`、`deathCause`（未知值記為 `unknown`，畫面顯示原因未知）。
@@ -42,3 +42,12 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 - `pet_event` 只在連線就緒、宣告 `pet_events`、`pet_id` 為目前個體（`adopted` 除外）且 `source` 不是 `web` 時交給 `petDataManager.onPetEvent`；不改快取、不觸發狀態訂閱。畫面只據此播動畫：`fed`／`cleaned`／`treated` 播餵食／清潔／治療動畫，`level_up` 顯示 LEVEL UP；孵化與長大仍由快照的階段變化播轉場，死亡、遠行、領養與紀念冊由下一份快照處理。已有動畫、成長轉場或陪玩進行中時略過事件。
 
 離線測試：`node --test --test-isolation=none web-preview/*tests.cjs`（本階段見 `pet-sync-tests.cjs`）。以上皆未接實機 ESP32 驗證。
+
+## 10/26 養成同步階段 2（照顧命令）
+
+- `BleSource.care(action)`：`action` 為 `feed`／`clean`／`treat`／`sleep`／`wake`，只在連線就緒且 `features` 含 `care` 時可用，一次只能有一個進行中。每次玩家操作以 `crypto.getRandomValues` 產生 16 位小寫 hex `op`，送 `{cmd:"care",action,pet_id,op}`，沿用單一寫入鏈。`command_result` ok 只代表受理；以 `op` 比對 `action_result`（回放的 `id` 可能不同），`done` 回傳 `{action,changes}`（只留非負整數增量與 `grew` 布林）。`command_result` 拒絕或 `outcome:"failed"` 以帶 `code` 的 Error 拒絕。每 10 秒未收到結果就以同一 `op` 重送（未就緒時略過該輪），距首次送出滿 30 秒放棄，回 `code:"timeout"`（結果不明）並重讀 `get_status`。`op` 只在記憶體，重新整理頁面即放棄。
+- `petDataManager.command(kind)`：裝置模式且支援 `care` 時回傳上述 Promise（複本）；展示模式不變。metadata 新增 `care`、`careSending`。
+- `device-care.js`（`PetDeviceCare`）：依 `activity` 與快照判斷按鈕（餵食、清潔、治療限生病、睡覺／起床共用 `rest` 按鈕：快照為一般睡眠時送 `wake`）。`feed`／`clean`／`treat`／`sleep` 需 `idle` 或 `menu`，`wake` 需 `sleeping`；不可用時與陪玩相同，按鈕變淡、提示放在 title，點擊只說明原因。錯誤碼（`busy`、`pet_changed`、`not_allowed`、`save_failed`、`op_conflict`、`invalid_value`、逾時）各有繁中說明。
+- 畫面：送出時鎖住所有照顧與陪玩按鈕；收到 `done` 後才播花園版餵食／清潔／治療動畫，狀態列顯示實際增量（例如「餵好了：飽食度 +20、EXP +3。」），有升級顯示 LEVEL UP。睡覺／起床沒有花園動畫，只顯示結果。數值、睡眠與健康一律等下一份狀態快照，不在本機加總。韌體為這次網頁命令送出的 `pet_event`（`source:"web"`）在 BLE 層略過，不會重播動畫。未宣告 `care` 的韌體維持唯讀，照顧按鈕隱藏。
+
+離線測試見 `care-sync-tests.cjs`（假 BLE 寫入與假計時器）。未接實機 ESP32 驗證，電子雞端動畫、音效與實際增量都尚未驗收。

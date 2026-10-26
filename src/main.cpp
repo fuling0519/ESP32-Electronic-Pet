@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <esp_system.h>
 #include <limits.h>
+#include <string.h>
 
 #include "hardware/Display.h"
 #include "hardware/Input.h"
@@ -61,10 +62,12 @@ private:
     bool webGameEligible() const;
     void endWebGame(Games::WebGameEnd reason, uint32_t now);
     void handleGameRequest(const Ble::GameRequest& request, uint32_t now);
+    void handleCareRequest(const Ble::CareRequest& request, uint32_t now);
     void serviceWebGame(uint32_t now);
-    void sendPetEvent(Ble::PetEventType type);
+    void sendPetEvent(Ble::PetEventType type, bool fromWeb = false);
     void sendStateEvents();
     Games::WebGameSession webGame;
+    Ble::PendingTreatment webTreatment;
     Ble::PetEventDetector petEvents;
 
     Hardware::Display display;
@@ -487,6 +490,59 @@ void Application::handleGameRequest(const Ble::GameRequest& r, uint32_t now) {
     }
 }
 
+// Web care (D1, D2): eligibility first, then leave a menu page silently and run the joystick path,
+// with its animation and sounds. Treatment settles when the pour's Treat action fires.
+void Application::handleCareRequest(const Ble::CareRequest& r, uint32_t now) {
+    using Action = Ble::CareAction;
+    const char* activity = webGame.active() ? "web_game" : Ui::activityName(ui.activity());
+    const char* code = Ble::careEligibility(r.action, r.petId, pet, activity);
+    if (strcmp(code, "ok") != 0) { ble.reply(r.commandId, code); return; }
+    ble.acceptCare(r);
+    ui.leaveMenuForRemote();
+    const Pet::PetData before = pet;
+    Ble::CareOutcome outcome = Ble::careFailed("not_allowed");
+    switch (r.action) {
+        case Action::Feed:
+        case Action::Clean: {
+            const bool feed = r.action == Action::Feed;
+            if (!(feed ? pet.feed() : pet.clean())) { sound.playFailure(); break; }
+            sound.playSuccess();
+            if (feed) ui.onFeedSucceeded(now); else ui.onCleanSucceeded(now);
+            sendPetEvent(feed ? Ble::PetEventType::Fed : Ble::PetEventType::Cleaned, true);
+            ui.onCareRewardApplied(before.level(), now);
+            save.markDirty(now);
+            outcome = Ble::careDone(before, pet);
+            break;
+        }
+        case Action::Treat:
+            if (ui.beginRemoteTreatment(now)) { webTreatment.start(r); return; }
+            sound.playFailure();
+            break;
+        case Action::Sleep:
+            if (startNormalSleep(now)) {
+                sound.playConfirm();
+                sendPetEvent(Ble::PetEventType::Slept, true);
+                outcome = Ble::careDone(before, pet);
+            } else {
+                // Eligibility already held, so only the checkpoint write can have failed.
+                ui.onNormalSleepFailed(); sound.playFailure();
+                outcome = Ble::careFailed("save_failed");
+            }
+            break;
+        case Action::Wake:
+            if (wakeFromNormalSleep(now)) {
+                sound.playSuccess();
+                sendPetEvent(Ble::PetEventType::Woke, true);
+                outcome = Ble::careDone(before, pet);
+            } else {
+                sound.playFailure();
+                outcome = Ble::careFailed("save_failed");
+            }
+            break;
+    }
+    ble.finishCare(r, outcome);
+}
+
 void Application::serviceWebGame(uint32_t now) {
     if (webGame.active()) {
         const uint32_t session = webGame.id();
@@ -499,14 +555,17 @@ void Application::serviceWebGame(uint32_t now) {
             endWebGame(Games::WebGameEnd::PetState, now);
         }
     }
-    Ble::GameRequest request;
-    if (ble.takeGameRequest(request)) handleGameRequest(request, now);
+    Ble::Request request;
+    if (ble.takeRequest(request)) {
+        if (request.kind == Ble::Request::Kind::Game) handleGameRequest(request.game, now);
+        else if (request.kind == Ble::Request::Kind::Care) handleCareRequest(request.care, now);
+    }
     ble.setActivity(webGame.active() ? "web_game" : Ui::activityName(ui.activity()));
 }
 
 // Player actions on the device; Link drops them unless a subscribed client is connected.
-void Application::sendPetEvent(Ble::PetEventType type) {
-    Ble::PetEvent event; event.type = type; event.petId = pet.petId();
+void Application::sendPetEvent(Ble::PetEventType type, bool fromWeb) {
+    Ble::PetEvent event; event.type = type; event.petId = pet.petId(); event.fromWeb = fromWeb;
     ble.sendPetEvent(event);
 }
 
@@ -620,10 +679,17 @@ void Application::loop() {
             break;
         }
         case Ui::UiAction::Treat: {
+            const Pet::PetData before = pet;
             const bool success = pet.treat();
+            const bool fromWeb = webTreatment.active();
             ui.onTreatResult(success, now);
-            if (success) { sound.playSuccess(); sendPetEvent(Ble::PetEventType::Treated); }
+            if (success) { sound.playSuccess(); sendPetEvent(Ble::PetEventType::Treated, fromWeb); }
             else sound.playFailure();
+            if (fromWeb) {
+                ble.finishCare(webTreatment.request(), success ? Ble::careDone(before, pet) :
+                    Ble::careFailed(Ble::careFailureCode(webTreatment.request(), pet)));
+                webTreatment.clear();
+            }
             break;
         }
         case Ui::UiAction::StartNormalSleep:
@@ -679,6 +745,9 @@ void Application::loop() {
     }
     if (action == Ui::UiAction::Feed || action == Ui::UiAction::Clean ||
         action == Ui::UiAction::Treat) ui.onCareRewardApplied(levelBeforeAction, now);
+    Ble::CareOutcome interrupted;
+    if (webTreatment.interrupted(ui.treatmentRunning(), pet, interrupted))
+        ble.finishCare(webTreatment.request(), interrupted);
     // Recheck after navigation and callbacks, even when both ends of this loop
     // are Home. A gesture begun on a forbidden page must be released first.
     if (!touchAllowedBefore || deepPending || !ui.touchContextAllowed() ||

@@ -10,9 +10,11 @@ function presentation(p){if(!p)return null;return {...p,health:p.healthState,con
 class DataManager {
  constructor(adapters){this.adapters=adapters;this.mode='mock';}
  select(mode){if(!['mock','ble'].includes(mode))throw new Error('未知資料來源');if(this.mode!==mode)this.cancelGame();this.mode=mode;}
- read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null,games:s.games??null,petEvents:!!s.petEvents,rules:s.rules??null,memorials:s.memorials??null}});}
+ read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null,games:s.games??null,petEvents:!!s.petEvents,care:!!s.care,careSending:!!s.careSending,rules:s.rules??null,memorials:s.memorials??null}});}
  view(mode=this.mode){const s=this.read(mode);return {...s.metadata,pet:presentation(s.pet)};}
- command(kind){if(this.mode!=='mock')throw new Error('BLE 僅提供唯讀查詢');return this.adapters.mock.command(kind);}
+ // Device mode with the care feature: a promise of the device's action_result ({action,changes}); the pet itself only
+ // changes through the next status snapshot. Mock stays synchronous and unchanged.
+ command(kind){if(this.mode==='ble'&&this.read('ble').metadata.care)return this.adapters.ble.care(kind).then(copy);if(this.mode!=='mock')throw new Error('BLE 僅提供唯讀查詢');return this.adapters.mock.command(kind);}
  preview(stage,condition){if(this.mode!=='mock')throw new Error('裝置狀態由 ESP32 決定');this.adapters.mock.preview(stage,condition);}
  demoNeed(key,value){if(this.mode!=='mock')throw new Error('裝置數值由 ESP32 決定');this.adapters.mock.demoNeed(key,value);}
  reset(){if(this.mode!=='mock')throw new Error('不可重設裝置');this.adapters.mock.reset();}

@@ -31,7 +31,7 @@ bool finish(Doc& d, char* out, size_t cap, uint16_t& len) {
 }
 // Slots for 7 top-level and 19 pet members, the reason array, and copied id/age/hash text.
 constexpr size_t kStatusDoc = JSON_OBJECT_SIZE(8) + JSON_OBJECT_SIZE(20) + JSON_ARRAY_SIZE(4) + 96;
-constexpr size_t kInfoDoc = JSON_OBJECT_SIZE(12) + 2 * JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + 32;
+constexpr size_t kInfoDoc = JSON_OBJECT_SIZE(12) + JSON_ARRAY_SIZE(3) + JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + 32;
 }
 
 bool makeStatusJson(const Pet::PetData& pet, const char* deviceId, const char* activity,
@@ -79,7 +79,7 @@ bool makeDeviceInfoJson(uint32_t id, const char* name, const char* deviceId,
     info["v"]=1; info["type"]="device_info"; info["id"]=id; info["name"]=name;
     info["protocol_version"]=1; info["firmware_version"]=PET_FIRMWARE_VERSION;
     info["max_message_bytes"]=kMaxMessageBytes; info["device_id"]=deviceId;
-    JsonArray features=info.createNestedArray("features"); features.add("web_game"); features.add("pet_events");
+    JsonArray features=info.createNestedArray("features"); features.add("web_game"); features.add("pet_events"); features.add("care");
     JsonArray games=info.createNestedArray("games"); games.add("toy"); games.add("chorus");
     // Quick test builds shorten these, so the browser must not hard-code them.
     JsonObject rules=info.createNestedObject("rules");
