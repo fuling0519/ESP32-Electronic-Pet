@@ -60,7 +60,7 @@ function finishDevice(){
  const device=play.device,score={throws:play.throws,catches:play.catches};
  setState('settling',performance.now());say('正在請電子雞結算……');
  window.PetDeviceSession.finish(device,score).then(r=>{if(play?.device!==device)return;setState('finale',performance.now());count.textContent='完成！接住 '+score.catches+'／'+TOTAL_THROWS;
-  say('玩得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));},e=>{if(play?.device===device)end(e.message);});
+  say('玩得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));document.dispatchEvent(new CustomEvent('pet-game-complete',{detail:{levelsGained:r.levels_gained||0}}));},e=>{if(play?.device===device)end(e.message);});
 }
 function report(now){
  if(play.device){play.throws++;play.catches+=play.caught?1:0;if(play.throws>=TOTAL_THROWS){finishDevice();return;}play.ball={...P.HAND,z:0};setState('ready',now);showCount();say('再丟一次！');return;}

@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>升級動畫預覽</title><style>body{text-align:center;background:#f7f0dd;color:#57483a;font:18px sans-serif;margin:16px}canvas{width:min(92vw,768px);height:auto;background:url('assets/garden-detailed-day.png') center/cover;image-rendering:pixelated;border-radius:16px}#sheet canvas{width:min(46vw,384px);border-radius:8px;margin:4px}button,select{font:inherit;padding:12px;margin:8px}</style>
+<h1>升級動畫檢查</h1><p>獨立預覽，不改存檔與經驗值。加上 <code>?sheet</code> 顯示四種角色的分格靜態圖。</p>
+<select id="species"><option value="1">小鳥</option><option value="2">小飛龍</option></select><select id="stage"><option value="adult">成年</option><option value="baby">幼年</option></select><select id="from"><option value="3">Lv 3 → 4</option><option value="">只顯示新等級</option></select><button onclick="play()">播放升級</button><br>
+<canvas id="art" width="384" height="256"></canvas><div id="sheet"></div><p>全長 2.8 秒；減少動態時只顯示開心角色、等級徽章與橫幅。</p>
+<script src="pet-rules.js"></script><script src="pet-effects.js"></script><script src="wyvern-sprites.js"></script><script src="wyvern-adult-view.js?v=touch-visual-20261025"></script><script src="wyvern-view.js"></script><script src="assets/pets/bird/white-idle-data-v4.js"></script><script src="assets/pets/bird/white-sad-data-v1.js"></script><script src="assets/pets/bird/white-sick-data-v1.js"></script><script src="assets/pets/bird/white-dead-data-v1.js"></script><script src="white-bird-view.js?v=happy-left-eye-20261025"></script><script src="bird-view.js"></script><script src="assets/pets/bird/white-activity-data-v1.js"></script><script src="white-bird-activity.js"></script><script src="bird-demo.js"></script><script src="assets/shared/cleaning/animation-v1/animation-data.js"></script><script src="cleaning-animation-view.js?v=body-align-20261025"></script><script src="level-up-view.js?v=level-up-20261026"></script><script>
+const ctx=document.querySelector('#art').getContext('2d'),reduced=matchMedia('(prefers-reduced-motion: reduce)'),pet={petId:'preview',stage:'adult',healthState:'healthy',sleepMode:'awake',level:4};
+let level=3;
+function play(){PetLevelUp.reset();level++;const from=document.querySelector('#from').value;PetLevelUp.request({petId:'preview',level,from:from?level-1:null},performance.now());}
+function idle(g,now){const species=+document.querySelector('#species').value,stage=document.querySelector('#stage').value;
+ if(species===2)window.WyvernAdultView?.paint(g,'idle',now,reduced.matches,{stage});else BirdDemo.paint(g,{...pet,stage},'happy',0,stage==='baby'?175:170,stage==='baby'?145:137,3,true,false);}
+function draw(now){ctx.clearRect(0,0,384,256);const species=+document.querySelector('#species').value,stage=document.querySelector('#stage').value;
+ PetLevelUp.step(now,{...pet,level},false);if(!PetLevelUp.draw(ctx,now,{species,stage,reduced:reduced.matches}))idle(ctx,now);requestAnimationFrame(draw);}
+// ?sheet: still frames for every species and stage at fixed times along the timeline.
+function sheet(){const box=document.querySelector('#sheet'),times=[250,550,1000,1250,1800,2650];
+ for(const [species,stage] of [[1,'adult'],[1,'baby'],[2,'adult'],[2,'baby']])for(const t of times){const c=Object.assign(document.createElement('canvas'),{width:384,height:256,title:species+' '+stage+' '+t+'ms'});box.append(c);
+  PetLevelUp.reset();PetLevelUp.request({petId:'preview',level:4,from:3},0);PetLevelUp.step(0,pet,false);PetLevelUp.draw(c.getContext('2d'),t,{species,stage});}
+ document.body.dataset.ready='1';}
+if(/[?&]sheet\b/.test(location.search)){document.querySelector('#art').hidden=true;addEventListener('load',()=>setTimeout(sheet,300));}else requestAnimationFrame(draw);
+</script></html>

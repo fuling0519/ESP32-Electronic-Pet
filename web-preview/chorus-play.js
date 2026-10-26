@@ -97,7 +97,7 @@ function finishDevice(){
  const device=play.device,score={correct:play.correct,total:TOTAL_ROUNDS};
  setState('settling',performance.now());play.mood=null;say('正在請電子雞結算……');
  window.PetDeviceSession.finish(device,score).then(r=>{if(play?.device!==device)return;setState('finale',performance.now());play.mood='happy';count.textContent='完成！唱對 '+score.correct+'／'+TOTAL_ROUNDS;
-  say('一起唱得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));},e=>{if(play?.device===device)end(e.message);});
+  say('一起唱得好開心！心情 +'+r.mood_gain+' · EXP +'+r.exp_gain+(r.levels_gained?' · 升級！':''));document.dispatchEvent(new CustomEvent('pet-game-complete',{detail:{levelsGained:r.levels_gained||0}}));},e=>{if(play?.device===device)end(e.message);});
 }
 function report(now){
  if(play.device){play.played++;play.correct+=play.ok?1:0;play.mood=null;if(play.played>=TOTAL_ROUNDS){finishDevice();return;}play.round++;showCount();beginRound(now);return;}
