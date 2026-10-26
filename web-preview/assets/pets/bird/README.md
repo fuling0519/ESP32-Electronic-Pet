@@ -16,7 +16,7 @@
 使用者要求尾巴更明顯。內建 imagegen 以 v3 圖集為參考，只要求尾巴從原斜角抬高、返回、放低，保留白鳥造型、腳底、睜眼及配色；來源為 white-idle-source-v4.png，現行播放器讀取 v4 圖集與資料。重建使用 node tools/build_white_bird_idle.cjs v4；頭部錨點改量測頂部 15% 以避開抬高尾巴。v3 原素材保留。
 
 ## 散步與喝水 v1
-white-activity-source-v1.png 使用內建 imagegen，參考白鳥 v2 製作 2×3 六格：左右腳走路、半低頭、低頭喝水、抬頭吞嚥、站立。提示要求固定白鳥特徵、折翼、完整尾巴、透明背景、禁止道具場景；沒有採用另外兩次重試來源。原圖透明區有深色 RGB，但檢查 alpha=0，實際花園合成無底色。tools/build_white_bird_activity.cjs 以 alpha>=160 主輪廓切格並平移腳底對齊，統一比例輸出圖集與資料。白鳥主體不同姿勢仍有生成差異。white-bird-activity.js 為展示用路徑與動作播放器：12 秒一輪，停留2秒、步行3秒、喝水3.5秒、返回3秒、停留0.5秒；未改養成規則。減少動態回到靜態待機，不移動；照顧、傷心、生病、睡眠不觸發。共同預覽 white-bird-activity-preview.html；檢查 node web-preview/white-bird-activity-tests.cjs；tools/render_white_bird_activity.cjs 可產生正式繪圖程式合成檢查圖，非瀏覽器截圖。
+white-activity-source-v1.png 使用內建 imagegen，參考白鳥 v2 製作 2×3 六格：左右腳走路、半低頭、低頭喝水、抬頭吞嚥、站立。提示要求固定白鳥特徵、折翼、完整尾巴、透明背景、禁止道具場景；沒有採用另外兩次重試來源。原圖透明區有深色 RGB，但檢查 alpha=0，實際花園合成無底色。tools/build_white_bird_activity.cjs 以 alpha>=160 主輪廓切格並平移腳底對齊，統一比例輸出圖集與資料。白鳥主體不同姿勢仍有生成差異。white-bird-activity.js 為展示用路徑與動作播放器：12 秒一輪，停留2秒、步行3秒、喝水3.5秒、返回3秒、停留0.5秒；未改養成規則。減少動態回到靜態待機，不移動；照顧、傷心、生病、睡眠不觸發。2026-10-26 起裝置模式也播放（原本只在展示模式）。共同預覽 white-bird-activity-preview.html；檢查 node web-preview/white-bird-activity-tests.cjs；tools/render_white_bird_activity.cjs 可產生正式繪圖程式合成檢查圖，非瀏覽器截圖。
 
 ## 含淚傷心 v1
 white-sad-source-v1.png 為內建 imagegen 依白鳥 v2 製作的橫排兩格：含淚睜眼、閉眼落淚。提示要求只改委屈眉眼與少量淚珠，固定體型、頭部傾斜、腳底、折翼與尾巴、原白灰配色及透明背景，不哭喊或誇張淚流。tools/build_white_bird_sad.cjs 裁切、整數平移與留白產生 879px 方格圖集及 JSON/JS 資料，未逐格縮放；腳底與頭頂區域中心對齊。white-bird-view.js 共用播放器採 2200/240ms，不改領域傷心門檻。其他狀態與照顧流程優先，減少動態停第一格。兩階段共用素材與原先顯示比例。預覽 white-bird-sad-preview.html；測試 node web-preview/white-bird-sad-tests.cjs；花園合成圖由 tools/render_white_bird_sad.cjs 產生，非瀏覽器截圖。尚待使用者確認哭泣自然度。

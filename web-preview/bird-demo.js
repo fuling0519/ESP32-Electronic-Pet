@@ -73,9 +73,11 @@ function idle(ctx,p,now,cx,cy,scale,reduced,onlyWater=false){
  const step=reduced||!walking?0:-Math.round(Math.abs(Math.sin(now/160))*2);
  return baseDraw(ctx,p,reduced?0:now,null,0,false,cx+offset-(!reduced?12:0),cy+step,scale);
 }
-function idleActive(p){return enabled&&['auto','idle'].includes(preview)&&p?.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!PetRules.updateSad({...p,sadReasons:{...p.sadReasons}});}
+// The walk-and-drink idle plays for any living bird on screen (demo and device mode alike, like the wyvern's
+// flight); only the demo tools' art previews stay Mock-only.
+function idleActive(p){return (enabled||touchable)&&['auto','idle'].includes(preview)&&p?.healthState==='healthy'&&p.sleepMode==='awake'&&!p.isDeparted&&!PetRules.updateSad({...p,sadReasons:{...p.sadReasons}});}
 BirdView.draw=function(ctx,p,now,action,elapsed,sad,cx=190,cy=126,scale=3){
- if(!enabled&&!reaction||action||p.isDeparted||p.healthState==='dead'||!['baby','adult'].includes(p.stage))return baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
+ if(!enabled&&!touchable||action||p.isDeparted||p.healthState==='dead'||!['baby','adult'].includes(p.stage))return baseDraw(ctx,p,now,action,elapsed,sad,cx,cy,scale);
  let state=preview;
  if(reaction&&(reaction.petId!==p.petId||!reaction.holding&&now-reaction.start>=1200||p.healthState!=='healthy'||p.sleepMode!=='awake'))reaction=null;
  const fromReaction=state==='auto'&&!!reaction;
