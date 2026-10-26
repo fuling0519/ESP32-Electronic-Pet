@@ -75,3 +75,14 @@ Mock 心情使用 ≤50 低需求倍率與加權睡眠進度；舊 10 分鐘睡�
 - `pet_event` 的 `memorial_added`／`memorial_deleted`（`source` 不是 `web`）只觸發重新讀取清單；本頁刪除對應的 `source:"web"` 事件在 BLE 層略過，不會重複動作。
 
 離線測試見 `memorial-sync-tests.cjs`（假紀念冊、假 GATT 寫入、假計時器與記憶體 LocalStorage）。未接實機 ESP32 驗證：真實分頁傳輸時間、電子雞端刪除畫面與 `memorial_hash` 更新時機都尚未驗收。
+
+## 10/26 養成同步階段 5（遠端聲音開關與觸摸事件）
+
+依 PROTOCOL.md「養成同步」節；韌體端與規格同步另行交付。只在 `device_info.features` 含 `sound` 時啟用聲音開關；觸摸事件需 `pet_events`。舊韌體兩者都不出現，行為不變。
+
+- 狀態：頂層 `sound` 為 `"on"`／`"muted"`，其他值拒收整份快照（同其他格式錯誤欄位）；缺少時視為未支援或未知。metadata 新增 `soundControl`（連線就緒且宣告 `sound`）與 `sound`（`'on'|'muted'|null`，只取自最近快照）。
+- `BleSource.setSound(muted)`（經 `petDataManager.setDeviceSound(muted)`）：送 `{cmd:"set_sound",muted,op}`，不帶 `pet_id`；和 `care` 共用 `write()`（同一 `op` 每 10 秒重送、30 秒放棄、一次只能一個寫入、以 `op` 對應 `action_result`）。成功回 `{action:'set_sound',changes:{muted}}`；`busy`、`save_failed`、`missing_field`、`invalid_value`、`op_conflict` 以錯誤碼拒絕。
+- `device-sound.js`（`PetDeviceSound`）：裝置模式且有 `sound` 時在「送別」列下方顯示「電子雞聲音：開／靜音」按鈕（`#device-sound-button`，與頁面右上角自己的「網頁聲音」無關）。標籤只依快照，按下後不自行改標籤，等下一份快照；送出中停用，`activity` 不是 `idle`／`menu`／`sleeping`／`ended`（或快照沒有 `sound`）時變淡並以提示文字說明原因，點擊時顯示原因而不送命令。
+- 觸摸：`pet_event` 新增 `petted`／`poked`（`source:"device"`、目前個體）。`device-sound.js` 呼叫 `PetTouch.remote()`（`pet-interactions.js`），條件與網頁觸摸相同（健康、清醒、幼年／成年、未遠行、無照顧／成長／升級動畫、無玩具／合唱／遊戲或送別對話框，且 `activity` 不是 `ended`），通過就播約 1.2 秒的摸摸愛心或驚嚇；不符合就靜默略過，只在主控台留一行 `[pet_event] … no animation: 原因`。事件不改狀態、不送命令。
+
+離線測試見 `sound-touch-tests.cjs`。未接實機 ESP32 驗證：真實韌體的 `sound` 欄位、`set_sound` 回覆時序、`busy` 條件與觸摸事件頻率都尚未驗收。

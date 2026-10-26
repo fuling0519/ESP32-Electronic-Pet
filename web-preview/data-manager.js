@@ -10,7 +10,7 @@ function presentation(p){if(!p)return null;return {...p,health:p.healthState,con
 class DataManager {
  constructor(adapters){this.adapters=adapters;this.mode='mock';}
  select(mode){if(!['mock','ble'].includes(mode))throw new Error('未知資料來源');if(this.mode!==mode)this.cancelGame();this.mode=mode;}
- read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null,games:s.games??null,petEvents:!!s.petEvents,care:!!s.care,lifecycle:!!s.lifecycle,careSending:!!s.careSending,memorialSync:!!s.memorialSync,rules:s.rules??null,memorials:s.memorials??null}});}
+ read(mode=this.mode){const s=this.adapters[mode].read();return copy({pet:normalize(s.pet),metadata:{source:mode,connection:s.connection,receivedAt:s.receivedAt??null,stale:s.stale??false,message:s.message||'',activity:s.activity??null,webGame:!!s.webGame,gameEnd:s.gameEnd??null,games:s.games??null,petEvents:!!s.petEvents,care:!!s.care,lifecycle:!!s.lifecycle,careSending:!!s.careSending,soundControl:!!s.soundControl,sound:s.sound??null,memorialSync:!!s.memorialSync,rules:s.rules??null,memorials:s.memorials??null}});}
  view(mode=this.mode){const s=this.read(mode);return {...s.metadata,pet:presentation(s.pet)};}
  // Device mode with the care feature: a promise of the device's action_result ({action,changes}); the pet itself only
  // changes through the next status snapshot. Mock stays synchronous and unchanged.
@@ -34,6 +34,8 @@ class DataManager {
  subscribe(fn){return this.adapters.ble.subscribe(()=>fn(this.read('ble')));}
  // Device pet_event (PROTOCOL.md 養成同步): a copy that only picks an animation; pet state still comes from snapshots.
  onPetEvent(fn){return this.adapters.ble.onPetEvent(e=>fn(copy(e)));}
+ // Device speaker mute (sound feature): the action_result promise {action:'set_sound',changes:{muted}}; the state shown comes from the next snapshot.
+ setDeviceSound(muted){if(this.mode!=='ble')throw new Error('裝置模式才能調整電子雞的聲音');return this.adapters.ble.setSound(muted).then(copy);}
  // Device album (memorials feature, any page mode): the full list {hash,items} and one deletion's action_result promise.
  // memorial-sync.js reconciles them with the Web album; the page confirms a deletion before it is queued.
  deviceMemorials(){return this.adapters.ble.getMemorials().then(copy);}

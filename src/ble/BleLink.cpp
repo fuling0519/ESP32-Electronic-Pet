@@ -155,7 +155,7 @@ void Link::processCommand(const Pet::PetData& pet) {
     StaticJsonDocument<320> filter;
     filter["v"]=true; filter["id"]=true; filter["cmd"]=true;
     filter["game"]=true; filter["pet_id"]=true; filter["session"]=true;
-    filter["action"]=true; filter["op"]=true; filter["offset"]=true; filter["memorial_pet_id"]=true;
+    filter["action"]=true; filter["muted"]=true; filter["op"]=true; filter["offset"]=true; filter["memorial_pet_id"]=true;
     filter["score"]["throws"]=true; filter["score"]["catches"]=true;
     filter["score"]["correct"]=true; filter["score"]["total"]=true;
     StaticJsonDocument<384> d;
@@ -186,6 +186,7 @@ void Link::processCommand(const Pet::PetData& pet) {
     if (isLifecycleCommand(cmd,lifecycle)) { processLifecycle(d.as<JsonVariantConst>(),id,lifecycle); return; }
     if (strcmp(cmd,"get_memorials")==0) { processGetMemorials(pet,d.as<JsonVariantConst>(),id); return; }
     if (strcmp(cmd,"delete_memorial")==0) { processDeleteMemorial(d.as<JsonVariantConst>(),id); return; }
+    if (strcmp(cmd,"set_sound")==0) { processSetSound(d.as<JsonVariantConst>(),id); return; }
     if (!isStatus && !isInfo) { result(id,true,"unknown_command"); return; }
     result(id,true,"ok");
     if (isStatus) { forceStatus_=true; return; }
@@ -230,6 +231,16 @@ void Link::processDeleteMemorial(JsonVariantConst message, uint32_t id) {
     if (answeredFromCache(r.op,OpKind::Memorial,0,r.memorialPetId,id)) return;
     if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
     request_=Request{}; request_.kind=Request::Kind::Memorial; request_.memorial=r;
+}
+// Same as care without a pet; the target is the requested state, so a replay of the same op with
+// the other state is op_conflict. Activity busy rules run in the application.
+void Link::processSetSound(JsonVariantConst message, uint32_t id) {
+    SoundRequest r;
+    const char* code=parseSoundCommand(message,id,r);
+    if (strcmp(code,"ok")!=0) { result(id,true,code); return; }
+    if (answeredFromCache(r.op,OpKind::Sound,0,r.muted ? 1 : 0,id)) return;
+    if (request_.kind!=Request::Kind::None) { result(id,true,"busy"); return; }
+    request_=Request{}; request_.kind=Request::Kind::Sound; request_.sound=r;
 }
 bool Link::answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id) {
     switch (ops_.check(op,kind,action,target,id)) {
@@ -279,9 +290,20 @@ void Link::finishMemorial(const MemorialRequest& r, const MemorialOutcome& outco
     OpCache::Entry lost; lost.op=r.op; lost.kind=OpKind::Memorial; lost.memorial=outcome;
     sendActionResult(r.commandId,lost);
 }
+void Link::acceptSound(const SoundRequest& r) {
+    ops_.begin(r.op,OpKind::Sound,0,r.muted ? 1 : 0,r.commandId);
+    result(r.commandId,true,"ok");
+}
+void Link::finishSound(const SoundRequest& r, const SoundOutcome& outcome) {
+    const OpCache::Entry* entry=ops_.complete(r.op,outcome);
+    if (entry) { sendActionResult(entry->commandId,*entry); return; }
+    OpCache::Entry lost; lost.op=r.op; lost.kind=OpKind::Sound; lost.sound=outcome;
+    sendActionResult(r.commandId,lost);
+}
 void Link::sendActionResult(uint32_t id, const OpCache::Entry& e) {
     char json[kMaxJson+1]; uint16_t len=0;
-    const bool made=e.kind==OpKind::Memorial ? makeMemorialResultJson(id,e.op,e.memorial,json,sizeof(json),len) :
+    const bool made=e.kind==OpKind::Sound ? makeSoundResultJson(id,e.op,e.sound,json,sizeof(json),len) :
+        e.kind==OpKind::Memorial ? makeMemorialResultJson(id,e.op,e.memorial,json,sizeof(json),len) :
         e.kind==OpKind::Lifecycle ?
         makeLifecycleResultJson(id,e.op,static_cast<LifecycleAction>(e.action),e.lifecycle,json,sizeof(json),len) :
         makeActionResultJson(id,e.op,static_cast<CareAction>(e.action),e.outcome,json,sizeof(json),len);

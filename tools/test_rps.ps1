@@ -156,4 +156,12 @@ $memorialUiSources = @('test/memorial_ui_native.cpp','src/ble/MemorialCommand.cp
 if ($LASTEXITCODE) { throw 'Memorial UI test build failed.' }
 & "$outputPath/memorial-ui.exe"
 if ($LASTEXITCODE) { throw 'Memorial UI tests failed.' }
+$soundTouchSources = @('test/sound_touch_sync_native.cpp','src/ble/SoundCommand.cpp','src/ble/CareCommand.cpp',
+    'src/ble/OpCache.cpp','src/ble/PetEvents.cpp','src/ble/Messages.cpp','src/ble/GameCommand.cpp',
+    'src/games/WebGameSession.cpp','src/storage/DeviceSettings.cpp') + $webPlaySources[1..($webPlaySources.Length - 1)]
+& g++ -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections '-Wl,--gc-sections' `
+    -Itest/support -Isrc -Iinclude "-I$fontSource" -I.pio/libdeps/esp32dev/ArduinoJson/src @soundTouchSources @objects -o "$outputPath/sound-touch-sync.exe"
+if ($LASTEXITCODE) { throw 'Sound and touch sync test build failed.' }
+& "$outputPath/sound-touch-sync.exe"
+if ($LASTEXITCODE) { throw 'Sound and touch sync tests failed.' }
 & "$PSScriptRoot/test_touch.ps1"

@@ -238,3 +238,7 @@ header .icon-button{padding:0}
 #aviary .scene .screen-dirt{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;image-rendering:pixelated}
 /* Device farewell (device-lifecycle.js): one quiet button under the garden, dimmed with the reason while blocked. */
 #device-lifecycle{display:flex;justify-content:center;margin:10px 0}#device-lifecycle[hidden]{display:none}#device-lifecycle button.is-blocked,#afterlife-menu button.is-blocked{opacity:.6;cursor:not-allowed}
+/* Device speaker switch (device-sound.js): same quiet row; its label is the ESP32's own speaker, not the page sound. */
+#device-sound{display:flex;justify-content:center;margin:10px 0}#device-sound[hidden]{display:none}#device-sound button.is-blocked{opacity:.6;cursor:not-allowed}
+/* The remote speaker switch works (set_sound) but is not offered: the player sets each speaker on its own page (2026-10-26). Delete this rule to show it again. */
+#device-sound{display:none!important}

@@ -54,4 +54,11 @@ const OpCache::Entry* OpCache::complete(uint64_t op, const MemorialOutcome& outc
     return e;
 }
 
+const OpCache::Entry* OpCache::complete(uint64_t op, const SoundOutcome& outcome) {
+    Entry* e = const_cast<Entry*>(find(op));
+    if (!e) return nullptr;
+    e->done = true; e->sound = outcome;
+    return e;
+}
+
 }  // namespace Ble

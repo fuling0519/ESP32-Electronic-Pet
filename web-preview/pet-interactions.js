@@ -49,11 +49,20 @@ statusCard?.addEventListener('beforetoggle',e=>{if(e.newState==='open'&&!fillSta
 statusCard?.addEventListener('toggle',e=>{if(e.newState==='open')placeCard();});
 document.querySelector('#open-cemetery')?.addEventListener('click',()=>statusCard.hidePopover?.());
 window.addEventListener('resize',()=>{if(statusCard?.matches?.(':popover-open'))placeCard();});
-function interact(kind){if(!allowed()){result.textContent='目前不能觸碰：請在寵物清醒健康且動作結束後互動。';return false;}
+function interact(kind,line){if(!allowed()){result.textContent='目前不能觸碰：請在寵物清醒健康且動作結束後互動。';return false;}
  const now=performance.now(),petId=petDataManager.read().pet.petId;
  // A held pat already has hearts running; keep them instead of restarting.
- if(kind!=='pet'||!heartsAlive(now))effect={kind,start:now,until:kind==='pet'?1200:Infinity,petId};result.textContent=kind==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！';document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind}}));return true;}
+ if(kind!=='pet'||!heartsAlive(now))effect={kind,start:now,until:kind==='pet'?1200:Infinity,petId};result.textContent=line||(kind==='pet'?'牠開心地接受摸摸，喜歡你的陪伴！':'牠嚇了一跳，輕一點啦！');document.dispatchEvent(new CustomEvent('pet-interaction-complete',{detail:{kind}}));return true;}
 petButton.onclick=()=>interact('pet');pokeButton.onclick=()=>interact('poke');
+// Device pet_event petted / poked (PROTOCOL.md 養成同步, phase 5): the same reaction a web touch plays, only under the same
+// eligibility (allowed()) and never while the device says it ended. Returns '' when played, else the reason it was skipped
+// (the caller logs it); a skipped event says nothing on the page and never changes or sends anything.
+function remote(kind){const s=petDataManager.read(),p=s.pet;
+ if(s.metadata.source!=='ble')return 'not device mode';if(!p)return 'no pet';if(s.metadata.activity==='ended')return 'device ended';
+ if(!['baby','adult'].includes(p.stage))return 'not baby/adult';if(p.healthState!=='healthy')return 'not healthy';if(p.sleepMode!=='awake')return 'asleep';if(p.isDeparted)return 'departed';
+ if(window.PetLevelUp?.active||window.PetGrowthView?.active||window.PetGardenBusy?.())return 'another animation playing';
+ if(!allowed())return 'busy (game or dialog)';
+ return interact(kind,kind==='pet'?'電子雞上有人摸牠，牠很開心。':'電子雞上有人戳牠，牠嚇了一跳。')?'':'not allowed';}
 
 function startPetting(){holdTimer=null;if(!down)return;const now=performance.now();
  // Hearts start with the hold and stay until release, like the firmware's PettingStarted.
@@ -87,6 +96,6 @@ function draw(now){pen.clearRect(0,0,384,256);petButton.disabled=pokeButton.disa
  else PetEffects.shock(pen,ms,{x:h.x+h.spread-6,y:h.y+h.bangDy,reduced:r});}}
  requestAnimationFrame(draw);}
 requestAnimationFrame(draw);
-window.PetTouch={PETTING_MS,classify,reacting};
+window.PetTouch={PETTING_MS,classify,reacting,remote};
 window.PetPortrait={render:renderPortrait,boxes:PORTRAIT_BOXES};
 })();

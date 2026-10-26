@@ -8,7 +8,8 @@ namespace {
 bool playerAction(PetEventType t) {
     return t==PetEventType::Fed || t==PetEventType::Cleaned || t==PetEventType::Treated ||
         t==PetEventType::Slept || t==PetEventType::Woke || t==PetEventType::Departed ||
-        t==PetEventType::Adopted || t==PetEventType::MemorialAdded || t==PetEventType::MemorialDeleted;
+        t==PetEventType::Adopted || t==PetEventType::MemorialAdded || t==PetEventType::MemorialDeleted ||
+        t==PetEventType::Petted || t==PetEventType::Poked;
 }
 bool contains(const uint64_t* ids, uint8_t count, uint64_t id) {
     for (uint8_t i=0;i<count;++i) if (ids[i]==id) return true;
@@ -26,6 +27,7 @@ const char* petEventName(PetEventType t) {
         case PetEventType::Departed: return "departed"; case PetEventType::Adopted: return "adopted";
         case PetEventType::MemorialAdded: return "memorial_added";
         case PetEventType::MemorialDeleted: return "memorial_deleted";
+        case PetEventType::Petted: return "petted"; case PetEventType::Poked: return "poked";
     }
     return "unknown";
 }

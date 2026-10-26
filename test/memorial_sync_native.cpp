@@ -266,7 +266,7 @@ static void events() {
 static void deviceInfo() {
     char json[1025]; uint16_t len = 0;
     assert(Ble::makeDeviceInfoJson(7, "ESP32-PET", "esp32-AABBCCDDEEFF", json, sizeof(json), len));
-    assert(strstr(json, R"("features":["web_game","pet_events","care","lifecycle","memorials"])"));
+    assert(strstr(json, R"("features":["web_game","pet_events","care","lifecycle","memorials","sound"])"));
 }
 
 int main() {

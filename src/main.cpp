@@ -65,6 +65,7 @@ private:
     void handleCareRequest(const Ble::CareRequest& request, uint32_t now);
     void handleLifecycleRequest(const Ble::LifecycleRequest& request, uint32_t now);
     void handleMemorialRequest(const Ble::MemorialRequest& request);
+    void handleSoundRequest(const Ble::SoundRequest& request);
     void serviceWebGame(uint32_t now);
     void sendPetEvent(Ble::PetEventType type, bool fromWeb = false);
     void sendStateEvents();
@@ -349,6 +350,7 @@ void Application::setup() {
         pet.ageSeconds() / 60 : 0;
     appReady = true;
     ble.attachStatusSources(ui.sadState(), memorials);
+    ble.setSoundMuted(settings.volume() == 0);
     petEvents.reset(pet, memorials);
     if (!ble.init()) Serial.println("BLE init failed; pet remains available offline.");
     printUiState(Hardware::InputEvent::None);
@@ -591,6 +593,20 @@ void Application::handleMemorialRequest(const Ble::MemorialRequest& r) {
     ble.finishMemorial(r, removed ? Ble::memorialDone() : Ble::memorialFailed("save_failed"));
 }
 
+// Web sound setting: no screen change. Busy while the Volume screen (an unsaved choice) or any
+// non-quiet activity holds the device; otherwise the joystick's save path, with a short confirm
+// tone only when un-muting (the joystick's save plays one too, and a muted device has nothing to play).
+void Application::handleSoundRequest(const Ble::SoundRequest& r) {
+    const char* activity = webGame.active() ? "web_game" : Ui::activityName(ui.activity());
+    const char* code = Ble::soundEligibility(activity);
+    if (strcmp(code, "ok") != 0) { ble.reply(r.commandId, code); return; }
+    ble.acceptSound(r);
+    const bool wasMuted = sound.volume() == 0;
+    const Ble::SoundOutcome outcome = Ble::applySound(sound, settings, r.muted);
+    if (outcome.done && wasMuted && !r.muted) sound.playConfirm();
+    ble.finishSound(r, outcome);
+}
+
 void Application::serviceWebGame(uint32_t now) {
     if (webGame.active()) {
         const uint32_t session = webGame.id();
@@ -609,7 +625,9 @@ void Application::serviceWebGame(uint32_t now) {
         else if (request.kind == Ble::Request::Kind::Care) handleCareRequest(request.care, now);
         else if (request.kind == Ble::Request::Kind::Lifecycle) handleLifecycleRequest(request.lifecycle, now);
         else if (request.kind == Ble::Request::Kind::Memorial) handleMemorialRequest(request.memorial);
+        else if (request.kind == Ble::Request::Kind::Sound) handleSoundRequest(request.sound);
     }
+    ble.setSoundMuted(settings.volume() == 0);
     ble.setActivity(webGame.active() ? "web_game" : Ui::activityName(ui.activity()));
 }
 
@@ -807,7 +825,8 @@ void Application::loop() {
         touch.cancel();
         ui.cancelTouchReaction();
     } else if (touchEvent != Hardware::TouchEvent::None) {
-        ui.onTouchEvent(touchEvent, millis());
+        Ble::PetEventType touchType;
+        if (Ble::touchPetEvent(touchEvent, ui.onTouchEvent(touchEvent, millis()), touchType)) sendPetEvent(touchType);
     }
     if (actionSavedImmediately) {
         // Entering and leaving sleep already wrote a verified checkpoint.

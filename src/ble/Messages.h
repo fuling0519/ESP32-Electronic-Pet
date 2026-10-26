@@ -15,6 +15,7 @@ constexpr uint16_t kMaxMessageBytes = 1024;
 struct StatusSources {
     const Pet::SadState* sad = nullptr;              // pet.sad_reasons
     const Storage::Memorials* memorials = nullptr;   // memorial_count + memorial_hash
+    const char* sound = nullptr;                     // "on" or "muted"; the saved mode (feature sound)
 };
 
 // JSON builders without NimBLE, so native tests can check contents and size.

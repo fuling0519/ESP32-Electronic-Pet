@@ -9,7 +9,7 @@ const decimal=x=>typeof x==='string'&&/^\d+$/.test(x);
 const GAME_COMMANDS=['game_start','game_heartbeat','game_finish','game_cancel'];
 const SAD_REASONS=['mood','satiety','cleanliness','sick'],DEATH_CAUSES=['untreated_sickness'],uint32=x=>Number.isInteger(x)&&x>=0&&x<=4294967295;
 // pet_event names (PROTOCOL.md 養成同步); unknown ones are ignored. Events only pick an animation, never change state.
-const PET_EVENTS=['fed','cleaned','treated','slept','woke','hatched','grew','level_up','got_sick','died','departed','adopted','memorial_added','memorial_deleted'];
+const PET_EVENTS=['petted','poked','fed','cleaned','treated','slept','woke','hatched','grew','level_up','got_sick','died','departed','adopted','memorial_added','memorial_deleted'];
 // device_info.rules: optional positive integers the page shows countdowns and limits with, never hard-coded.
 const RULES=['sick_after_seconds','death_after_sick_seconds','memorial_limit'];
 // 養成同步 phase 2 care: one player action is one op (16 lowercase hex), reused by every resend of that action.
@@ -17,7 +17,8 @@ const CARE_ACTIONS=['feed','clean','treat','sleep','wake'],CARE_WAIT_MS=10000,CA
 function newOp(){const b=new Uint8Array(8);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');}
 const CHANGE_KEYS=['satiety','cleanliness','exp','levels_gained'];
 // Write commands sharing the op rules, with the feature each one needs (PROTOCOL.md 寫入命令共通規則).
-const WRITE_FEATURE={care:'care',depart:'lifecycle',adopt:'lifecycle',delete_memorial:'memorials'},WRITE_NAME={care:'照顧',depart:'送別',adopt:'領養',delete_memorial:'刪除紀念'};
+const WRITE_FEATURE={care:'care',depart:'lifecycle',adopt:'lifecycle',delete_memorial:'memorials',set_sound:'sound'},WRITE_NAME={care:'照顧',depart:'送別',adopt:'領養',delete_memorial:'刪除紀念',set_sound:'聲音設定'};
+const SOUND_STATES=['on','muted'];
 // get_memorials pages (PROTOCOL.md 養成同步, 紀念冊): at most 5 items, all fields checked; a bad page rejects the read.
 const MEMORIAL_KINDS=['resting','departed'],MEMORIAL_STAGES=['egg','baby','adult','unknown'],MEMORIAL_RESTARTS=3;
 function mapMemorialPage(msg,offset){
@@ -28,7 +29,7 @@ function mapMemorialPage(msg,offset){
     return {petId:i.pet_id,name:i.name,speciesId:i.species_id??1,ageSeconds:i.age_seconds,kind:i.kind,stage:i.stage,protected:i.protected};})};
 }
 // Known deltas only: care numbers and grew, depart memorial_saved, adopt the new egg's id, name and species.
-function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];for(const k of ['grew','memorial_saved'])if(typeof c[k]==='boolean')o[k]=c[k];
+function mapChanges(c){const o={};if(!c||typeof c!=='object'||Array.isArray(c))return o;for(const k of CHANGE_KEYS)if(Number.isInteger(c[k])&&c[k]>=0)o[k]=c[k];for(const k of ['grew','memorial_saved','muted'])if(typeof c[k]==='boolean')o[k]=c[k];
  if(decimal(c.new_pet_id))o.new_pet_id=c.new_pet_id;if(typeof c.name==='string'&&c.name.trim())o.name=c.name;if(Number.isInteger(c.species_id)&&c.species_id>=1&&c.species_id<=255)o.species_id=c.species_id;return o;}
 function mapRules(r){
   if(r===undefined)return null;
@@ -48,6 +49,8 @@ function mapStatus(msg){
   if(['danger_seconds','sick_seconds'].some(k=>p[k]!==undefined&&!uint32(p[k]))||p.health==='healthy'&&p.sick_seconds>0)throw new Error('生病計時欄位不相容');
   if(p.death_cause!==undefined&&(typeof p.death_cause!=='string'||!p.is_dead))throw new Error('死亡原因欄位不相容');
   if((msg.memorial_count===undefined)!==(msg.memorial_hash===undefined)||msg.memorial_count!==undefined&&(!Number.isInteger(msg.memorial_count)||msg.memorial_count<0||msg.memorial_count>255||typeof msg.memorial_hash!=='string'||!/^[0-9a-f]{8}$/.test(msg.memorial_hash)))throw new Error('紀念冊摘要欄位不相容');
+  // 養成同步 phase 5: top-level sound is only sent with the sound feature; present but not on / muted rejects the snapshot.
+  if(msg.sound!==undefined&&!SOUND_STATES.includes(msg.sound))throw new Error('電子雞聲音欄位不相容');
   // The firmware's buffered sad judgement replaces the local one; device:true tells PetRules not to recompute it.
   const sad=p.sad_reasons&&{device:true,...Object.fromEntries(SAD_REASONS.map(k=>[k,p.sad_reasons.includes(k)]))};
   return {...sad&&{sadReasons:sad},dangerSeconds:p.danger_seconds??null,sickSeconds:p.sick_seconds??null,deathCause:p.death_cause===undefined?null:DEATH_CAUSES.includes(p.death_cause)?p.death_cause:'unknown',speciesId:p.species_id??1,isDeparted:p.is_departed??false,level:p.level??null,exp:p.exp??null,expToNextLevel:p.exp_to_next_level??null,name:p.name,petId:p.id,ageSeconds:p.age_seconds,stage:p.life_stage,healthState:p.health,sleepMode:p.sleep,satiety:p.satiety,mood:p.mood,cleanliness:p.cleanliness,deviceId:msg.device_id??null};
@@ -60,6 +63,8 @@ class BleSource {
    activity:this.connection==='ready'&&typeof this.cache?.wire?.activity==='string'?this.cache.wire.activity:null,webGame:this.connection==='ready'&&!!this.info?.features?.includes?.('web_game'),gameEnd:this.gameEnd,
    games:this.connection==='ready'&&Array.isArray(this.info?.games)?this.info.games.filter(g=>typeof g==='string'):null,
    petEvents:this.connection==='ready'&&!!this.info?.features?.includes?.('pet_events'),care:this.connection==='ready'&&!!this.info?.features?.includes?.('care'),lifecycle:this.connection==='ready'&&!!this.info?.features?.includes?.('lifecycle'),careSending:this.ops.size>0,rules:this.connection==='ready'?this.rules:null,
+   // sound feature: the ESP32's own speaker, shown from the last snapshot only (null while the snapshot lacks it).
+   soundControl:this.connection==='ready'&&!!this.info?.features?.includes?.('sound'),sound:this.connection==='ready'&&this.info?.features?.includes?.('sound')&&SOUND_STATES.includes(this.cache?.wire?.sound)?this.cache.wire.sound:null,
    memorialSync:this.connection==='ready'&&!!this.info?.features?.includes?.('memorials'),
    // Device album summary (memorial-sync.js compares the hash with the last synced one). A cached one is the last known.
    memorials:this.cache?.wire?.memorial_count!==undefined?{count:this.cache.wire.memorial_count,hash:this.cache.wire.memorial_hash}:null};}
@@ -118,9 +123,15 @@ class BleSource {
     if(this.connection!=='ready'||!this.info?.features?.includes?.('memorials'))throw new Error('這台電子雞目前不能從網頁刪除紀念');
     return this.write('delete_memorial',{memorial_pet_id:memorialPetId});
   }
+  // set_sound (sound feature): the ESP32's speaker mute, same op path as care without pet_id. Resolves with {action:'set_sound',changes:{muted}}.
+  setSound(muted){
+    if(typeof muted!=='boolean')throw new Error('聲音設定格式錯誤');
+    if(this.connection!=='ready'||!this.info?.features?.includes?.('sound'))throw new Error('這台電子雞目前不能從網頁調整聲音');
+    return this.write('set_sound',{muted});
+  }
   write(cmd,extra){
     if(this.ops.size)throw new Error('上一個操作還在等電子雞回覆');
-    const fields={...extra,...cmd==='delete_memorial'?{}:{pet_id:this.cache.pet.petId},op:newOp()},first=Date.now(),action=extra.action||cmd;
+    const fields={...extra,...cmd==='delete_memorial'||cmd==='set_sound'?{}:{pet_id:this.cache.pet.petId},op:newOp()},first=Date.now(),action=extra.action||cmd;
     return new Promise((resolve,reject)=>{
       const entry={action,cmd,resolve:r=>{done();resolve(r);},reject:e=>{done();reject(e);}},done=()=>{clearTimeout(entry.timer);this.ops.delete(fields.op);this.emit();};
       const send=()=>{entry.timer=setTimeout(wait,CARE_WAIT_MS);

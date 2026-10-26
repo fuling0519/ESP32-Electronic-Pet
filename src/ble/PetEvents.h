@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include "hardware/TouchGesture.h"
 #include "pet/PetData.h"
 #include "storage/Memorials.h"
 
@@ -9,7 +10,7 @@ namespace Ble {
 // pet_event (feature pet_events): best-effort hints for the browser's animations only.
 enum class PetEventType : uint8_t {
     Fed, Cleaned, Treated, Slept, Woke, Hatched, Grew, LevelUp, GotSick, Died,
-    Departed, Adopted, MemorialAdded, MemorialDeleted,
+    Departed, Adopted, MemorialAdded, MemorialDeleted, Petted, Poked,
 };
 struct PetEvent {
     PetEventType type = PetEventType::Fed;
@@ -19,6 +20,14 @@ struct PetEvent {
     bool fromWeb = false;        // Player actions report source device or web.
 };
 const char* petEventName(PetEventType type);
+// Touch hints (source always device): only a gesture start the UI accepted, once per gesture.
+// A release, a cancel and every rejected touch give none.
+inline bool touchPetEvent(Hardware::TouchEvent touch, bool accepted, PetEventType& type) {
+    if (!accepted) return false;
+    if (touch == Hardware::TouchEvent::Poke) { type = PetEventType::Poked; return true; }
+    if (touch == Hardware::TouchEvent::PettingStarted) { type = PetEventType::Petted; return true; }
+    return false;
+}
 bool makePetEventJson(const PetEvent& event, char* out, size_t cap, uint16_t& len);
 
 // Events never wait for a connection and never take the last slots of the transmit

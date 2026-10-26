@@ -150,7 +150,7 @@ static void statusJson() {
         Pet::SadState all; all.update(big); assert(dead || (all.mood() && all.satiety() && all.cleanliness() && all.sick()));
         Storage::Memorials full;
         for (uint64_t i = 0; i < Storage::kMemorialCapacity; ++i) assert(full.append(record(UINT64_MAX - i, "ABCDEFGH")));
-        Ble::StatusSources src; src.sad = &all; src.memorials = &full;
+        Ble::StatusSources src; src.sad = &all; src.memorials = &full; src.sound = "muted";
         assert(Ble::makeStatusJson(big, "esp32-AABBCCDDEEFF", "device_game", src, json, sizeof(json), len));
         d.clear(); assert(!deserializeJson(d, json) && d["memorial_count"] == 33);
         if (len > worst) worst = len;
@@ -167,7 +167,7 @@ static void deviceInfo() {
     StaticJsonDocument<1024> d; assert(!deserializeJson(d, json));
     assert(strcmp(d["type"], "device_info") == 0 && d["id"] == 7 && d["max_message_bytes"] == 1024);
     JsonArray features = d["features"];
-    assert(features.size() == 5 && strcmp(features[0], "web_game") == 0 && strcmp(features[1], "pet_events") == 0 &&
+    assert(features.size() == 6 && strcmp(features[5], "sound") == 0 && strcmp(features[0], "web_game") == 0 && strcmp(features[1], "pet_events") == 0 &&
            strcmp(features[2], "care") == 0 && strcmp(features[3], "lifecycle") == 0 && strcmp(features[4], "memorials") == 0);
     assert(d["games"].as<JsonArray>().size() == 2);
     assert(d["rules"]["sick_after_seconds"] == static_cast<uint32_t>(Pet::PetData::kSicknessExposureSeconds));

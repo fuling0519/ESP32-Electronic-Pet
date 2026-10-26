@@ -11,18 +11,20 @@
 #include "ble/Messages.h"
 #include "ble/OpCache.h"
 #include "ble/PetEvents.h"
+#include "ble/SoundCommand.h"
 #include "ble/TxQueue.h"
 class NimBLECharacteristic;
 class NimBLEServer;
 namespace Ble {
 // One parsed command for the application: a Web play command or a new care/lifecycle/memorial op.
 struct Request {
-    enum class Kind : uint8_t { None, Game, Care, Lifecycle, Memorial };
+    enum class Kind : uint8_t { None, Game, Care, Lifecycle, Memorial, Sound };
     Kind kind = Kind::None;
     GameRequest game{};
     CareRequest care{};
     LifecycleRequest lifecycle{};
     MemorialRequest memorial{};
+    SoundRequest sound{};
 };
 class Link {
 public:
@@ -47,6 +49,10 @@ public:
     void finishLifecycle(const LifecycleRequest& request, const LifecycleOutcome& outcome);
     void acceptMemorial(const MemorialRequest& request);
     void finishMemorial(const MemorialRequest& request, const MemorialOutcome& outcome);
+    void acceptSound(const SoundRequest& request);
+    void finishSound(const SoundRequest& request, const SoundOutcome& outcome);
+    // The saved sound mode for the status "sound" field (the Volume screen's unsaved audition is not it).
+    void setSoundMuted(bool muted) { statusSources_.sound = muted ? "muted" : "on"; }
     // idle, menu, sleeping, ended, device_game, web_game or busy; in every status snapshot.
     void setActivity(const char* activity);
     // Pet sync status fields (sad reasons, memorial count/hash); both must outlive the link.
@@ -74,6 +80,7 @@ private:
     void processLifecycle(JsonVariantConst message, uint32_t id, LifecycleAction action);
     void processGetMemorials(const Pet::PetData& pet, JsonVariantConst message, uint32_t id);
     void processDeleteMemorial(JsonVariantConst message, uint32_t id);
+    void processSetSound(JsonVariantConst message, uint32_t id);
     // Op cache lookup shared by the write commands: true when this command was answered here.
     bool answeredFromCache(uint64_t op, OpKind kind, uint8_t action, uint64_t target, uint32_t id);
     void sendActionResult(uint32_t id, const OpCache::Entry& entry);

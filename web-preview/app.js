@@ -280,7 +280,7 @@ document.querySelector('#confirm-farewell').onclick=()=>{if(mode==='ble'){docume
 // Device farewell / adoption (PROTOCOL.md 養成同步, lifecycle): the ESP32 does not ask again (D3), so the dialog is the only
 // confirmation, defaulting to 留下. The action_result only names the outcome; the next snapshot (departed, then the egg)
 // drives the farewell sequence and the egg view, once per pet (deathKey). The web command's own pet_event is skipped.
-function syncDeviceLifecycle(L){const row=document.querySelector('#device-lifecycle'),b=document.querySelector('#device-farewell');row.hidden=!(L&&L.shown('depart'));root.classList.toggle('device-lifecycle',!!L&&!!manager.view('ble').lifecycle);
+function syncDeviceLifecycle(L){window.PetDeviceSound?.sync();const row=document.querySelector('#device-lifecycle'),b=document.querySelector('#device-farewell');row.hidden=!(L&&L.shown('depart'));root.classList.toggle('device-lifecycle',!!L&&!!manager.view('ble').lifecycle);
  for(const [el,kind] of [[b,'depart'],[document.querySelector('#adopt-egg'),'adopt']]){const why=L&&L.shown(kind)?L.blocker(kind):'';el.classList.toggle('is-blocked',!!why);el.setAttribute('aria-disabled',String(!!why));el.title=why;}}
 document.querySelector('#device-farewell').onclick=()=>{const L=window.PetDeviceLifecycle,why=mode==='ble'&&L?L.blocker('depart'):'裝置模式才能從網頁送別電子雞上的寵物。';if(why){status.textContent=why;return;}
  document.querySelector('#farewell-description').textContent=L.farewellInfo();document.querySelector('#farewell-dialog').showModal();document.querySelector('#farewell-dialog form button').focus();};
