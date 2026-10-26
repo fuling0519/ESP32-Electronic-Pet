@@ -50,13 +50,15 @@ bool makeStatusJson(const Pet::PetData& pet, const char* deviceId, const char* a
     p["level"]=pet.level(); p["exp"]=pet.exp();
     p["exp_to_next_level"]=pet.expToNextLevel();
     if (const Pet::SadState* sad=sources.sad) {
-        // Buffered reasons belong to one pet; a stale observation reports none.
+        // Buffered reasons belong to one pet; a stale observation reports none. The UI refreshes
+        // them before actions run, so after a farewell, adoption or treatment in this loop the
+        // pet's own state still wins: eggs and ended pets report none, and sick needs isSick().
         JsonArray reasons=p.createNestedArray("sad_reasons");
-        if (sad->petId()==pet.petId()) {
+        if (sad->petId()==pet.petId() && !pet.isEnded() && pet.lifeStage()!=Pet::LifeStage::Egg) {
             if (sad->mood()) reasons.add("mood");
             if (sad->satiety()) reasons.add("satiety");
             if (sad->cleanliness()) reasons.add("cleanliness");
-            if (sad->sick()) reasons.add("sick");
+            if (sad->sick() && pet.isSick()) reasons.add("sick");
         }
     }
     p["danger_seconds"]=pet.dangerSeconds();

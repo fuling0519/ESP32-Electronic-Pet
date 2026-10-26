@@ -122,6 +122,16 @@ static void statusJson() {
     d.clear(); assert(!deserializeJson(d, json));
     assert(d["pet"]["danger_seconds"] == sick.dangerSeconds() && d["pet"]["sick_seconds"] == sick.sickAwakeSeconds());
     assert(!d["pet"].containsKey("death_cause"));
+    // Same loop as a treatment or farewell, before the UI refreshes the buffers: the pet's own state wins.
+    sad.update(sick); assert(sad.sick() && sad.satiety());
+    auto treated = sick; assert(treated.treat());
+    assert(Ble::makeStatusJson(treated, "esp32-AABBCCDDEEFF", "busy", sources, json, sizeof(json), len));
+    d.clear(); assert(!deserializeJson(d, json));
+    JsonArray afterTreat = d["pet"]["sad_reasons"];
+    assert(afterTreat.size() == 1 && strcmp(afterTreat[0], "satiety") == 0);
+    auto gone = sick; assert(gone.depart());
+    assert(Ble::makeStatusJson(gone, "esp32-AABBCCDDEEFF", "busy", sources, json, sizeof(json), len));
+    d.clear(); assert(!deserializeJson(d, json)); assert(d["pet"]["sad_reasons"].as<JsonArray>().size() == 0);
     sick.advanceSeconds(Pet::PetData::kDeathAfterSickAwakeSeconds); assert(sick.isDead());
     sad.update(sick);
     assert(Ble::makeStatusJson(sick, "esp32-AABBCCDDEEFF", "ended", sources, json, sizeof(json), len));

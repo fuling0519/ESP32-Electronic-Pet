@@ -88,7 +88,8 @@ test('sickness countdown uses the snapshot seconds against device rules, else no
  const sick={stage:'adult',healthState:'sick',sickSeconds:3600,satiety:20,cleanliness:50};
  assert.equal(R.countdown(sick,rules),'若不治療，約 23 小時後會離世');
  assert.equal(R.countdown(sick,rules,60),'若不治療，約 22 小時 59 分後會離世');
- assert.equal(R.countdown({...sick,sickSeconds:90000},rules),'若不治療，約 不到 1 分鐘後會離世');
+ assert.equal(R.countdown({...sick,sickSeconds:90000},rules),'若不治療，約 1 秒後會離世');
+ assert.equal(R.countdown({...sick,sickSeconds:86370},rules),'若不治療，約 30 秒後會離世','test builds count down in seconds');
  const danger={stage:'baby',healthState:'healthy',dangerSeconds:21000,satiety:0,cleanliness:40};
  assert.equal(R.countdown(danger,rules),'飽食度歸零，約 10 分鐘後會生病');
  assert.equal(R.countdown({...danger,satiety:0,cleanliness:0},rules),'飽食度與清潔度歸零，約 10 分鐘後會生病');
@@ -132,6 +133,8 @@ test('device-mode page plays the feed animation for a device fed event and skips
  assert.equal(get('#mode').value,'ble');
  ble.connection='waiting';ble.messageReceived(info({rules:{sick_after_seconds:21600,death_after_sick_seconds:86400}}));ble.messageReceived(status({satiety:0,danger_seconds:21000,sad_reasons:['satiety']}));
  assert.match(get('#sad-reason').textContent,/飽食度 0.*飽食度歸零，約 10 分鐘後會生病/);assert.equal(get('#sad-reason').hidden,false);
+ // The details panel is hidden by the page style, so the countdown also leads the visible status line.
+ assert.equal(get('#status').textContent,'飽食度歸零，約 10 分鐘後會生病。','an alert replaces the generic connection line');
  const play=buttons[2],step=ms=>{T+=ms;frame(T);};step(16);assert.equal(play.disabled,false,'idle device: play is offered');
  const before=plain(m.read('ble'));
  ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'fed',source:'device'});step(16);
@@ -142,10 +145,10 @@ test('device-mode page plays the feed animation for a device fed event and skips
  assert.deepEqual(plain(m.read('ble')),before);assert.deepEqual(commands,[]);
  // Treat animation plays through its settle point without asking the data layer to treat.
  ble.messageReceived(status({health:'sick',sick_seconds:30,sad_reasons:['sick']}));step(16);
- assert.match(get('#sad-reason').textContent,/若不治療，約 23 小時 59 分後會離世/);
+ assert.match(get('#sad-reason').textContent,/若不治療，約 23 小時 59 分後會離世/);assert.match(get('#status').textContent,/^若不治療，約 23 小時 59 分後會離世。/);
  ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'treated',source:'device'});step(16);assert.match(get('#status').textContent,/治療/);assert.equal(play.disabled,true);for(let i=0;i<240;i++)step(16);assert.equal(play.disabled,false,'the treat animation ends by itself');
  assert.deepEqual(commands,[]);assert.equal(m.read('ble').pet.healthState,'sick','only the next snapshot cures it');
  // A dead pet with an unknown cause says so.
  ble.messageReceived(status({health:'dead',is_dead:true,death_cause:'meteor'}));assert.match(get('#pet-description').textContent,/已離世（原因未知）/);
- ble.messageReceived(status({health:'dead',is_dead:true,death_cause:'untreated_sickness'}));assert.match(get('#pet-description').textContent,/生病未治療/);
+ ble.messageReceived(status({health:'dead',is_dead:true,death_cause:'untreated_sickness'}));assert.match(get('#pet-description').textContent,/生病未治療/);assert.equal(get('#status').textContent,'寵物已離世（生病未治療）。');
 });

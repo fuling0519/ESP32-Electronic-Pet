@@ -47,9 +47,10 @@ class BleSource {
   // pet_event listeners get a copy of the event only; the snapshot stays the single source of pet state.
   onPetEvent(fn){this.eventListeners.add(fn);return ()=>this.eventListeners.delete(fn);}
   petEvent(msg){
-    const r=this.read();if(!r.petEvents||!PET_EVENTS.includes(msg.event)||msg.source==='web'||!decimal(msg.pet_id))return;
     // adopted names the new pet; every other event must be about the pet the page is showing.
-    if(msg.event!=='adopted'&&msg.pet_id!==r.pet?.petId)return;
+    const r=this.read(),skip=!r.petEvents?'not declared':!PET_EVENTS.includes(msg.event)?'unknown event':msg.source==='web'?'own command':!decimal(msg.pet_id)?'bad pet_id':msg.event!=='adopted'&&msg.pet_id!==r.pet?.petId?'other pet':'';
+    // One console line per event so hardware checks can tell a missing event from a skipped one.
+    console.info('[pet_event]',msg.event,msg.pet_id,skip?'skipped: '+skip:'accepted');if(skip)return;
     const e={event:msg.event,petId:msg.pet_id,source:typeof msg.source==='string'?msg.source:null};
     if(msg.event==='level_up'&&Number.isInteger(msg.level))e.level=msg.level;
     if(decimal(msg.memorial_pet_id))e.memorialPetId=msg.memorial_pet_id;

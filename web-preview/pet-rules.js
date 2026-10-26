@@ -41,7 +41,7 @@ function sadnessReasons(p){
 }
 // Device countdown to sickness or death, from the snapshot's seconds and device_info.rules; '' without both.
 // While the snapshot is live the device keeps counting, so the time since it arrived is taken off (elapsed seconds).
-function duration(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+' 小時'+(m?' '+m+' 分':''):m?m+' 分鐘':'不到 1 分鐘';}
+function duration(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+' 小時'+(m?' '+m+' 分':''):m?m+' 分鐘':Math.max(1,Math.ceil(s))+' 秒';}
 function countdown(p,rules,elapsed=0){
  if(!p||!rules||p.stage==='egg'||p.isDeparted||p.healthState==='dead')return '';
  if(p.healthState==='sick'&&Number.isInteger(p.sickSeconds)&&rules.death_after_sick_seconds)return '若不治療，約 '+duration(Math.max(0,rules.death_after_sick_seconds-p.sickSeconds-elapsed))+'後會離世';
