@@ -140,9 +140,9 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 **限制：** 沒有配對驗證，附近能連線的 Central 都能送結果；以單一連線、限主畫面開局、最短時長、單場上限與韌體換算獎勵降低風險。局號與最近一局結果只在記憶體，重開機不補發。
 
-## 養成同步（2026-10-26 定案；階段 1 已實作）
+## 養成同步（2026-10-26 定案；階段 1～2 已實作）
 
-設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體只宣告 `pet_events`（快照擴充、`activity` 新值與事件），`care`、`lifecycle`、`memorials` 尚未實作；實作與驗證進度只看主台帳。
+設計理由、使用者決定（D1～D4）、Web 對帳與分工見 [裝置與 Web 養成同步](../docs/features/device-sync-ble-plan.md)；本節是介面規格。目前韌體宣告 `pet_events`（快照擴充、`activity` 新值與事件）與 `care`；`lifecycle`、`memorials` 尚未實作；實作與驗證進度只看主台帳。
 
 **能力。** `device_info.features` 新增 `pet_events`、`care`、`lifecycle`、`memorials`，各自開放下方對應的事件或命令；缺少即不支援。`device_info` 另加可選物件 `rules`：`sick_after_seconds`、`death_after_sick_seconds`、`memorial_limit`（皆為正整數），Web 以此顯示倒數與滿額，不自行寫死門檻。
 
@@ -167,7 +167,7 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 
 `event` 為 `fed`、`cleaned`、`treated`、`slept`、`woke`、`hatched`、`grew`、`level_up`（附 `level`）、`got_sick`、`died`、`departed`、`adopted`（`pet_id` 為新個體）、`memorial_added`、`memorial_deleted`（附 `memorial_pet_id`）。玩家操作類事件附 `source`：`device` 或 `web`。只在連線中盡力送出，不排隊、不補發；客戶端只用來選擇動畫，不得據此改變狀態。傳送佇列滿時優先捨棄事件。未知 `event` 忽略。
 
-**寫入命令共通規則。** `care`、`depart`、`adopt`、`delete_memorial` 皆含必填 `op`：16 位小寫 hex，代表玩家的一次操作，重送沿用同值。韌體在記憶體保留最近 8 筆；同一 `op` 再來時不重新執行，已完成就重送相同的 `action_result`（`id` 換成本次命令 ID），仍在執行就再回 `command_result` ok；同一 `op` 搭配不同命令、動作或目標回 `op_conflict`。`op` 不保存，客戶端只在同一頁面、未收到 `action_result` 且距首次送出不滿 30 秒時重送。
+**寫入命令共通規則。** `care`、`depart`、`adopt`、`delete_memorial` 皆含必填 `op`：16 位小寫 hex，代表玩家的一次操作，重送沿用同值。韌體在記憶體保留最近 8 筆已接受的 `op`（滿時先淘汰最舊的已完成筆，斷線不清空）；被 `command_result` 拒絕的命令不記錄，同一 `op` 重送會重新檢查。`op` 格式檢查後、資格檢查前先查快取：同一 `op` 再來時不重新執行，仍在執行就再回 `command_result` ok（之後的 `action_result` 用最新的命令 ID），已完成就先回 `command_result` ok、再重送相同的 `action_result`（`id` 換成本次命令 ID，`failed` 結果也照樣回放）；同一 `op` 搭配不同命令、動作或目標回 `op_conflict`。斷線期間完成的 `action_result` 不在重連後主動補送，由客戶端重送取得。`op` 不保存，客戶端只在同一頁面、未收到 `action_result` 且距首次送出不滿 30 秒時重送。
 
 回覆分兩段：`command_result` 立即回覆，`ok:true` 代表已接受並保證之後送出 `action_result`；拒絕時帶錯誤碼。執行完成後送：
 
@@ -175,7 +175,7 @@ status.pet 新增可選成組欄位 `level`（整數 1～255）、`exp`（整數
 {"v":1,"type":"action_result","id":21,"op":"9f2c41d07ab3e815","action":"feed","outcome":"done","changes":{"satiety":20,"exp":3,"levels_gained":0}}
 ```
 
-`outcome` 為 `done`（已執行並保存，`changes` 為實際增量）或 `failed`（附 `code`：`not_allowed`、`pet_changed`、`save_failed`）。客戶端等待上限 10 秒，逾時視為結果不明，重讀狀態。資格先檢查，通過後韌體才從 `menu` 頁退回主畫面（從結束畫面進入的退回結束畫面）並執行，電子雞照搖桿操作播放動畫與音效。
+`outcome` 為 `done`（已執行，`changes` 為實際增量）或 `failed`（附 `code`：`not_allowed`、`pet_changed`、`save_failed`，不帶 `changes`）。保存時機與搖桿操作相同：`sleep`／`wake` 立即寫入、失敗為 `save_failed`；`feed`／`clean`／`treat` 沿用延後保存（治療造成成長時立即保存），`done` 不代表已寫入 NVS，回覆後短時間內斷電可能遺失，與搖桿照顧一致。客戶端每 10 秒未收到 `action_result` 就以同一 `op` 重送，距首次送出滿 30 秒仍無結果視為結果不明，重讀狀態。資格先檢查，通過後韌體才從 `menu` 頁退回主畫面（從結束畫面進入的退回結束畫面）並執行，電子雞照搖桿操作播放動畫與音效。
 
 **`care`**（`care`）：
 

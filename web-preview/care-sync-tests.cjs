@@ -126,7 +126,7 @@ function page(features){
  get('#stage').options=['egg','baby','adult'].map(value=>({value}));c.document.querySelectorAll=()=>buttons;c.document.addEventListener=()=>{};
  let T=0;c.Image=class{constructor(){this.complete=true;this.naturalWidth=2172;this.naturalHeight=724;}};c.ResizeObserver=class{observe(){}};c.matchMedia=()=>({matches:false});c.devicePixelRatio=1;c.performance={now:()=>T};
  c.setInterval=()=>0;c.clearInterval=()=>{};c.document.dispatchEvent=()=>{};let frame;c.requestAnimationFrame=fn=>{frame=fn;};c.checkBleReadiness=()=>{};const createElement=c.document.createElement;c.document.createElement=()=>decorate(createElement());
- for(const file of ['wyvern-adult-view.js','shared-sprites.js','shared-view.js','assets/pets/bird/white-idle-data-v4.js','assets/pets/bird/white-sad-data-v1.js','assets/pets/bird/white-sick-data-v1.js','white-bird-view.js','bird-view.js','assets/pets/bird/white-activity-data-v1.js','white-bird-activity.js','bird-demo.js','assets/items/blue-seed-bowl-data-v1.js','blue-seed-bowl.js','white-bird-feed.js','growth-view.js','death-view.js','farewell-view.js','egg-view.js','bird-sad-sprites.js','sad-view.js','game-ui.js','app.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),c,{filename:file});
+ for(const file of ['wyvern-adult-view.js','shared-sprites.js','shared-view.js','assets/pets/bird/white-idle-data-v4.js','assets/pets/bird/white-sad-data-v1.js','assets/pets/bird/white-sick-data-v1.js','white-bird-view.js','bird-view.js','assets/pets/bird/white-activity-data-v1.js','white-bird-activity.js','bird-demo.js','assets/items/blue-seed-bowl-data-v1.js','blue-seed-bowl.js','white-bird-feed.js','growth-view.js','level-up-view.js','death-view.js','farewell-view.js','egg-view.js','bird-sad-sprites.js','sad-view.js','game-ui.js','app.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),c,{filename:file});
  b.ble.connection='waiting';b.ble.messageReceived(info(features));b.ble.messageReceived(status());
  const [feed,clean,play,rest,treat]=buttons;return {...b,get,feed,clean,play,rest,treat,step:ms=>{T+=ms;frame(T);}};
 }
@@ -149,13 +149,16 @@ test('device page: care buttons follow activity; feed animates only after done a
  ack(p,x);for(let i=0;i<30;i++)p.step(16);await flush();assert.equal(p.get('#status').textContent,'正在請電子雞餵牠……','no animation on the ack');
  result(p,x);await flush();p.step(16);
  assert.equal(p.get('#status').textContent,'餵好了：飽食度 +20、EXP +3。');assert.equal(p.play.disabled,true,'the garden feed animation is playing');
- assert.equal(meter(),60,'the +20 is not added locally');
+ assert.equal(meter(),60,'the +20 is not added locally');assert.equal(p.c.PetGardenBusy(),true,'touch waits for the care animation');
  // The device's own event for this web command is skipped, so the animation does not restart.
  p.ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'fed',source:'web'});
  p.ble.messageReceived(status({satiety:80}));assert.equal(meter(),80,'the snapshot sets the meter');assert.equal(p.feed.disabled,true,'still animating after the snapshot');
- for(let i=0;i<220;i++)p.step(16);assert.equal(p.play.disabled,false,'the animation ends once');assert.equal(p.feed.disabled,false);
+ for(let i=0;i<220;i++)p.step(16);assert.equal(p.play.disabled,false,'the animation ends once');assert.equal(p.c.PetGardenBusy(),false);assert.equal(p.feed.disabled,false);
  assert.equal(p.get('#status').textContent,'餵好了：飽食度 +20、EXP +3。','the result stays readable after the animation');
  p.ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'fed',source:'web'});p.step(16);assert.equal(p.play.disabled,false,'a late web event plays nothing');
+ // A device-side clean ends with a result line too, like web care.
+ p.ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'cleaned',source:'device'});p.step(16);assert.match(p.get('#status').textContent,/髒污逐漸消失/);
+ for(let i=0;i<400;i++)p.step(16);assert.equal(p.get('#status').textContent,'電子雞上清潔好了。');
  // Refusal: a clear reason, no animation, buttons back.
  p.clean.click();await flush();ack(p,cares(p)[1],{ok:false,code:'busy'});await flush();p.step(16);
  assert.equal(p.get('#status').textContent,'電子雞正在忙，請先讓它回到主畫面。');assert.equal(p.clean.disabled,false);assert.equal(p.play.disabled,false);
@@ -166,6 +169,15 @@ test('device page: care buttons follow activity; feed animates only after done a
  // Failed outcome after the ack.
  p.rest.click();await flush();const w=cares(p)[3];assert.equal(w.action,'wake');ack(p,w);result(p,w,{outcome:'failed',code:'not_allowed'});await flush();
  assert.equal(p.get('#status').textContent,'寵物現在的狀態不能這樣照顧。');
+});
+test('device page: a level gained by web care queues one garden celebration with the device event',async()=>{
+ const p=page();p.step(16);const L=p.c.PetLevelUp;assert.ok(L,'the level-up view is loaded');
+ p.feed.click();await flush();const x=cares(p)[0];result(p,x,{changes:{satiety:20,exp:3,levels_gained:1}});await flush();
+ assert.ok(L.pending||L.playing,'the care result asks for a celebration');
+ // The device also reports level_up for the same feed; the queue merges it instead of playing twice.
+ p.ble.messageReceived({v:1,type:'pet_event',pet_id:PET_ID,event:'level_up',level:4});
+ const q=L.playing||L.pending;assert.equal(q.petId,PET_ID);assert.equal(q.to,4,'one celebration, merged up to the device level');
+ assert.ok(!(L.playing&&L.pending),'never a second celebration queued behind the first');
 });
 test('device page: treat on a sick pet plays the potion only after done and the cure waits for the snapshot',async()=>{
  const p=page();p.ble.messageReceived(status({health:'sick',sick_seconds:30}));p.step(16);

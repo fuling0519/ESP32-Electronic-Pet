@@ -236,20 +236,22 @@ function renderDevice(){if(mode!=='ble')return;const snap=manager.view('ble'),p=
 // Device pet_event: plays the matching care animation only (the snapshot still decides the state). Hatching and growing
 // up already play from the snapshot's stage change; death, farewell, adoption and the album follow the next snapshot.
 // Anything already playing (care, growth, a game) wins and the event is skipped.
-const EVENT_ACTION={fed:'feed',cleaned:'clean',treated:'treat'},EVENT_TEXT={feed:'電子雞上餵了牠，牠正在吃飯……',clean:'電子雞上幫牠清潔，髒污逐漸消失……',treat:'電子雞上幫牠治療……'};
+const EVENT_ACTION={fed:'feed',cleaned:'clean',treated:'treat'},EVENT_TEXT={feed:'電子雞上餵了牠，牠正在吃飯……',clean:'電子雞上幫牠清潔，髒污逐漸消失……',treat:'電子雞上幫牠治療……'},EVENT_DONE={feed:'電子雞上餵好了。',clean:'電子雞上清潔好了。',treat:'電子雞上治療好了。'};
 function deviceEvent(e){
  if(mode!=='ble')return;const p=manager.view('ble').pet,living=p&&['baby','adult'].includes(p.stage)&&!p.isDeparted&&p.health!=='dead';
  const playing=!!action||!!window.PetGrowthView?.active||!!window.PetToyPlay?.active()||!!window.PetChorus?.active();
  // Level-up queues behind care, growth and games instead of being skipped (see level-up-view.js).
  if(e.event==='level_up'){const why=!living?'pet not living':'';if(!why)celebrate(Number.isInteger(e.level)?{level:e.level}:{gained:1});console.info('[pet_event] level_up',why?'no animation: '+why:playing?'queued':'celebration');return;}
  const kind=EVENT_ACTION[e.event],why=!kind?'':!living?'pet not living':playing?'another animation playing':p.sleepMode!=='awake'?'asleep':'';if(why)console.info('[pet_event]',e.event,'no animation: '+why);if(!kind||why)return;
- action=kind;actionStart=performance.now();treatmentResult=null;bubble.hidden=true;busy(true);status.textContent=EVENT_TEXT[kind];
+ action=kind;actionStart=performance.now();treatmentResult=null;bubble.hidden=true;busy(true);status.textContent=EVENT_TEXT[kind];careLine=EVENT_DONE[kind];
 }
 manager.onPetEvent(deviceEvent);
 // Web care on the device (PROTOCOL.md 養成同步 care): the ESP32 plays its own animation (D1); the garden one plays only
 // after action_result done, with the real deltas as the status line. Meters still change only from the next snapshot,
 // and the device's pet_event for this web command (source web) is skipped by the BLE layer, so nothing plays twice.
 let careLine='';
+// Touch reactions wait while a garden care animation plays in device mode (the mock checks its disabled care buttons).
+window.PetGardenBusy=()=>!!action;
 function deviceCare(kind){
  const why=action?'等目前的動畫播完再照顧吧。':window.PetDeviceCare?window.PetDeviceCare.blocker(kind):'這台電子雞的韌體還不支援網頁照顧。';if(why){status.textContent=why;return;}
  const run=PetDeviceCare.run(kind);status.textContent=PetDeviceCare.sendingText(kind);busy(false);
