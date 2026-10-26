@@ -1,4 +1,4 @@
-/* Code-drawn pixel effects (hearts, Zzz, exclamation). No image assets.
+/* Code-drawn pixel effects (hearts, Zzz, exclamation) and the sleeping breath. No image assets.
    Glyphs are bitmaps with a dark outline so they stay readable on grass by
    day and night. The garden uses the 'fine' style; 'pixel' is the earlier
    3px-cell version kept for the preview comparison. */
@@ -160,5 +160,7 @@ function shock(ctx,ms,{x,y,reduced=false,style}={}){
   shape(ctx,g,x+Math.cos(a)*r,y-9+Math.sin(a)*r,PALETTE.bang,{alpha:gone*fade,style});
  }
 }
-window.PetEffects={hearts,zzz,shock,glyph,shape,glyphs:G,fineGlyphs:F,HEART_GAP,HEART_LIFE,SHOCK_MS};
+// Sleeping breath shared by every species: a 3% vertical swell around the feet every 3.2 s (about 3 canvas px).
+function breath(now,reduced=false){return reduced?1:1+.03*(1-Math.cos(Math.max(0,now)%3200/3200*Math.PI*2))/2;}
+window.PetEffects={hearts,zzz,shock,breath,glyph,shape,glyphs:G,fineGlyphs:F,HEART_GAP,HEART_LIFE,SHOCK_MS};
 })();

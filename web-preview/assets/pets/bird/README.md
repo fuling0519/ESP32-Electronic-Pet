@@ -32,3 +32,6 @@ white-dead-source-v1.png 為使用者以 ChatGPT 依白鳥 v2 產出的綠底單
 
 ## 摸摸開心 v1
 white-happy-v1.png 由 `python tools/draw_white_bird_happy.py` 從 white-idle-v2.png 程式繪製，非生成圖：只把兩眼用周圍毛色漸層補平（避開腮紅與輪廓），再依原圖約 8.7 px 像素格畫上向上彎、順時針傾斜（右眼 36°、左眼 28°）的瞇眼笑弧線（配合臉部四分之三側轉，外側眼尾往下）；弧線以原本睜眼的深色像素重心為中心、蓋住眼睛上半部，與鳥喙的間距和睜眼時相同；左眼依使用者手動擺放的版本擬合，再往左 2 格、往上 2 格；腮紅、喙、翅膀、尾巴不動。同為 1254 px 畫布，`white-bird-view.js` 以 action `happy` 繪製時平移到待機圖集的站位（左緣與待機一致，不會左右跳動），每 250ms 輕跳 2px。摸摸反應（含長按到放開後 1.2 秒）與展示工具的「開心」使用；減少動態不跳。測試 node web-preview/white-bird-idle-tests.cjs。
+
+## 睡眠與嚇一跳 v1
+white-sleep-source-v1.png、white-startled-source-v1.png 為使用者以 ChatGPT 依白鳥 v2 產出的綠底單張（提示詞見 white-sleep-v1-prompt.md、white-startled-v1-prompt.md）：睡眠蓬起坐低、頭縮、閉眼；嚇一跳炸毛、翅膀微開、尾巴翹起、睜大眼、張嘴。`python tools/prepare_white_bird_pose.py sleep|startled` 去綠底、去雜點、裁切，輸出 white-sleep-v1.png／white-startled-v1.png 與 data-v1.js／.json；不縮放、不重畫。同為 1254 px 畫布，以待機 v2 相同像素比例繪製；錨點為腳趾（灰色趾頭中心與最低列，排除尾巴），對準 v2 腳趾並套用待機圖集站位。`white-bird-view.js` 在 sleepMode 為 normal 時用睡眠圖（長眠優先），以腳底為支點套用共用 `PetEffects.breath`（每 3.2 秒垂直起伏 3%，減少動態不動，小飛龍睡覺也用）；action `startled` 用嚇一跳圖，戳戳反應與展示工具「驚嚇」使用。GPT 把兩張都畫得比待機小，工具另算 scale，Web 以腳趾為中心放大：startled 比白色身體高度（1.107）；sleep 刻意坐低，改比白色羽毛面積（1.158）。缺資料退回 v2。幼鳥與成鳥共用，按大小區分。測試 node web-preview/white-bird-pose-tests.cjs。

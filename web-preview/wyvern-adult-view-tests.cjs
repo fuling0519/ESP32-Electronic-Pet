@@ -271,3 +271,13 @@ test('device mode keeps touch reactions while demo previews stay off',()=>{
  assert.equal(view.resolve(p,100,null),'shock');
  view.syncControls(p,false,false);assert.equal(view.resolve(p,100,null),'idle','touch off drops the reaction');
 });
+test('sleeping wyverns breathe around the feet anchor; awake and reduced motion stay unstretched',()=>{
+ const {c,view,ctx,bounds}=boot();c.PetEffects={breath:(now,reduced)=>reduced?1:1.015};
+ for(const stage of ['adult','baby']){const p={...pet(),stage,sleepMode:'normal'};
+  bounds.length=0;view.draw(ctx,p,1600,null,0,true);const still=bounds.at(-1);
+  bounds.length=0;view.draw(ctx,p,1600,null,0,false);const swell=bounds.at(-1);
+  assert.equal(view.resolve(p,1600,null),'sleep');assert(Math.abs(swell.h-still.h*1.015)<1e-9,stage+' swells 1.5%');
+  // The point that does not move is the pose anchor at the feet (y=177), not the picture's bottom edge.
+  const k=(still.y-swell.y)/(swell.h-still.h);assert(Math.abs(still.y+k*still.h-177)<1e-6,stage+' feet stay on the ground');assert.equal(swell.w,still.w);}
+ bounds.length=0;view.draw(ctx,pet(),1600,null,0,false);const awake=bounds.at(-1);bounds.length=0;view.draw(ctx,pet(),1600,null,0,true);
+ assert.equal(awake.h,bounds.at(-1).h,'awake art is never stretched');});

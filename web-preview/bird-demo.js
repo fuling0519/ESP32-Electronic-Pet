@@ -22,6 +22,7 @@ function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true)
  if(state==='dead')model.healthState='dead';
  if(state==='feed'){action='feed';elapsed=(time%3000)/1000;}
  if(state==='happy'){action='happy';time=reduced?1800:1600+time%1000;}
+ if(state==='startled')action='startled';
  const dy=state==='startled'&&!reduced?Math.abs(Math.sin(now/90))*3:0;
  const drawn=state==='idle'||state==='water'?idle(ctx,model,time,cx,cy,scale,reduced,state==='water'):baseDraw(ctx,model,time,action,elapsed,sad,cx,cy-dy,scale);
  if(!drawn)return false;
@@ -30,7 +31,7 @@ function paint(ctx,p,state,now,cx=190,cy=126,scale=3,reduced=false,overlay=true)
  const fx=window.PetEffects;
  if(fx&&overlay&&state==='happy')fx.hearts(ctx,now%2600,{x:cx,y:cy-30,spread:44,until:1500,reduced});
  if(fx&&overlay&&state==='startled')fx.shock(ctx,now%2000,{x:cx+40,y:cy-70,reduced});
- if(fx&&state==='sleep')fx.zzz(ctx,now,{x:cx+26,y:cy-46,reduced});
+ if(fx&&state==='sleep')fx.zzz(ctx,now,{x:cx+26,y:cy-(window.WhiteBirdSleepData?51:46),reduced});
  return true;
 }
 function waterPose(now,cx,cy,onlyWater=false){

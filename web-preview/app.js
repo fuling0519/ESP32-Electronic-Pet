@@ -139,7 +139,7 @@ birdAt={cx:x+65,cy:y+50,stage:pet.stage};window.WhiteBirdActivity?.forget?.(ctx)
 // Walking to the pond or drinking moves the bird inside its activity player; follow it there.
 const walked=window.WhiteBirdActivity?.placed?.(ctx);if(walked)birdAt={...birdAt,...walked};
 drawDirt(pet,shownSpecies);drawShadow();
-if(condition==='sleep'){window.PetEffects?.zzz(ctx,now,{x:x+92,y:y+14,reduced:reduced.matches});}
+if(condition==='sleep'){window.PetEffects?.zzz(ctx,now,{x:x+92,y:y+(window.WhiteBirdSleepData?9:14),reduced:reduced.matches});}
 if(action==='feed'&&!window.WhiteBirdFeed?.bowl(ctx,pet,elapsed))foodBowl(elapsed);
 if(action==='treat'&&elapsed<1.4&&window.PotionView?.draw(ctx,elapsed,264,74,reduced.matches)){}else if(action==='treat'&&elapsed<1.4&&window.SharedPetView){SharedPetView.paint(ctx,'kPotionFrames',SharedPetView.potionFrame(elapsed),232,30,3);}else if(action==='treat'&&elapsed<1.4){ctx.save();ctx.fillStyle='#fffaf0';ctx.strokeStyle='#896448';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(248,151,24,31,5);ctx.fill();ctx.stroke();ctx.fillStyle='#896448';ctx.fillRect(252,146,16,6);ctx.fillStyle='#acd1bc';ctx.fillRect(258,160,4,13);ctx.fillRect(253,165,14,4);if(moving){ctx.globalAlpha=Math.sin(elapsed*Math.PI/2.5)*.8;for(let i=0;i<3;i++){const sy=130-i*13-(elapsed*12%12);ctx.fillRect(145+i*23,sy,2,8);ctx.fillRect(142+i*23,sy+3,8,2);}}ctx.restore();}
 if(action==='treat'&&elapsed>=1.4)drawRecovery(elapsed);if(action==='clean'&&!drawCleaning(elapsed,pet,shownSpecies)){const height=[33,66,99,132][Math.min(3,Math.floor(elapsed/.4))];ctx.fillStyle='rgba(192,226,235,.85)';ctx.fillRect(94,177-height,192,height);}

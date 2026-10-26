@@ -135,7 +135,7 @@ function resolve(p,now,action){
  if(preview==='flight'&&!action)return 'flight';
  return 'idle';
 }
-function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,opacity=1,frame=null,stage='adult'}={}){
+function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,opacity=1,frame=null,stage='adult',stretch=1}={}){
  const pose=POSES[stage]?.[state];if(!pose)return false;
  const cycle=pose.times.reduce((a,b)=>a+b,0);let phase=Math.max(0,elapsed)%cycle,index=0;
  if(frame!==null)index=Math.max(0,Math.min(pose.times.length-1,frame));
@@ -150,7 +150,8 @@ function paint(ctx,state,elapsed=0,reduced=false,{x=190,y=177,size=1,facing=1,op
  // Crop only at draw time; source files remain intact. Preserve each pose's proportions.
  ctx.save();ctx.imageSmoothingEnabled=false;
  ctx.globalAlpha=(ctx.globalAlpha??1)*opacity;
- if(facing<0){ctx.translate(x,y);ctx.scale(-1,1);ctx.drawImage(im,sx,sy,w,h,-spec.anchor[0]*scaleX,-spec.anchor[1]*scale,w*scaleX,h*scale);}
+ // Mirror and the sleeping breath (stretch) both pivot on the anchor at the feet.
+ if(facing<0||stretch!==1){ctx.translate(x,y);ctx.scale(facing<0?-1:1,stretch);ctx.drawImage(im,sx,sy,w,h,-spec.anchor[0]*scaleX,-spec.anchor[1]*scale,w*scaleX,h*scale);}
  else ctx.drawImage(im,sx,sy,w,h,x-spec.anchor[0]*scaleX,y-spec.anchor[1]*scale,w*scaleX,h*scale);
  ctx.restore();
  return {state,index};
@@ -212,7 +213,8 @@ function draw(ctx,p,now,action,elapsed,reduced){
  }
  // A head pat holds the squint smile; happy's open-eye frame reads almost like idle.
  const smile=reaction?.kind==='pet'&&!action&&state==='happy'?1:null;
- return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile,stage});
+ const stretch=state==='sleep'?window.PetEffects?.breath?.(now,reduced)??1:1;
+ return paint(ctx,state==='flight'?'idle':state,now-stateStart,reduced,{x:190+dx,y:177+dy-offset,frame:smile,stage,stretch});
 }
 document.addEventListener('visibilitychange',resetMotion);
 window.WyvernAdultView={eatSample,paint,paintTravel,travelAt,walkAt,draw,resolve,syncControls,setPreview,

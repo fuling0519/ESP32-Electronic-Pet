@@ -1,0 +1,1 @@
+window.WhiteBirdStartledData={"source":[1254,1254],"crop":{"left":91,"top":146,"width":1098,"height":1060},"feet":[440.4,1052],"baseFeet":[528.4,1227],"scale":1.107};
