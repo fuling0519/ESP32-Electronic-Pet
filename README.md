@@ -1,5 +1,7 @@
 # ESP32 Electronic Pet／神秘蛋電子寵物
 
+**🐣 電子雞網頁：<https://fuling0519.github.io/ESP32-Electronic-Pet/>**　手機或電腦直接開啟，按「搜尋」就能用藍牙連電子雞。Android 用 Chrome（已在 Galaxy A56 上測過）；iPhone 的 Safari 不支援，要用 Bluefy 等支援 Web Bluetooth 的瀏覽器。電子雞一次只能連一台裝置。
+
 這是以 ESP32 NodeMCU-32S 製作的離線電子寵物。本文件負責環境、建置及操作入口。
 
 目前正式韌體為 1.8.1；自 1.8.0 起加入第二種寵物「小飛龍」：每顆新蛋小鳥／小飛龍各 50%，種類沿用到成長、睡眠與紀念冊；現有小鳥存檔保留原種類。[小飛龍驗收與固定種類測試版](docs/testing/wyvern-test.md)。
