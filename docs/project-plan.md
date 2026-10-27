@@ -459,7 +459,7 @@ erDiagram
 - **W4｜狀態上雲** — 未實作；資料模型、revision／session 語意及帳號權限待定。
 - **W5｜養成命令** — 未實作。2026-10-26 本機 BLE 範圍的介面已在 BLE-S3 定案（不經雲端、不需 W3 配對，使用者接受無配對驗證的取捨）；雲端遠端操作仍依賴 W3。
 - **W6｜歷史／紀念館** — 雲端歷史與補傳未實作；依賴 saveGeneration／UUID 與事件來源，單靠 petId 不足。2026-10-02 已加入前端實際觀察紀錄的本地墓園，見下方增量；2026-10-24 改為剪貼相簿式紀念冊（見第 10 節）。它不等於完整裝置歷史或 W6 雲端驗收完成；當時 BLE 協定只傳目前寵物；2026-10-26 起 BLE-S3 階段 4 以 `get_memorials`／`delete_memorial` 讓 Web 與裝置紀念冊雙向同步刪除（本機 BLE，非雲端 W6）。
-- **W7｜部署及展示** — 未實作；待前述階段完成與整合驗收。
+- **W7｜部署及展示** — 雲端版（API／DB／帳號）未實作，待前述階段完成與整合驗收。2026-10-27 已加入純前端靜態部署：`web-preview` 首頁經 GitHub Pages 提供 HTTPS 網址，讓手機能用 Web Bluetooth 連電子雞，見第 10 節同日增量；手機實機連線尚未驗收，不等於 W7 驗收完成。
 - **W8｜常駐 Wi-Fi 雲端** — 選配未啟動；只有確認瀏覽器關閉仍須遠端操作才評估。
 
 ### 跨功能待決策
@@ -1322,6 +1322,14 @@ erDiagram
 - 自動驗證：`node --test web-preview/*.cjs` 210 項通過、0 失敗；`bird-demo-tests.cjs` 新增裝置模式待機會走動、睡覺／生病不走、傷心保留傷心圖、關閉觸碰時不走，並在既有裝置模式測試補走動位置斷言。
 - 瀏覽器有限檢查（本機 http + 內建瀏覽器，暫時替換頁面記憶體中的 BLE 讀取函式模擬已連線健康成鳥，事後重新整理清除）：瀏覽器面板收起時動畫迴圈不執行，改以頁面實際繪製程式離屏取樣，0～10 秒依序往左走、低頭喝水、返回；未在真實 ESP32 連線下觀看。
 - 邊界：純 Web 呈現；無實機驗收，真實 BLE 連線下的外觀待使用者確認。
+
+### 2026-10-27 Web 以 GitHub Pages 提供 HTTPS 網址（手機連線用）
+
+- 需求：使用者希望手機能連電子雞。Web Bluetooth 只在 HTTPS 或 localhost 頁面可用，原本只能用電腦上的 `開啟網頁.cmd`（`http://localhost:8765`）開啟。使用者選定 GitHub Pages（repo 為公開），確認上傳清單與網址後要求發布。
+- 實作：新增 `tools/build_pages.py`，從 `web-preview/index.html` 追出 HTML／JS／CSS 引用的檔案，只複製首頁實際需要的 95 個檔案（約 36.7 MB）到 `_site/`；執行期組出的路徑（小飛龍 `'assets/pets/wyvern/'+name`）在程式中的 `assets/…/'+` 前綴下找唯一相符檔，找不到或多於一個就中止，不靜默漏檔。測試檔、預覽頁、筆記、原圖、提示詞與未提交檔案不上傳。新增 `.github/workflows/pages.yml`：push 到 `main` 且改到 `web-preview/`、腳本或 workflow 時自動部署，也可手動執行。`_site/` 加入 `.gitignore`。網址：https://fuling0519.github.io/ESP32-Electronic-Pet/ 。純前端靜態託管，不新增帳號、API 或伺服器程式，韌體與 BLE 協定未改。
+- 自動驗證：腳本輸出與事先人工追查的 95 個檔案清單逐一相同，且全部已納入 Git。以本機 http 伺服器只開這 95 個檔案，首頁在內建瀏覽器正常顯示，啟動時 92 個請求成功，唯一 404 為瀏覽器自動要求的 `favicon.ico`，主控台無錯誤；未切換到小飛龍或逐一觸發各動畫，那些圖只確認已在清單內。Actions 部署結果見提交後的執行紀錄。
+- 未驗收：手機（Android Chrome、iPhone 需 Bluefy）開啟網址與實際 BLE 連線、行動版排版均未測。手機存檔與電腦 localhost 分開；ESP32 一次只接受一個連線。
+- 下一步：使用者在 GitHub repo 的 Settings → Pages 將 Source 設為「GitHub Actions」（若尚未啟用），確認部署成功後用手機實測連線，再記錄 W1 手機組合結果。
 
 ## 2026-10-22 — ESP32-PET BLE 實機驗證進度
 

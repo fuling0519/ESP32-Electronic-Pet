@@ -50,3 +50,4 @@ desktop.ini
 
 # Local AI image outputs (dalle script); keep only curated assets
 generated_images/
+_site/
