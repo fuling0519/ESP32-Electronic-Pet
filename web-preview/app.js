@@ -2,6 +2,8 @@
 (()=>{'use strict';
 // file:// blocks canvas pixel reads (halo, motes, farewell photo), so point to the localhost launcher.
 if(typeof location!=='undefined'&&location.protocol==='file:'){const w=document.querySelector('#file-warning');if(w)w.hidden=false;}
+// Images created while the page parses delay window load, so load marks the art as ready.
+const artLoading=document.querySelector('#art-loading');if(artLoading){const done=()=>{artLoading.hidden=true;};if(document.readyState==='complete')done();else globalThis.addEventListener?.('load',done,{once:true});}
 const root=document.querySelector('#aviary'),canvas=document.querySelector('#bird'),ctx=canvas.getContext('2d'),status=document.querySelector('#status'),bubble=document.querySelector('#bubble');
 
 const characterSheet=new Image();characterSheet.src='assets/tit-game-smooth.png';
@@ -148,7 +150,7 @@ if(night)for(let i=0;i<14;i++){ctx.globalAlpha=moving?.4+.6*Math.abs(Math.sin(no
 if(action&&elapsed>=(action==='feed'?3:action==='clean'?cleanDuration():3.4))finish();requestAnimationFrame(draw);}
 document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>b.dataset.action==='treat'&&mode==='mock'?healPet():begin(b.dataset.action)));
 function setNight(value){night=value;root.classList.toggle('night',night);applyBackdrop();const theme=document.querySelector('#theme-toggle'),label=night?'切換到午後':'切換到夜晚';theme.textContent=night?'☀':'☾';theme.setAttribute('aria-label',label);theme.title=label;syncTitle();savePreferences();}
-function applyBackdrop(){root.classList.remove('simple-background','smooth-background');const image=document.querySelector('#background');image.src='assets/garden-detailed-'+(night?'night':'day')+'.png?v=cute-farm-v2-20261016';image.alt=night?'像素農場傍晚夜景，暖黃燈光與靛藍溪流':'像素農場午後，明亮草地與湛藍溪流';}
+function applyBackdrop(){root.classList.remove('simple-background','smooth-background');const image=document.querySelector('#background');image.src=night?'assets/garden-detailed-night.png?v=cute-farm-v2-20261016':'assets/garden-detailed-day.png?v=cute-farm-v2-20261016';image.alt=night?'像素農場傍晚夜景，暖黃燈光與靛藍溪流':'像素農場午後，明亮草地與湛藍溪流';}
 
 applyBackdrop();
 document.querySelector('#theme-toggle').onclick=()=>setNight(!night);

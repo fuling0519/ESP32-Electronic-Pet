@@ -19,7 +19,7 @@
 
 畫面透過 DataManager 讀取資料與發起操作。舊展示存檔及 BLE 快取的相容方式、介面與離線測試指令見 [資料層交接](DATA-LAYER.md)。完整實作／測試／待驗收狀態只看 [主企劃第 10 節](../docs/project-plan.md#progress)。
 
-手機要連電子雞時，用 GitHub Pages 網址 https://fuling0519.github.io/ESP32-Electronic-Pet/ 開啟（HTTPS；Android 用 Chrome，iPhone 需 Bluefy 等支援 Web Bluetooth 的瀏覽器）。push 到 `main` 時由 `.github/workflows/pages.yml` 執行 `tools/build_pages.py`，只發布首頁用到的檔案；新增素材只要被首頁程式引用就會自動帶上。
+手機要連電子雞時，用 GitHub Pages 網址 https://fuling0519.github.io/ESP32-Electronic-Pet/ 開啟（HTTPS；Android 用 Chrome，iPhone 需 Bluefy 等支援 Web Bluetooth 的瀏覽器）。push 到 `main` 時由 `.github/workflows/pages.yml` 執行 `tools/build_pages.py`，只發布首頁用到的檔案，PNG 在部署時轉成 WebP（約 1/7 大小，原檔不變）；新增素材只要被首頁程式以完整路徑引用就會自動帶上，用 `+'.png'` 拼出檔名會讓部署中止。
 
 file URL 只供大致試玩：瀏覽器禁止讀取圖片像素，死亡光環、光點、送別照片與觸碰範圍會改用預設值，頁面頂端顯示提示，請改用根目錄的 `開啟網頁.cmd`；實際 Web Bluetooth 需支援的瀏覽器及 HTTPS／localhost。不同來源不共用本地存檔；清除瀏覽器資料會移除本地紀錄。重開頁面的 BLE 快取標為舊資料，不自動連線、不補算裝置養成。
 
